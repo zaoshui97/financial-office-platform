@@ -56,6 +56,12 @@ node_modules/
 dist/
 build/
 
+# Development-only sources and reports
+tests/
+evals/
+docs/
+requirements-dev.txt
+
 # IDE and operating-system files
 .idea/
 .vscode/

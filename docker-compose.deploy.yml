@@ -1,0 +1,140 @@
+name: financial-office-platform
+
+services:
+  mysql:
+    image: mysql:8.0.43
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env.deploy}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env.deploy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env.deploy}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env.deploy}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    expose:
+      - "3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD="$${MYSQL_ROOT_PASSWORD}" mysqladmin ping --host=127.0.0.1 --user=root --silent
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - backend
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent --show-error http://127.0.0.1:6333/healthz >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - backend
+
+  api:
+    image: financial-office-platform-api:${API_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env.deploy}
+      DATABASE_CHECK_ON_STARTUP: "true"
+      DATABASE_HOST: mysql
+      DATABASE_PORT: "3306"
+      DATABASE_USER: ${MYSQL_USER:?Set MYSQL_USER in .env.deploy}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env.deploy}
+      DATABASE_NAME: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env.deploy}
+      DATABASE_CHARSET: utf8mb4
+      STORAGE_DIR: /app/storage/uploads
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON_FILE: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      PDF_OCR_ENABLED: "true"
+      PDF_OCR_EXECUTABLE: tesseract
+      PDF_OCR_LANGUAGES: chi_sim+eng
+      PDF_OCR_DPI: ${PDF_OCR_DPI:-300}
+      PDF_OCR_MIN_NATIVE_TEXT_CHARS: ${PDF_OCR_MIN_NATIVE_TEXT_CHARS:-20}
+      PDF_OCR_MAX_PAGES: ${PDF_OCR_MAX_PAGES:-30}
+      PDF_OCR_PAGE_TIMEOUT_SECONDS: ${PDF_OCR_PAGE_TIMEOUT_SECONDS:-30}
+      PDF_OCR_DOCUMENT_TIMEOUT_SECONDS: ${PDF_OCR_DOCUMENT_TIMEOUT_SECONDS:-180}
+      PDF_OCR_MAX_CONCURRENCY: ${PDF_OCR_MAX_CONCURRENCY:-1}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-enterprise_knowledge_qwen3_7_text_embedding_v1_1024}
+      QDRANT_TIMEOUT_SECONDS: ${QDRANT_TIMEOUT_SECONDS:-10}
+      RAG_INDEX_ENABLED: "true"
+      RAG_VECTOR_SEARCH_ENABLED: "true"
+      RAG_VECTOR_FALLBACK_TO_KEYWORD: "false"
+      RAG_VECTOR_TOP_K: "20"
+      RAG_VECTOR_TOP_N: "6"
+      RAG_VECTOR_SCORE_THRESHOLD: "0.45"
+      EMBEDDING_PROVIDER: bailian
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?Set EMBEDDING_API_KEY in .env.deploy}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?Set EMBEDDING_BASE_URL in .env.deploy}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-qwen3.7-text-embedding}
+      EMBEDDING_DIMENSION: "1024"
+      EMBEDDING_VERSION: ${EMBEDDING_VERSION:-v1}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-10}
+      EMBEDDING_TIMEOUT_SECONDS: ${EMBEDDING_TIMEOUT_SECONDS:-30}
+      EMBEDDING_MAX_RETRIES: "0"
+      EMBEDDING_TRUST_ENV: "false"
+      AI_PROVIDER: openai_compatible
+      AI_API_STYLE: chat_completions
+      AI_API_KEY: ${AI_API_KEY:-CHANGE_ME}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-CHANGE_ME}
+      AI_SDK_MAX_RETRIES: "0"
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-1}
+      AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
+      QWEN_API_KEY: ${QWEN_API_KEY:?Set QWEN_API_KEY in .env.deploy}
+      QWEN_BASE_URL: ${QWEN_BASE_URL:?Set QWEN_BASE_URL in .env.deploy}
+      QWEN_MODEL: ${QWEN_MODEL:-qwen3.8-flash}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY in .env.deploy}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:?Set DEEPSEEK_BASE_URL in .env.deploy}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:?Set DEEPSEEK_MODEL in .env.deploy}
+      DOUBAO_API_KEY: ${DOUBAO_API_KEY:-CHANGE_ME}
+      DOUBAO_BASE_URL: ${DOUBAO_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}
+      DOUBAO_MODEL: ${DOUBAO_MODEL:-CHANGE_ME}
+      DATABASE_WAIT_TIMEOUT_SECONDS: ${DATABASE_WAIT_TIMEOUT_SECONDS:-120}
+    ports:
+      - 127.0.0.1:${API_HOST_PORT:-8000}:8000
+    volumes:
+      - api_uploads:/app/storage/uploads
+    networks:
+      - backend
+
+networks:
+  backend:
+    name: financial-office-backend
+    driver: bridge
+
+volumes:
+  mysql_data:
+    name: financial-office-mysql-data
+  qdrant_data:
+    name: financial-office-qdrant-data
+  api_uploads:
+    name: financial-office-api-uploads

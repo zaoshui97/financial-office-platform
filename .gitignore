@@ -12,6 +12,7 @@ venv/
 .env
 .env.*
 !.env.example
+!.env.deploy.example
 
 # 测试、类型检查与覆盖率缓存
 .pytest_cache/
