@@ -1,0 +1,212 @@
+{
+  "evaluation": "cross_02_after_title_selector",
+  "generated_at": "2026-09-28T14:20:49.923790+08:00",
+  "status": "completed",
+  "case_id": "cross-02",
+  "question": "《数据安全法》的通用义务如何在《银行保险机构数据安全管理办法》中被细化为行业治理和分类分级措施？",
+  "preflight": {
+    "uvicorn_started_after_code": true,
+    "application_http_status": 200,
+    "application_status": "ready",
+    "database_status": "connected",
+    "qdrant_http_status": 200,
+    "collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+    "collection_before": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    },
+    "effective_top_k": 20,
+    "effective_top_n": 4,
+    "login_http_status": 200
+  },
+  "request": {
+    "chat_http_status": 200,
+    "total_latency_ms": 77851.68,
+    "query_embedding_calls": 1,
+    "qdrant_vector_search_calls": 1,
+    "qdrant_limit": 20,
+    "chat_model_calls": 2,
+    "actual_provider": "deepseek",
+    "actual_model": "ep-m-20260725121915-nrpgs",
+    "fallback_count": 1,
+    "keyword_fallback_used": false
+  },
+  "top_20_source": {
+    "source_file": "evals/results/retrieval_rank_diagnostic.json",
+    "same_case_and_unchanged_collection": true,
+    "document_9_ranks": [
+      18,
+      19
+    ],
+    "document_9_scores": [
+      0.5567447,
+      0.54947054
+    ],
+    "document_11_ranks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16
+    ],
+    "document_11_scores": [
+      0.7689316,
+      0.742475,
+      0.72367775,
+      0.72365385,
+      0.7017516,
+      0.69175905,
+      0.67620975,
+      0.6672924,
+      0.6450629,
+      0.6372682,
+      0.6143646,
+      0.6019907,
+      0.6016377,
+      0.5853868,
+      0.5731821
+    ]
+  },
+  "final_selection": {
+    "document_ids_in_order": [
+      11,
+      11,
+      11,
+      11
+    ],
+    "allocation": {
+      "11": 4
+    },
+    "contains_documents_9_and_11": false,
+    "two_candidates_per_document": false,
+    "http_citations_match_persisted_final_contexts": true,
+    "citations": [
+      {
+        "order": 1,
+        "document_id": 11,
+        "chunk_id": 51,
+        "filename": "银行保险机构数据安全管理办法.pdf",
+        "score": 0.76900774,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          2,
+          3
+        ],
+        "retrieval_method": "vector",
+        "active_generation": "b01c2a98-ef2f-4eab-9ef1-3d78a0b89a52",
+        "point_id": "d758cd09-8d8e-5947-abbb-a8d2fa1613b0",
+        "identity_valid": true,
+        "page_metadata_valid": true,
+        "content_sha256": "b12e722492506138cbd1785e308ec2d71fae7f8f4c0e42533501db92782464d6",
+        "content_hash_valid": true,
+        "point_id_present": true,
+        "generation_validated_by_production_retrieval": true
+      },
+      {
+        "order": 2,
+        "document_id": 11,
+        "chunk_id": 54,
+        "filename": "银行保险机构数据安全管理办法.pdf",
+        "score": 0.74249136,
+        "page_number": null,
+        "page_numbers": [
+          7,
+          8,
+          9,
+          10
+        ],
+        "retrieval_method": "vector",
+        "active_generation": "b01c2a98-ef2f-4eab-9ef1-3d78a0b89a52",
+        "point_id": "80e6a3cd-d191-5805-ad8f-7af492ac102e",
+        "identity_valid": true,
+        "page_metadata_valid": true,
+        "content_sha256": "f9bb3f024c2e3128bd006ec46a0514e0c552215a44a47cd494b5e0618053a78b",
+        "content_hash_valid": true,
+        "point_id_present": true,
+        "generation_validated_by_production_retrieval": true
+      },
+      {
+        "order": 3,
+        "document_id": 11,
+        "chunk_id": 55,
+        "filename": "银行保险机构数据安全管理办法.pdf",
+        "score": 0.7237107,
+        "page_number": null,
+        "page_numbers": [
+          9,
+          10,
+          11
+        ],
+        "retrieval_method": "vector",
+        "active_generation": "b01c2a98-ef2f-4eab-9ef1-3d78a0b89a52",
+        "point_id": "6e3af5cf-cf38-59c2-b7a0-b8b4cd929027",
+        "identity_valid": true,
+        "page_metadata_valid": true,
+        "content_sha256": "229c02d292c680ddd355b0c431f1d63bc00f4e6c2e3e29aa0a083a9d806370eb",
+        "content_hash_valid": true,
+        "point_id_present": true,
+        "generation_validated_by_production_retrieval": true
+      },
+      {
+        "order": 4,
+        "document_id": 11,
+        "chunk_id": 53,
+        "filename": "银行保险机构数据安全管理办法.pdf",
+        "score": 0.7236945,
+        "page_number": null,
+        "page_numbers": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "retrieval_method": "vector",
+        "active_generation": "b01c2a98-ef2f-4eab-9ef1-3d78a0b89a52",
+        "point_id": "3af49a94-7fd6-58f3-8477-e86ae5b47978",
+        "identity_valid": true,
+        "page_metadata_valid": true,
+        "content_sha256": "ac42003e7d73d7113404544e4577c050f2dec57bf9a61cdcf06f1047b735a188",
+        "content_hash_valid": true,
+        "point_id_present": true,
+        "generation_validated_by_production_retrieval": true
+      }
+    ]
+  },
+  "answer": "根据提供的材料，《银行保险机构数据安全管理办法》将《数据安全法》的通用义务细化为具体的行业治理措施和数据分类分级措施，主要体现在以下几个方面：\n\n**1. 行业治理措施的细化**\n《办法》构建了明确的数据安全治理架构，将数据安全责任落实到具体岗位和部门[4]：\n*   **责任落实**：明确机构主要负责人为数据安全第一责任人，分管高级管理人员为直接责任人[4]。\n*   **归口管理**：要求指定数据安全归口管理部门，负责制度制定、分类分级推动、安全评估等统筹管理工作[4]。\n*   **分工协作**：遵循“谁管业务、谁管业务数据、谁管数据安全”的原则，落实各业务领域责任[4]；同时，信息科技部门作为技术保护主责部门，负责建立技术保护体系和应急机制[4]。\n*   **文化建设**：要求建立良好的数据安全文化，并开展全员数据安全教育和培训[2]。\n\n**2. 分类分级措施的细化**\n《办法》制定了具体的数据分类分级保护制度和标准[2]：\n*   **数据分类管理**：要求对业务及经营管理过程中获取、产生的数据进行分类管理，类型包括客户数据、业务数据、经营管理数据、系统运行和安全管理数据等[2]。\n*   **数据分级管理**：根据数据的重要性和敏感程度，将数据分为核心数据、重要数据、一般数据三个级别[2]。其中，一般数据又细分为敏感数据和其他一般数据，并对各级别数据（如核心数据、重要数据、敏感数据）的定义和潜在危害进行了明确界定[2]。\n*   **动态调整机制**：要求建立动态调整审批机制，当数据安全级别不再适用时，应及时进行调整[2]。",
+  "answer_assessment": {
+    "compares_both_documents": false,
+    "document_9_missing_issue_fixed": false
+  },
+  "postcheck": {
+    "collection_after": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    },
+    "collection_unchanged": true,
+    "knowledge_digest_before": "35b07471d025535f379a1d3de19153ab2ed23e466cd005effd49fde87fd339ff",
+    "knowledge_digest_after": "35b07471d025535f379a1d3de19153ab2ed23e466cd005effd49fde87fd339ff",
+    "knowledge_and_index_unchanged": true,
+    "documents_before": 13,
+    "documents_after": 13,
+    "chunks_before": 97,
+    "chunks_after": 97,
+    "conversations_added": 1,
+    "messages_added": 2
+  },
+  "sensitive_objects_cleared": true
+}

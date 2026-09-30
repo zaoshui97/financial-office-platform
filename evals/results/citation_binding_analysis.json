@@ -1,0 +1,1733 @@
+{
+  "analysis": "citation_binding_analysis",
+  "status": "completed_offline_read_only",
+  "external_request_count": 0,
+  "production_code_modified": false,
+  "source_files": [
+    "evals/results/baseline_smoke_after_retrieval_fixes.json",
+    "evals/results/baseline_smoke_run2.json",
+    "evals/rag_baseline_cases.json",
+    "evals/results/retrieval_threshold_calibration.json",
+    "evals/results/retrieval_rank_diagnostic.json",
+    "app/features/chat/service.py"
+  ],
+  "prompt_http_binding_basis": {
+    "confirmed": true,
+    "description": "app/features/chat/service.py::_build_rag_payload在同一次enumerate中生成编号Prompt材料和HTTP引用，因此最新Smoke结果中的citations顺序就是送入Prompt的上下文编号顺序。"
+  },
+  "cases": [
+    {
+      "case_id": "single-07",
+      "category": "single_document_fact",
+      "should_answer": true,
+      "expected_document_ids": [
+        12
+      ],
+      "expected_page_numbers": {
+        "12": [
+          3
+        ]
+      },
+      "prompt_top_contexts": [
+        {
+          "context_number": 1,
+          "document_id": 12,
+          "chunk_id": 71,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.79780275,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 12,
+          "chunk_id": 66,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 1,
+          "page_numbers": [
+            1
+          ],
+          "score": 0.74767727,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 12,
+          "chunk_id": 70,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.70342183,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 12,
+          "chunk_id": 68,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 2,
+          "page_numbers": [
+            2
+          ],
+          "score": 0.690879,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 12,
+          "chunk_id": 67,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.66237664,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 12,
+          "chunk_id": 75,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.66020334,
+          "retrieval_method": "vector"
+        }
+      ],
+      "http_citations": [
+        {
+          "context_number": 1,
+          "document_id": 12,
+          "chunk_id": 71,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.79780275,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 12,
+          "chunk_id": 66,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 1,
+          "page_numbers": [
+            1
+          ],
+          "score": 0.74767727,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 12,
+          "chunk_id": 70,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.70342183,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 12,
+          "chunk_id": 68,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 2,
+          "page_numbers": [
+            2
+          ],
+          "score": 0.690879,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 12,
+          "chunk_id": 67,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.66237664,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 12,
+          "chunk_id": 75,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.66020334,
+          "retrieval_method": "vector"
+        }
+      ],
+      "prompt_and_http_order_match": true,
+      "answer_reference_occurrences": [
+        1,
+        1,
+        1,
+        1,
+        4,
+        1,
+        1,
+        6,
+        5
+      ],
+      "valid_reference_occurrences": [
+        1,
+        1,
+        1,
+        1,
+        4,
+        1,
+        1,
+        6,
+        5
+      ],
+      "unique_valid_reference_numbers": [
+        1,
+        4,
+        6,
+        5
+      ],
+      "invalid_or_out_of_range_reference_numbers": [],
+      "duplicate_reference_extra_occurrences": {
+        "1": 5
+      },
+      "unused_context_numbers": [
+        2,
+        3
+      ],
+      "used_citations": [
+        {
+          "context_number": 1,
+          "document_id": 12,
+          "chunk_id": 71,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.79780275,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 12,
+          "chunk_id": 68,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 2,
+          "page_numbers": [
+            2
+          ],
+          "score": 0.690879,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 12,
+          "chunk_id": 75,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.66020334,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 12,
+          "chunk_id": 67,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.66237664,
+          "retrieval_method": "vector"
+        }
+      ],
+      "metrics": {
+        "all_http_citations": {
+          "document_recall": {
+            "recalled_document_ids": [
+              12
+            ],
+            "recalled": 1,
+            "expected": 1,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 2,
+            "evaluated": 6,
+            "value": 0.3333333333333333,
+            "correct_context_numbers": [
+              1,
+              3
+            ]
+          }
+        },
+        "used_citations_only": {
+          "document_recall": {
+            "recalled_document_ids": [
+              12
+            ],
+            "recalled": 1,
+            "expected": 1,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 1,
+            "evaluated": 4,
+            "value": 0.25,
+            "correct_context_numbers": [
+              1
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "single-08",
+      "category": "single_document_fact",
+      "should_answer": true,
+      "expected_document_ids": [
+        13
+      ],
+      "expected_page_numbers": {
+        "13": [
+          3
+        ]
+      },
+      "prompt_top_contexts": [
+        {
+          "context_number": 1,
+          "document_id": 13,
+          "chunk_id": 87,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.6988418,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 13,
+          "chunk_id": 82,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.67074525,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 13,
+          "chunk_id": 85,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            3,
+            4
+          ],
+          "score": 0.66652596,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 13,
+          "chunk_id": 90,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.632724,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 13,
+          "chunk_id": 91,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.61019063,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 13,
+          "chunk_id": 84,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.60741484,
+          "retrieval_method": "vector"
+        }
+      ],
+      "http_citations": [
+        {
+          "context_number": 1,
+          "document_id": 13,
+          "chunk_id": 87,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.6988418,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 13,
+          "chunk_id": 82,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.67074525,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 13,
+          "chunk_id": 85,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            3,
+            4
+          ],
+          "score": 0.66652596,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 13,
+          "chunk_id": 90,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.632724,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 13,
+          "chunk_id": 91,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.61019063,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 13,
+          "chunk_id": 84,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.60741484,
+          "retrieval_method": "vector"
+        }
+      ],
+      "prompt_and_http_order_match": true,
+      "answer_reference_occurrences": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        2
+      ],
+      "valid_reference_occurrences": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        2
+      ],
+      "unique_valid_reference_numbers": [
+        6,
+        2
+      ],
+      "invalid_or_out_of_range_reference_numbers": [],
+      "duplicate_reference_extra_occurrences": {
+        "6": 4
+      },
+      "unused_context_numbers": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "used_citations": [
+        {
+          "context_number": 6,
+          "document_id": 13,
+          "chunk_id": 84,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.60741484,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 13,
+          "chunk_id": 82,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.67074525,
+          "retrieval_method": "vector"
+        }
+      ],
+      "metrics": {
+        "all_http_citations": {
+          "document_recall": {
+            "recalled_document_ids": [
+              13
+            ],
+            "recalled": 1,
+            "expected": 1,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 1,
+            "evaluated": 6,
+            "value": 0.16666666666666666,
+            "correct_context_numbers": [
+              6
+            ]
+          }
+        },
+        "used_citations_only": {
+          "document_recall": {
+            "recalled_document_ids": [
+              13
+            ],
+            "recalled": 1,
+            "expected": 1,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 1,
+            "evaluated": 2,
+            "value": 0.5,
+            "correct_context_numbers": [
+              6
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "cross-02",
+      "category": "cross_document_synthesis",
+      "should_answer": true,
+      "expected_document_ids": [
+        9,
+        11
+      ],
+      "expected_page_numbers": {
+        "9": [
+          3,
+          4
+        ],
+        "11": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      "prompt_top_contexts": [
+        {
+          "context_number": 1,
+          "document_id": 9,
+          "chunk_id": 43,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.5567447,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 11,
+          "chunk_id": 51,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2,
+            3
+          ],
+          "score": 0.7689316,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 9,
+          "chunk_id": 45,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            2,
+            3
+          ],
+          "score": 0.54947054,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 11,
+          "chunk_id": 54,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "score": 0.742475,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 11,
+          "chunk_id": 55,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            9,
+            10,
+            11
+          ],
+          "score": 0.72367775,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 11,
+          "chunk_id": 53,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "score": 0.72365385,
+          "retrieval_method": "vector"
+        }
+      ],
+      "http_citations": [
+        {
+          "context_number": 1,
+          "document_id": 9,
+          "chunk_id": 43,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.5567447,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 11,
+          "chunk_id": 51,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2,
+            3
+          ],
+          "score": 0.7689316,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 9,
+          "chunk_id": 45,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            2,
+            3
+          ],
+          "score": 0.54947054,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 11,
+          "chunk_id": 54,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "score": 0.742475,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 11,
+          "chunk_id": 55,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            9,
+            10,
+            11
+          ],
+          "score": 0.72367775,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 11,
+          "chunk_id": 53,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "score": 0.72365385,
+          "retrieval_method": "vector"
+        }
+      ],
+      "prompt_and_http_order_match": true,
+      "answer_reference_occurrences": [
+        1,
+        1,
+        6,
+        6,
+        6,
+        6,
+        3,
+        3,
+        4,
+        4,
+        4,
+        4,
+        5
+      ],
+      "valid_reference_occurrences": [
+        1,
+        1,
+        6,
+        6,
+        6,
+        6,
+        3,
+        3,
+        4,
+        4,
+        4,
+        4,
+        5
+      ],
+      "unique_valid_reference_numbers": [
+        1,
+        6,
+        3,
+        4,
+        5
+      ],
+      "invalid_or_out_of_range_reference_numbers": [],
+      "duplicate_reference_extra_occurrences": {
+        "1": 1,
+        "6": 3,
+        "3": 1,
+        "4": 3
+      },
+      "unused_context_numbers": [
+        2
+      ],
+      "used_citations": [
+        {
+          "context_number": 1,
+          "document_id": 9,
+          "chunk_id": 43,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.5567447,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 11,
+          "chunk_id": 53,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "score": 0.72365385,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 9,
+          "chunk_id": 45,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            2,
+            3
+          ],
+          "score": 0.54947054,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 11,
+          "chunk_id": 54,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "score": 0.742475,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 11,
+          "chunk_id": 55,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            9,
+            10,
+            11
+          ],
+          "score": 0.72367775,
+          "retrieval_method": "vector"
+        }
+      ],
+      "metrics": {
+        "all_http_citations": {
+          "document_recall": {
+            "recalled_document_ids": [
+              9,
+              11
+            ],
+            "recalled": 2,
+            "expected": 2,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 2,
+            "evaluated": 6,
+            "value": 0.3333333333333333,
+            "correct_context_numbers": [
+              4,
+              6
+            ]
+          }
+        },
+        "used_citations_only": {
+          "document_recall": {
+            "recalled_document_ids": [
+              9,
+              11
+            ],
+            "recalled": 2,
+            "expected": 2,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 2,
+            "evaluated": 5,
+            "value": 0.4,
+            "correct_context_numbers": [
+              6,
+              4
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "refusal-01",
+      "category": "unsupported_refusal",
+      "should_answer": false,
+      "expected_document_ids": [],
+      "expected_page_numbers": {},
+      "prompt_top_contexts": [],
+      "http_citations": [],
+      "prompt_and_http_order_match": true,
+      "answer_reference_occurrences": [],
+      "valid_reference_occurrences": [],
+      "unique_valid_reference_numbers": [],
+      "invalid_or_out_of_range_reference_numbers": [],
+      "duplicate_reference_extra_occurrences": {},
+      "unused_context_numbers": [],
+      "used_citations": [],
+      "metrics": {
+        "all_http_citations": {
+          "document_recall": {
+            "recalled_document_ids": [],
+            "recalled": 0,
+            "expected": 0,
+            "value": null
+          },
+          "citation_page_accuracy": {
+            "correct": 0,
+            "evaluated": 0,
+            "value": null,
+            "correct_context_numbers": []
+          }
+        },
+        "used_citations_only": {
+          "document_recall": {
+            "recalled_document_ids": [],
+            "recalled": 0,
+            "expected": 0,
+            "value": null
+          },
+          "citation_page_accuracy": {
+            "correct": 0,
+            "evaluated": 0,
+            "value": null,
+            "correct_context_numbers": []
+          }
+        }
+      }
+    },
+    {
+      "case_id": "confusion-02",
+      "category": "confusable_sources",
+      "should_answer": true,
+      "expected_document_ids": [
+        4,
+        8
+      ],
+      "expected_page_numbers": {
+        "4": [],
+        "8": [
+          7,
+          8
+        ]
+      },
+      "prompt_top_contexts": [
+        {
+          "context_number": 1,
+          "document_id": 4,
+          "chunk_id": 9,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.7305951,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 8,
+          "chunk_id": 32,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.67802256,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 4,
+          "chunk_id": 8,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.6448015,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 4,
+          "chunk_id": 12,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.62890524,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 8,
+          "chunk_id": 41,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            13,
+            14
+          ],
+          "score": 0.6231305,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 8,
+          "chunk_id": 31,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.62112164,
+          "retrieval_method": "vector"
+        }
+      ],
+      "http_citations": [
+        {
+          "context_number": 1,
+          "document_id": 4,
+          "chunk_id": 9,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.7305951,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 8,
+          "chunk_id": 32,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.67802256,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 4,
+          "chunk_id": 8,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.6448015,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 4,
+          "document_id": 4,
+          "chunk_id": 12,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.62890524,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 5,
+          "document_id": 8,
+          "chunk_id": 41,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            13,
+            14
+          ],
+          "score": 0.6231305,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 6,
+          "document_id": 8,
+          "chunk_id": 31,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.62112164,
+          "retrieval_method": "vector"
+        }
+      ],
+      "prompt_and_http_order_match": true,
+      "answer_reference_occurrences": [
+        1,
+        3,
+        2
+      ],
+      "valid_reference_occurrences": [
+        1,
+        3,
+        2
+      ],
+      "unique_valid_reference_numbers": [
+        1,
+        3,
+        2
+      ],
+      "invalid_or_out_of_range_reference_numbers": [],
+      "duplicate_reference_extra_occurrences": {},
+      "unused_context_numbers": [
+        4,
+        5,
+        6
+      ],
+      "used_citations": [
+        {
+          "context_number": 1,
+          "document_id": 4,
+          "chunk_id": 9,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.7305951,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 3,
+          "document_id": 4,
+          "chunk_id": 8,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.6448015,
+          "retrieval_method": "vector"
+        },
+        {
+          "context_number": 2,
+          "document_id": 8,
+          "chunk_id": 32,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.67802256,
+          "retrieval_method": "vector"
+        }
+      ],
+      "metrics": {
+        "all_http_citations": {
+          "document_recall": {
+            "recalled_document_ids": [
+              4,
+              8
+            ],
+            "recalled": 2,
+            "expected": 2,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 4,
+            "evaluated": 6,
+            "value": 0.6666666666666666,
+            "correct_context_numbers": [
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "used_citations_only": {
+          "document_recall": {
+            "recalled_document_ids": [
+              4,
+              8
+            ],
+            "recalled": 2,
+            "expected": 2,
+            "value": 1.0
+          },
+          "citation_page_accuracy": {
+            "correct": 3,
+            "evaluated": 3,
+            "value": 1.0,
+            "correct_context_numbers": [
+              1,
+              3,
+              2
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "all_top_6_as_http_citations": {
+      "document_recall": {
+        "micro": 1.0,
+        "macro": 1.0,
+        "recalled_expected_documents": 6,
+        "expected_documents": 6
+      },
+      "citation_page_accuracy": {
+        "value": 0.375,
+        "correct_expected_document_citations": 9,
+        "evaluated_expected_document_citations": 24
+      }
+    },
+    "used_citations_only": {
+      "document_recall": {
+        "micro": 1.0,
+        "macro": 1.0,
+        "recalled_expected_documents": 6,
+        "expected_documents": 6
+      },
+      "citation_page_accuracy": {
+        "value": 0.5,
+        "correct_expected_document_citations": 7,
+        "evaluated_expected_document_citations": 14
+      }
+    },
+    "cases_with_no_valid_reference_numbers": {
+      "count": 1,
+      "case_ids": [
+        "refusal-01"
+      ],
+      "note": "唯一无有效编号题为预期拒答且上下文为空的refusal-01。"
+    },
+    "reference_quality": {
+      "invalid_or_out_of_range_occurrences": 0,
+      "total_contexts": 24,
+      "unique_used_contexts": 14,
+      "unused_contexts": 10,
+      "unused_page_correct": 2,
+      "unused_page_incorrect": 8,
+      "used_page_correct": 7,
+      "used_page_incorrect": 7
+    },
+    "baseline_smoke_run2": {
+      "document_recall_micro": 0.8333,
+      "document_recall_macro": 0.875,
+      "citation_page_accuracy": 0.5
+    },
+    "attribution": "从baseline_smoke_run2的50.0%下降到最新全量HTTP引用的37.5%，主要由未被答案采用却统一返回的额外上下文造成：10条未使用上下文中8条页码不合格；仅返回有效编号映射时恢复为50.0%，且文档召回仍为100%。但真实采用证据仍有7/14页码不合格，尤其single-07和cross-02，因此问题并非全部来自HTTP引用列表。"
+  },
+  "cross_02": {
+    "raw_top_20": [
+      {
+        "rank": 1,
+        "document_id": 11,
+        "chunk_id": 51,
+        "score": 0.7689316,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": 11,
+        "chunk_id": 54,
+        "score": 0.742475,
+        "page_number": null,
+        "page_numbers": [
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": 11,
+        "chunk_id": 55,
+        "score": 0.72367775,
+        "page_number": null,
+        "page_numbers": [
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": 11,
+        "chunk_id": 53,
+        "score": 0.72365385,
+        "page_number": null,
+        "page_numbers": [
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": 11,
+        "chunk_id": 52,
+        "score": 0.7017516,
+        "page_number": null,
+        "page_numbers": [
+          3,
+          4,
+          5
+        ]
+      },
+      {
+        "rank": 6,
+        "document_id": 11,
+        "chunk_id": 65,
+        "score": 0.69175905,
+        "page_number": null,
+        "page_numbers": [
+          28,
+          29,
+          30,
+          31
+        ]
+      },
+      {
+        "rank": 7,
+        "document_id": 11,
+        "chunk_id": 56,
+        "score": 0.67620975,
+        "page_number": null,
+        "page_numbers": [
+          11,
+          12,
+          13
+        ]
+      },
+      {
+        "rank": 8,
+        "document_id": 11,
+        "chunk_id": 58,
+        "score": 0.6672924,
+        "page_number": null,
+        "page_numbers": [
+          15,
+          16,
+          17
+        ]
+      },
+      {
+        "rank": 9,
+        "document_id": 11,
+        "chunk_id": 64,
+        "score": 0.6450629,
+        "page_number": null,
+        "page_numbers": [
+          26,
+          27,
+          28,
+          29
+        ]
+      },
+      {
+        "rank": 10,
+        "document_id": 11,
+        "chunk_id": 57,
+        "score": 0.6372682,
+        "page_number": null,
+        "page_numbers": [
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "rank": 11,
+        "document_id": 11,
+        "chunk_id": 62,
+        "score": 0.6143646,
+        "page_number": null,
+        "page_numbers": [
+          23,
+          24,
+          25
+        ]
+      },
+      {
+        "rank": 12,
+        "document_id": 11,
+        "chunk_id": 63,
+        "score": 0.6019907,
+        "page_number": null,
+        "page_numbers": [
+          25,
+          26,
+          27
+        ]
+      },
+      {
+        "rank": 13,
+        "document_id": 11,
+        "chunk_id": 60,
+        "score": 0.6016377,
+        "page_number": null,
+        "page_numbers": [
+          19,
+          20,
+          21
+        ]
+      },
+      {
+        "rank": 14,
+        "document_id": 11,
+        "chunk_id": 59,
+        "score": 0.5853868,
+        "page_number": null,
+        "page_numbers": [
+          17,
+          18,
+          19
+        ]
+      },
+      {
+        "rank": 15,
+        "document_id": 6,
+        "chunk_id": 21,
+        "score": 0.5833541,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          3
+        ]
+      },
+      {
+        "rank": 16,
+        "document_id": 11,
+        "chunk_id": 61,
+        "score": 0.5731821,
+        "page_number": null,
+        "page_numbers": [
+          21,
+          22,
+          23
+        ]
+      },
+      {
+        "rank": 17,
+        "document_id": 13,
+        "chunk_id": 85,
+        "score": 0.5569382,
+        "page_number": null,
+        "page_numbers": [
+          3,
+          4
+        ]
+      },
+      {
+        "rank": 18,
+        "document_id": 9,
+        "chunk_id": 43,
+        "score": 0.5567447,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          2
+        ]
+      },
+      {
+        "rank": 19,
+        "document_id": 9,
+        "chunk_id": 45,
+        "score": 0.54947054,
+        "page_number": null,
+        "page_numbers": [
+          2,
+          3
+        ]
+      },
+      {
+        "rank": 20,
+        "document_id": 6,
+        "chunk_id": 22,
+        "score": 0.5486001,
+        "page_number": 3,
+        "page_numbers": [
+          3
+        ]
+      }
+    ],
+    "document_9": {
+      "raw_top_20_count": 2,
+      "after_score_threshold_0_45_count": 2,
+      "candidates": [
+        {
+          "rank": 18,
+          "document_id": 9,
+          "chunk_id": 43,
+          "score": 0.5567447,
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ]
+        },
+        {
+          "rank": 19,
+          "document_id": 9,
+          "chunk_id": 45,
+          "score": 0.54947054,
+          "page_number": null,
+          "page_numbers": [
+            2,
+            3
+          ]
+        }
+      ],
+      "third_candidate_available": false
+    },
+    "document_11": {
+      "raw_top_20_count": 15,
+      "after_score_threshold_0_45_count": 15
+    },
+    "threshold_result": {
+      "validated_before_threshold": 20,
+      "remaining_after_0_45": 20,
+      "all_raw_top_20_scores_pass": true
+    },
+    "final_top_6": [
+      {
+        "rank": 1,
+        "document_id": 9,
+        "chunk_id": 43,
+        "score": 0.5567447,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          2
+        ]
+      },
+      {
+        "rank": 2,
+        "document_id": 11,
+        "chunk_id": 51,
+        "score": 0.7689316,
+        "page_number": null,
+        "page_numbers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "rank": 3,
+        "document_id": 9,
+        "chunk_id": 45,
+        "score": 0.54947054,
+        "page_number": null,
+        "page_numbers": [
+          2,
+          3
+        ]
+      },
+      {
+        "rank": 4,
+        "document_id": 11,
+        "chunk_id": 54,
+        "score": 0.742475,
+        "page_number": null,
+        "page_numbers": [
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "rank": 5,
+        "document_id": 11,
+        "chunk_id": 55,
+        "score": 0.72367775,
+        "page_number": null,
+        "page_numbers": [
+          9,
+          10,
+          11
+        ]
+      },
+      {
+        "rank": 6,
+        "document_id": 11,
+        "chunk_id": 53,
+        "score": 0.72365385,
+        "page_number": null,
+        "page_numbers": [
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ],
+    "final_document_distribution": {
+      "9": 2,
+      "11": 4
+    },
+    "distribution_reason": "文档9在原始Top-20中仅有Chunk 43和45两条，且二者均通过0.45阈值；不存在第三条文档9候选。轮询先形成9/11/9/11，文档9耗尽后由文档11补位，因此最终为2+4而非3+3。",
+    "support_chunks": {
+      "46": {
+        "in_raw_top_20": false,
+        "raw_rank": null,
+        "score": null,
+        "security_validation": "not_evaluated",
+        "score_threshold": "not_evaluated",
+        "final_allocation": "not_evaluated",
+        "conclusion": "Chunk 46未进入cross-02的原始Top-20；现有离线报告无法给出其精确排名或分数，也不能据此断言其安全校验或阈值失败。"
+      },
+      "52": {
+        "in_raw_top_20": true,
+        "raw_rank": 5,
+        "score": 0.7017516,
+        "security_validation": "passed",
+        "score_threshold_0_45": "passed",
+        "final_allocation": "excluded",
+        "conclusion": "Chunk 52通过安全校验和0.45阈值，但最终补位按全局分数顺序执行；Chunk 53（0.72365385）高于Chunk 52（0.7017516），占据最后名额。"
+      }
+    }
+  },
+  "options": {
+    "A": {
+      "name": "HTTP只返回答案中有效[n]明确引用的材料",
+      "page_accuracy_effect": "按本次5题从37.5%升至50.0%。",
+      "document_recall_effect": "按本次5题仍为100%。",
+      "no_number_compatibility": "无有效编号时引用为空；可能丢失模型隐式使用但未编号的材料。",
+      "api_compatibility": "字段形状可不变，但语义由检索结果改为已使用证据，属于行为变更。",
+      "generation_material_visibility": "可能隐藏实际送入模型但未显式编号的上下文。",
+      "complexity": "低到中；需解析、去重、越界过滤和持久化一致性测试。"
+    },
+    "B": {
+      "name": "同时保留retrieved_contexts和used_citations",
+      "page_accuracy_effect": "used_citations按本次5题为50.0%，retrieved_contexts仍完整可审计。",
+      "document_recall_effect": "两个视图按本次5题均为100%。",
+      "no_number_compatibility": "used_citations为空但retrieved_contexts保留，不丢失检索事实。",
+      "api_compatibility": "可采用加法式字段；保留现有citations语义时兼容性最好。",
+      "generation_material_visibility": "不隐藏，明确区分检索到与模型明确采用。",
+      "complexity": "中；需响应Schema、序列化、持久化及引用映射测试。"
+    },
+    "C": {
+      "name": "保持当前全部上下文都作为引用",
+      "page_accuracy_effect": "维持37.5%，继续将未使用的错误页码计入引用指标。",
+      "document_recall_effect": "维持100%。",
+      "no_number_compatibility": "无需处理编号缺失。",
+      "api_compatibility": "完全兼容。",
+      "generation_material_visibility": "完整，但混淆检索上下文与答案归因。",
+      "complexity": "无实现成本。"
+    },
+    "D": {
+      "name": "要求模型结构化输出已使用引用编号，不增加第二次模型调用",
+      "page_accuracy_effect": "可提高编号解析稳定性，但不能修复被采用证据本身的页码问题。",
+      "document_recall_effect": "取决于模型结构化输出质量；本次无法离线量化。",
+      "no_number_compatibility": "需定义结构化输出失败时的安全回退。",
+      "api_compatibility": "需修改Prompt、响应解析和可能的Provider结构化输出约束。",
+      "generation_material_visibility": "若配合retrieved_contexts则不隐藏；单独使用仍可能隐藏。",
+      "complexity": "中到高；需跨模型兼容、格式错误和回退测试。"
+    }
+  },
+  "recommendation": {
+    "preferred": "B",
+    "minimum_design": "采用加法式双视图：保留retrieved_contexts表示实际送入Prompt的全部安全上下文，新增used_citations表示答案中有效、去重、按首次出现顺序映射的[n]引用。为兼容现有客户端，可暂时保留citations现有语义并明确标记为检索上下文。",
+    "no_valid_reference_behavior": "答案无有效编号时used_citations返回空数组，不回退成全部上下文；retrieved_contexts继续保留以便审计。",
+    "why": "该方案在本次数据上保留100%文档召回并将已使用引用页码准确率呈现为50%，同时不隐藏模型实际获得的材料；比直接替换citations语义风险更低，也不需要第二次模型调用。",
+    "follow_up_tests": [
+      "重复编号按首次出现去重",
+      "越界和无效编号忽略",
+      "无编号回答used_citations为空",
+      "混合有效/无效编号映射",
+      "retrieved_contexts与Prompt顺序一致",
+      "保留旧citations字段的兼容性",
+      "消息持久化与HTTP响应一致"
+    ],
+    "not_recommended": [
+      "不降低全局0.45阈值来追逐Chunk 46或52。",
+      "不硬编码Chunk编号、文档ID或单题规则。"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "case_id": "single-08",
+  "status": "preflight_failed",
+  "failure_stage": "uvicorn_process_check",
+  "failure_reason": "127.0.0.1:8000 has no listening process",
+  "request_sent": false,
+  "login_attempted": false,
+  "checks": {
+    "uvicorn_started_after_code_change": false,
+    "application_ready": "not_checked_after_required_precondition_failed",
+    "effective_top_k": "not_checked_after_required_precondition_failed",
+    "effective_top_n": "not_checked_after_required_precondition_failed",
+    "qdrant_collection": "not_checked_after_required_precondition_failed"
+  },
+  "calls": {
+    "query_embedding": 0,
+    "qdrant_search": 0,
+    "chat_model": 0,
+    "chat_api": 0
+  },
+  "database_changes": {
+    "conversations": 0,
+    "messages": 0,
+    "knowledge_or_index_data_modified": false
+  },
+  "production_files_modified": false
+}

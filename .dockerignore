@@ -1,0 +1,68 @@
+# Version control and local metadata
+.git/
+.gitignore
+.gitattributes
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime logs and uploaded business documents
+logs/
+*.log
+uploads/
+storage/uploads/
+
+# Database backups and exports
+backups/
+db-backups/
+database-backups/
+*.sql
+*.sql.gz
+*.dump
+*.bak
+
+# Qdrant local vector data
+qdrant_data/
+qdrant_storage/
+storage/qdrant/
+.qdrant/
+
+# OCR temporary artifacts
+.ocr-tmp/
+ocr_tmp/
+ocr-temp/
+tmp/ocr/
+page-*-ocr.txt
+page-*-ocr.png
+page-*.png
+
+# Frontend and package build output
+node_modules/
+dist/
+build/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/

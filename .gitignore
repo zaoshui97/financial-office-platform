@@ -1,0 +1,69 @@
+# Python 缓存与编译产物
+__pycache__/
+*.pyc
+*.py[cod]
+*.pyd
+
+# 虚拟环境
+.venv/
+venv/
+
+# 环境变量与本地密钥
+.env
+.env.*
+!.env.example
+
+# 测试、类型检查与覆盖率缓存
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 运行时文件
+logs/
+*.log
+uploads/
+storage/uploads/*
+!storage/uploads/.gitkeep
+
+# 数据库备份与导出
+backups/
+db-backups/
+database-backups/
+*.sql
+*.sql.gz
+*.dump
+*.bak
+
+# Qdrant 本地向量数据
+qdrant_data/
+qdrant_storage/
+storage/qdrant/
+.qdrant/
+
+# OCR 临时文件
+.ocr-tmp/
+ocr_tmp/
+ocr-temp/
+tmp/ocr/
+page-*-ocr.txt
+page-*-ocr.png
+page-*.png
+
+# IDE 与操作系统文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 构建产物
+build/
+dist/
+*.egg-info/
+node_modules/

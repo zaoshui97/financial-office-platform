@@ -1,0 +1,119 @@
+{
+  "status": "success",
+  "project": "D:\\shuzi马力\\financial-office-platform",
+  "source_inventory": "evals/results/knowledge_base_inventory.json",
+  "preflight": {
+    "application_health": {
+      "http_status": 200,
+      "application_status": "ready",
+      "database_status": "connected"
+    },
+    "source_file": {
+      "path": "D:\\rag_docs\\finance_policy\\深圳证券交易所债券交易规则.pdf",
+      "filename": "深圳证券交易所债券交易规则.pdf",
+      "size_bytes": 546904,
+      "sha256": "571ab528a8a934bfe7ea28aa5d9a088a79100ab6fc96c51f567fafe64118e01f",
+      "pdf_header_valid": true,
+      "readable": true,
+      "encrypted": false,
+      "page_count": 40,
+      "native_text_pages": 40,
+      "pages_below_ocr_threshold": [],
+      "requires_ocr": false
+    },
+    "same_name_knowledge_base_existed": false
+  },
+  "requests": {
+    "login": {
+      "attempts": 1,
+      "http_status": 200
+    },
+    "current_user": {
+      "http_status": 200,
+      "user_id": 3,
+      "active": true
+    },
+    "knowledge_base_list": {
+      "http_status": 200
+    },
+    "knowledge_base_create": {
+      "attempts": 1,
+      "http_status": 201
+    },
+    "document_upload": {
+      "attempts": 1,
+      "http_status": 201,
+      "multipart_field": "file",
+      "client_timeout_seconds": 300
+    }
+  },
+  "knowledge_base": {
+    "id": 2,
+    "owner_id": 3,
+    "name": "债券市场与交易规则",
+    "description": "收录债券发行、上市、交易、信息披露及相关监管规则，供债券业务检索与问答使用。",
+    "document_count": 1
+  },
+  "document": {
+    "id": 14,
+    "knowledge_base_id": 2,
+    "owner_id": 3,
+    "original_filename": "深圳证券交易所债券交易规则.pdf",
+    "file_type": "pdf",
+    "file_size": 546904,
+    "parse_status": "parsed",
+    "index_status": "pending",
+    "page_count": 40,
+    "parsed_char_count": 19955,
+    "parsed_text_nonempty": true,
+    "parse_error": null,
+    "ocr": {
+      "invoked": false,
+      "page_count": 0,
+      "pages": [],
+      "elapsed_ms": 0
+    },
+    "active_index_generation": null,
+    "building_index_generation": null,
+    "index_collection": null,
+    "indexed_at": null
+  },
+  "chunks": {
+    "count": 24,
+    "chunk_indexes_continuous_from_zero": true,
+    "page_coverage": {
+      "first_page": 1,
+      "last_page": 40,
+      "complete": true,
+      "invalid_page_count": 0
+    },
+    "page_metadata_valid": true,
+    "content_hash_algorithm": "sha256-utf8",
+    "all_content_hashes_valid": true,
+    "all_owned_by_user_id": 3,
+    "all_belong_to_knowledge_base_id": 2,
+    "all_belong_to_document_id": 14,
+    "vector_id_all_null": true,
+    "embedding_provider_all_null": true,
+    "embedding_model_all_null": true,
+    "embedding_dimension_all_null": true,
+    "embedding_version_all_null": true
+  },
+  "file_storage": {
+    "stored_file_exists": true,
+    "stored_sha256_matches_source": true,
+    "stored_with_generated_filename": true
+  },
+  "isolation": {
+    "knowledge_base_1_operated": false,
+    "embedding_called": false,
+    "qdrant_write_called": false,
+    "chat_model_called": false,
+    "index_or_reindex_called": false
+  },
+  "security": {
+    "credentials_printed": false,
+    "token_persisted": false,
+    "sensitive_references_cleared": true
+  }
+}

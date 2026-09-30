@@ -1,0 +1,460 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-26",
+  "knowledge_base": {
+    "owner_id": 3,
+    "knowledge_base_id": 1
+  },
+  "source_snapshot": [
+    {
+      "document_id": 3,
+      "filename": "金融行业知识库使用规范.txt",
+      "chunk_count": 1,
+      "active_point_mappings_verified": 1
+    },
+    {
+      "document_id": 4,
+      "filename": "商业银行互联网贷款管理暂行办法.docx",
+      "chunk_count": 11,
+      "active_point_mappings_verified": 11
+    },
+    {
+      "document_id": 6,
+      "filename": "金融数据安全 数据安全分级指南.pdf",
+      "chunk_count": 2,
+      "active_point_mappings_verified": 2
+    },
+    {
+      "document_id": 8,
+      "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+      "chunk_count": 20,
+      "active_point_mappings_verified": 20
+    },
+    {
+      "document_id": 9,
+      "filename": "中华人民共和国数据安全法.pdf",
+      "chunk_count": 8,
+      "active_point_mappings_verified": 8
+    },
+    {
+      "document_id": 11,
+      "filename": "银行保险机构数据安全管理办法.pdf",
+      "chunk_count": 15,
+      "active_point_mappings_verified": 15
+    },
+    {
+      "document_id": 12,
+      "filename": "中华人民共和国个人信息保护法.pdf",
+      "chunk_count": 15,
+      "active_point_mappings_verified": 15
+    },
+    {
+      "document_id": 13,
+      "filename": "中华人民共和国网络安全法.pdf",
+      "chunk_count": 17,
+      "active_point_mappings_verified": 17
+    }
+  ],
+  "category_counts": {
+    "single_document_fact": 8,
+    "cross_document_synthesis": 4,
+    "citation_accuracy": 2,
+    "unsupported_refusal": 2,
+    "confusable_sources": 2
+  },
+  "cases": [
+    {
+      "id": "single-01",
+      "category": "single_document_fact",
+      "question": "《金融行业知识库使用规范》对资料准入、内容安全和问答输出分别提出了哪些要求？",
+      "should_answer": true,
+      "expected_document_ids": [3],
+      "expected_filenames": ["金融行业知识库使用规范.txt"],
+      "expected_page_numbers": {"3": []},
+      "gold_answer_points": [
+        "允许入库公开监管文件、公开产品介绍、业务流程说明、培训材料和行业公开研报。",
+        "禁止入库客户身份、账户、交易明细以及内部未公开风控模型和机密方案。",
+        "入库正文会发送到 Embedding 服务，因此应在入库前完成脱敏。",
+        "金融内容回答仅供信息参考，不构成投资建议。",
+        "知识库支持增量上传；删除旧文档时应同步清理对应向量。"
+      ],
+      "forbidden_claims": [
+        "允许将客户账户或交易明细直接上传。",
+        "知识库回答可以作为投资建议。"
+      ],
+      "notes": "直接证据为 Chunk 7。TXT 来源没有可靠页码，引用页码应为空。"
+    },
+    {
+      "id": "single-02",
+      "category": "single_document_fact",
+      "question": "《商业银行互联网贷款管理暂行办法》对借款人风险数据的获取、使用和安全管理有哪些要求？",
+      "should_answer": true,
+      "expected_document_ids": [4],
+      "expected_filenames": ["商业银行互联网贷款管理暂行办法.docx"],
+      "expected_page_numbers": {"4": []},
+      "gold_answer_points": [
+        "从合作机构获取风险数据时，应确认数据来源合法合规、真实有效，并已取得信息主体明确授权。",
+        "不得与违规收集和使用个人信息的第三方开展数据合作。",
+        "收集和使用风险数据应遵循合法、必要、有效原则，不得用于贷款业务无关或损害借款人权益的活动。",
+        "除法律法规另有规定外，不得向第三方提供借款人风险数据。",
+        "应覆盖采集、传输、存储、处理和销毁全过程采取安全措施，防范泄露、丢失和篡改。",
+        "风险数据应满足模型所需的精确性、完整性、一致性、时效性和有效性。"
+      ],
+      "forbidden_claims": [
+        "风险数据可以不经授权用于与贷款无关的营销。",
+        "风险模型管理职责可以整体外包。"
+      ],
+      "notes": "直接证据为 Chunk 13。DOCX 解析结果没有可靠页码，引用页码应为空。"
+    },
+    {
+      "id": "single-03",
+      "category": "single_document_fact",
+      "question": "当前知识库中的《金融数据安全 数据安全分级指南》片段能确认哪些标准基本信息和目录结构？",
+      "should_answer": true,
+      "expected_document_ids": [6],
+      "expected_filenames": ["金融数据安全 数据安全分级指南.pdf"],
+      "expected_page_numbers": {"6": [1, 3]},
+      "gold_answer_points": [
+        "该文件标识为中华人民共和国金融行业标准。",
+        "标准编号为 JR/T 0197—2020。",
+        "发布日期和实施日期均为 2020 年 9 月 23 日。",
+        "目录包括范围、规范性引用文件、术语和定义、目标原则和范围、数据安全定级、重要数据识别及附录。"
+      ],
+      "forbidden_claims": [
+        "依据当前两个 Chunk 编造具体的数据定级判定规则。",
+        "声称当前知识库已包含该标准全部 48 页正文。"
+      ],
+      "notes": "直接证据为 Chunk 21、22。当前入库内容主要是封面和目录，评价时必须限制回答深度。"
+    },
+    {
+      "id": "single-04",
+      "category": "single_document_fact",
+      "question": "《中国人民银行金融消费者权益保护实施办法》对消费者金融信息的收集、使用、授权和泄露处置提出了哪些主要要求？",
+      "should_answer": true,
+      "expected_document_ids": [8],
+      "expected_filenames": ["中国人民银行金融消费者权益保护实施办法.pdf"],
+      "expected_page_numbers": {"8": [6, 7, 8]},
+      "gold_answer_points": [
+        "处理消费者金融信息应遵循合法、正当、必要原则，并取得消费者或其监护人的明示同意，法定例外除外。",
+        "不得收集与业务无关的信息，不得以不正当方式或变相强制方式收集。",
+        "营销、体验改进或市场调查用途应由消费者自主选择，不同意时不得据此拒绝服务。",
+        "应公开收集使用规则，明示目的、方式和范围，并按约定用途使用，不得超范围。",
+        "应实行分级授权、妥善存储并严格保密，发生泄露、毁损或丢失时采取补救、告知和报告措施。"
+      ],
+      "forbidden_claims": [
+        "消费者不同意任何信息处理时，金融机构都可以拒绝服务。",
+        "消费者金融信息可以无范围限制地提供给第三方。"
+      ],
+      "notes": "直接证据为 Chunk 31、32，页码来自活动 Point 对应 Chunk 的 page_numbers。"
+    },
+    {
+      "id": "single-05",
+      "category": "single_document_fact",
+      "question": "《中华人民共和国数据安全法》对数据处理者落实安全保护义务作出了哪些要求？",
+      "should_answer": true,
+      "expected_document_ids": [9],
+      "expected_filenames": ["中华人民共和国数据安全法.pdf"],
+      "expected_page_numbers": {"9": [3, 4]},
+      "gold_answer_points": [
+        "建立健全全流程数据安全管理制度并组织数据安全教育培训。",
+        "采取相应技术措施和其他必要措施；通过信息网络处理数据时还应以网络安全等级保护制度为基础。",
+        "重要数据处理者应明确数据安全负责人和管理机构。",
+        "加强风险监测，发现缺陷或漏洞时立即补救，发生事件时立即处置并按规定告知用户和报告主管部门。",
+        "重要数据处理者应定期开展风险评估并报送包含数据种类、数量、处理情况、风险和应对措施的报告。"
+      ],
+      "forbidden_claims": [
+        "所有一般数据都必须指定独立的数据安全负责人。",
+        "数据安全事件可以等年度评估时再报告。"
+      ],
+      "notes": "直接证据为 Chunk 46、47。"
+    },
+    {
+      "id": "single-06",
+      "category": "single_document_fact",
+      "question": "《银行保险机构数据安全管理办法》如何规定数据分类分级框架及其动态管理？",
+      "should_answer": true,
+      "expected_document_ids": [11],
+      "expected_filenames": ["银行保险机构数据安全管理办法.pdf"],
+      "expected_page_numbers": {"11": [8, 9, 10]},
+      "gold_answer_points": [
+        "应制定数据分类分级保护制度，建立并动态维护数据目录和分类分级规范。",
+        "数据类型包括客户数据、业务数据、经营管理数据、系统运行和安全管理数据等。",
+        "安全级别分为核心数据、重要数据和一般数据。",
+        "一般数据进一步分为敏感数据和其他一般数据。",
+        "应根据业务属性、重要程度和潜在危害变化及时调整安全级别，并采取差异化保护措施。"
+      ],
+      "forbidden_claims": [
+        "该办法只把数据分为重要数据和一般数据两级。",
+        "数据安全级别一经确定不得调整。"
+      ],
+      "notes": "直接证据为 Chunk 54、55。"
+    },
+    {
+      "id": "single-07",
+      "category": "single_document_fact",
+      "question": "《中华人民共和国个人信息保护法》对敏感个人信息的定义和处理条件有哪些规定？",
+      "should_answer": true,
+      "expected_document_ids": [12],
+      "expected_filenames": ["中华人民共和国个人信息保护法.pdf"],
+      "expected_page_numbers": {"12": [3]},
+      "gold_answer_points": [
+        "敏感个人信息是泄露或非法使用后容易侵害人格尊严或危害人身、财产安全的信息。",
+        "示例包括生物识别、宗教信仰、特定身份、医疗健康、金融账户和行踪轨迹等信息。",
+        "不满十四周岁未成年人的个人信息属于敏感个人信息。",
+        "只有具备特定目的和充分必要性并采取严格保护措施时方可处理。",
+        "处理敏感个人信息原则上应取得单独同意，并额外告知处理必要性及对个人权益的影响。"
+      ],
+      "forbidden_claims": [
+        "所有公开的个人信息都不再属于敏感信息。",
+        "敏感个人信息只需普通同意且无需额外告知。"
+      ],
+      "notes": "直接证据为 Chunk 71。"
+    },
+    {
+      "id": "single-08",
+      "category": "single_document_fact",
+      "question": "《中华人民共和国网络安全法》要求网络运营者在网络安全等级保护制度下履行哪些基本义务？",
+      "should_answer": true,
+      "expected_document_ids": [13],
+      "expected_filenames": ["中华人民共和国网络安全法.pdf"],
+      "expected_page_numbers": {"13": [3]},
+      "gold_answer_points": [
+        "制定内部安全管理制度和操作规程，确定负责人并落实责任。",
+        "采取防范计算机病毒、网络攻击和网络侵入等技术措施。",
+        "监测和记录网络运行状态及网络安全事件。",
+        "相关网络日志按规定留存不少于六个月。",
+        "采取数据分类、重要数据备份和加密等措施。"
+      ],
+      "forbidden_claims": [
+        "网络日志只需保存三个月。",
+        "等级保护义务仅适用于关键信息基础设施运营者。"
+      ],
+      "notes": "直接证据为 Chunk 84、85。"
+    },
+    {
+      "id": "cross-01",
+      "category": "cross_document_synthesis",
+      "question": "结合金融消费者权益保护办法和个人信息保护法，金融机构收集并使用消费者个人信息时应遵循哪些共同底线和金融场景特别要求？",
+      "should_answer": true,
+      "expected_document_ids": [8, 12],
+      "expected_filenames": [
+        "中国人民银行金融消费者权益保护实施办法.pdf",
+        "中华人民共和国个人信息保护法.pdf"
+      ],
+      "expected_page_numbers": {"8": [6, 7, 8], "12": [1, 2, 3]},
+      "gold_answer_points": [
+        "共同底线包括合法、正当、必要，处理目的明确且与业务直接相关，并将收集范围控制在最小必要范围。",
+        "以同意为依据时，应在充分知情基础上取得有效同意；金融消费者信息规则还明确要求消费者或监护人明示同意。",
+        "应公开或明确告知处理目的、方式、信息种类或范围、保存期限以及行使权利的方式。",
+        "不得因个人不同意非必要信息处理而拒绝提供产品或服务。",
+        "金融营销、体验改进和市场调查用途应提供自主选择及拒绝继续接收营销信息的方式。"
+      ],
+      "forbidden_claims": [
+        "金融场景可以排除个人信息保护法的一般原则。",
+        "消费者一旦同意，金融机构即可无限期、无限范围使用信息。"
+      ],
+      "notes": "直接证据为 Chunk 31、32、67、68、69。回答应同时召回两个文档。"
+    },
+    {
+      "id": "cross-02",
+      "category": "cross_document_synthesis",
+      "question": "《数据安全法》的通用义务如何在《银行保险机构数据安全管理办法》中被细化为行业治理和分类分级措施？",
+      "should_answer": true,
+      "expected_document_ids": [9, 11],
+      "expected_filenames": [
+        "中华人民共和国数据安全法.pdf",
+        "银行保险机构数据安全管理办法.pdf"
+      ],
+      "expected_page_numbers": {"9": [3, 4], "11": [4, 5, 6, 7, 8, 9, 10]},
+      "gold_answer_points": [
+        "数据安全法提出全流程制度、培训、技术措施、风险监测和事件处置等通用义务。",
+        "重要数据处理者还应明确负责人和管理机构，并定期开展风险评估和报告。",
+        "行业办法进一步建立覆盖董事会、高管层、归口管理和技术保护部门的组织架构及责任制。",
+        "行业办法要求建立数据目录和分类分级规范，将数据分为核心、重要、一般并细分一般数据。",
+        "行业办法要求动态调整安全级别、采取差异化措施，并对敏感级及以上高影响处理活动事前评估。"
+      ],
+      "forbidden_claims": [
+        "行业办法取代或排除数据安全法。",
+        "数据安全法直接规定了银行保险机构内部所有具体岗位职责。"
+      ],
+      "notes": "直接证据为 Chunk 46、52、53、54、55。"
+    },
+    {
+      "id": "cross-03",
+      "category": "cross_document_synthesis",
+      "question": "比较《数据安全法》和《网络安全法》中关于风险监测与安全事件处置的要求：数据处理者与网络运营者各应做什么？",
+      "should_answer": true,
+      "expected_document_ids": [9, 13],
+      "expected_filenames": [
+        "中华人民共和国数据安全法.pdf",
+        "中华人民共和国网络安全法.pdf"
+      ],
+      "expected_page_numbers": {"9": [3, 4], "13": [4, 5]},
+      "gold_answer_points": [
+        "数据处理者应加强风险监测，发现数据安全缺陷、漏洞时立即采取补救措施。",
+        "发生数据安全事件时，数据处理者应立即处置，并按规定及时告知用户、报告主管部门。",
+        "网络运营者应制定网络安全事件应急预案，及时处置系统漏洞、病毒、攻击和入侵等风险。",
+        "发生危害网络安全的事件时，网络运营者应立即启动预案、采取补救措施并按规定报告。",
+        "两部法律均强调事前监测或预案和事后及时补救、报告，但规范对象与风险场景不同。"
+      ],
+      "forbidden_claims": [
+        "两部法律的规范对象和义务完全相同。",
+        "只有造成严重后果后才需要采取补救措施。"
+      ],
+      "notes": "直接证据为 Chunk 46、85、86。"
+    },
+    {
+      "id": "cross-04",
+      "category": "cross_document_synthesis",
+      "question": "结合个人信息保护法和银行保险机构数据安全管理办法，银行保险机构处理个人信息时应如何落实告知同意、最小必要、影响评估、委托处理和事件处置？",
+      "should_answer": true,
+      "expected_document_ids": [11, 12],
+      "expected_filenames": [
+        "银行保险机构数据安全管理办法.pdf",
+        "中华人民共和国个人信息保护法.pdf"
+      ],
+      "expected_page_numbers": {"11": [20, 21, 22, 23], "12": [1, 2, 3, 4, 5]},
+      "gold_answer_points": [
+        "处理前应清晰告知目的、方式、信息种类、保存期限和权利行使程序，并依法取得有效同意。",
+        "处理目的应明确合理、与业务直接相关，收集范围限于最小必要。",
+        "处理敏感信息、自动化决策、委托或对外提供等高影响活动应事前开展个人信息保护影响评估并留存记录。",
+        "委托处理应通过合同明确目的、期限、方式、范围、保护措施和责任，监督受托方且限制转委托。",
+        "发生或可能发生泄露、篡改、丢失时，应立即补救，并依法通知个人和监管部门。"
+      ],
+      "forbidden_claims": [
+        "银行保险机构可以将个人信息保护主体责任外包。",
+        "委托第三方后无需继续监督其处理活动。"
+      ],
+      "notes": "直接证据为 Chunk 60、61、70、74、75、76。"
+    },
+    {
+      "id": "citation-01",
+      "category": "citation_accuracy",
+      "question": "《银行保险机构数据安全管理办法》对数据安全事件的首次报告、书面报告、特别重大事件进展报告和处置结束后总结报告分别规定了什么时限？请给出准确页码引用。",
+      "should_answer": true,
+      "expected_document_ids": [11],
+      "expected_filenames": ["银行保险机构数据安全管理办法.pdf"],
+      "expected_page_numbers": {"11": [25, 26]},
+      "gold_answer_points": [
+        "数据安全事件发生后 2 小时内向监管部门报告。",
+        "事件发生后 24 小时内提交正式书面报告。",
+        "特别重大事件处置期间每 2 小时上报进展，直至处置结束。",
+        "处置结束后 5 个工作日内报送评估、总结和改进报告。"
+      ],
+      "forbidden_claims": [
+        "首次报告时限为 24 小时。",
+        "处置总结报告时限为 30 日。",
+        "引用第 24 页以外且未包含第 25—26 页作为唯一依据。"
+      ],
+      "notes": "直接证据为 Chunk 63，活动 Chunk 的 page_numbers 为 25、26。此题重点评估页码精确度。"
+    },
+    {
+      "id": "citation-02",
+      "category": "citation_accuracy",
+      "question": "依据《中国人民银行金融消费者权益保护实施办法》，消费者金融信息泄露、毁损或丢失时，金融机构应如何补救、告知和报告？请给出准确页码引用。",
+      "should_answer": true,
+      "expected_document_ids": [8],
+      "expected_filenames": ["中国人民银行金融消费者权益保护实施办法.pdf"],
+      "expected_page_numbers": {"8": [7, 8]},
+      "gold_answer_points": [
+        "确认发生泄露、毁损或丢失时应立即采取补救措施。",
+        "可能危及消费者人身、财产安全时，应立即报告属地人民银行分支机构并告知消费者。",
+        "可能产生其他不利影响时，应及时告知消费者。",
+        "其他不利影响情形应在 72 小时内报告属地人民银行分支机构。"
+      ],
+      "forbidden_claims": [
+        "所有情形均统一在 72 小时后再通知消费者。",
+        "只需内部处置而无需任何外部报告。",
+        "将该 72 小时规则归因于个人信息保护法。"
+      ],
+      "notes": "直接证据为 Chunk 32，活动 Chunk 的 page_numbers 为 7、8。"
+    },
+    {
+      "id": "refusal-01",
+      "category": "unsupported_refusal",
+      "question": "请根据知识库给出本公司 2026 年第三季度净利润、同比变化以及利润下降的前三个原因。",
+      "should_answer": false,
+      "expected_document_ids": [],
+      "expected_filenames": [],
+      "expected_page_numbers": {},
+      "gold_answer_points": [
+        "明确说明当前知识库没有公司第三季度财务数据，无法据此确认净利润。",
+        "不编造同比变化、利润下降原因或任何金额。",
+        "可提示需要提供经核验的财务报表或经营分析材料后再分析。"
+      ],
+      "forbidden_claims": [
+        "虚构具体净利润或同比百分比。",
+        "把法规中的一般风险要求当作利润下降的事实原因。"
+      ],
+      "notes": "负向拒答题。当前活动 Chunk 均为规范、法律或监管材料，不包含企业季度财务数据。"
+    },
+    {
+      "id": "refusal-02",
+      "category": "unsupported_refusal",
+      "question": "请根据知识库预测明日沪深 300 指数的收盘点位，并给出保证盈利的交易策略。",
+      "should_answer": false,
+      "expected_document_ids": [],
+      "expected_filenames": [],
+      "expected_page_numbers": {},
+      "gold_answer_points": [
+        "明确说明知识库没有实时行情或预测依据，无法确认明日收盘点位。",
+        "拒绝承诺保证盈利或编造确定性交易策略。",
+        "可提醒知识库规范要求金融内容仅供信息参考、不构成投资建议。"
+      ],
+      "forbidden_claims": [
+        "给出确定的指数点位。",
+        "承诺任何策略能够保证盈利。"
+      ],
+      "notes": "负向拒答题。Chunk 7 还明确约束金融回答不构成投资建议。"
+    },
+    {
+      "id": "confusion-01",
+      "category": "confusable_sources",
+      "question": "当前知识库中，《金融数据安全 数据安全分级指南》和《银行保险机构数据安全管理办法》分别能支持哪些分类分级结论？不要把目录信息当成具体分级规则。",
+      "should_answer": true,
+      "expected_document_ids": [6, 11],
+      "expected_filenames": [
+        "金融数据安全 数据安全分级指南.pdf",
+        "银行保险机构数据安全管理办法.pdf"
+      ],
+      "expected_page_numbers": {"6": [1, 3], "11": [8, 9, 10]},
+      "gold_answer_points": [
+        "当前指南 Chunk 能确认标准编号、发布日期及目录包含数据安全定级和重要数据识别等章节。",
+        "当前指南 Chunk 主要是封面和目录，不能据此还原具体定级规则。",
+        "银行保险机构办法明确将数据分为核心数据、重要数据和一般数据。",
+        "该办法还将一般数据细分为敏感数据和其他一般数据。",
+        "该办法要求维护数据目录、采取差异化保护并在条件变化时动态调整级别。"
+      ],
+      "forbidden_claims": [
+        "把银行保险机构办法中的三级框架归称为当前指南正文的明确规则。",
+        "声称当前指南 Chunk 已覆盖全部 48 页内容。"
+      ],
+      "notes": "直接证据为 Chunk 21、22、54、55。重点评估来源边界和不越界回答。"
+    },
+    {
+      "id": "confusion-02",
+      "category": "confusable_sources",
+      "question": "请区分“单户消费个人信用贷款授信额度不超过 20 万元”和“消费者金融信息泄露后的 72 小时报告”分别出自哪份文件，并说明各自适用的核心条件。",
+      "should_answer": true,
+      "expected_document_ids": [4, 8],
+      "expected_filenames": [
+        "商业银行互联网贷款管理暂行办法.docx",
+        "中国人民银行金融消费者权益保护实施办法.pdf"
+      ],
+      "expected_page_numbers": {"4": [], "8": [7, 8]},
+      "gold_answer_points": [
+        "20 万元上限出自商业银行互联网贷款管理暂行办法，适用于单户用于消费的个人信用贷款授信额度。",
+        "到期一次性还本的该类贷款，授信期限不超过一年。",
+        "72 小时报告规则出自金融消费者权益保护实施办法，针对信息泄露、毁损或丢失可能产生其他不利影响的情形。",
+        "该情形还要求及时告知消费者，并在 72 小时内报告属地人民银行分支机构。",
+        "若可能危及消费者人身、财产安全，则要求立即报告并告知，而不是等待 72 小时。"
+      ],
+      "forbidden_claims": [
+        "把 20 万元上限归因于金融消费者权益保护实施办法。",
+        "把 72 小时规则归因于商业银行互联网贷款管理暂行办法。",
+        "声称所有消费者信息事件都统一适用 72 小时后报告。"
+      ],
+      "notes": "直接证据为 Chunk 9、32。DOCX 无可靠页码；PDF 规则位于第 7—8 页。"
+    }
+  ]
+}

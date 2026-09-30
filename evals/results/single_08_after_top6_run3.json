@@ -1,0 +1,184 @@
+{
+  "case_id": "single-08",
+  "run": 3,
+  "status": "passed",
+  "question": "《中华人民共和国网络安全法》要求网络运营者在网络安全等级保护制度下履行哪些基本义务？",
+  "preflight": {
+    "application": {
+      "http_status": 200,
+      "status": "ready",
+      "database": "connected"
+    },
+    "effective_configuration": {
+      "rag_vector_top_k": 20,
+      "rag_vector_top_n": 6
+    },
+    "collection_before": {
+      "name": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+      "http_status": 200,
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    }
+  },
+  "http": {
+    "login_status": 200,
+    "chat_status": 200,
+    "total_elapsed_ms": 11720.39,
+    "process_time_ms": 11716.92,
+    "conversation_id": 47,
+    "assistant_message_id": 52
+  },
+  "calls": {
+    "query_embedding": 1,
+    "embedding_retries": 0,
+    "qdrant_search": 1,
+    "qdrant_limit": 20,
+    "qwen": 1,
+    "deepseek": 0,
+    "model_fallback": false
+  },
+  "model": {
+    "provider": "qwen",
+    "name": "qwen3.8-flash",
+    "latency_ms": 10209.107899998344
+  },
+  "retrieval": {
+    "method": "vector",
+    "final_context_count": 6,
+    "http_citation_count": 6,
+    "http_citations_match_stored_citations": true,
+    "prompt_and_citation_source": "Production _build_rag_payload builds prompt contexts and citations from the same ordered context list.",
+    "final_top_6": [
+      {
+        "order": 1,
+        "document_id": 13,
+        "chunk_id": 87,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.6988418,
+        "page_number": null,
+        "page_numbers": [4, 5],
+        "retrieval_method": "vector",
+        "content_sha256": "6aad934e8a78a0fefc96d197a31ab313631f450c62d8a25c9e965f453d7b079a"
+      },
+      {
+        "order": 2,
+        "document_id": 13,
+        "chunk_id": 82,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.67074525,
+        "page_number": null,
+        "page_numbers": [1, 2],
+        "retrieval_method": "vector",
+        "content_sha256": "36a9bc7dd8800a6bd9685888eb81ac3a4c3b892c6d24b3f416efce01f098a1f6"
+      },
+      {
+        "order": 3,
+        "document_id": 13,
+        "chunk_id": 85,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.66652596,
+        "page_number": null,
+        "page_numbers": [3, 4],
+        "retrieval_method": "vector",
+        "content_sha256": "f91699946c32f5a620afdef050f0bc0a24915824e10b833c23af74bc5c8187dd"
+      },
+      {
+        "order": 4,
+        "document_id": 13,
+        "chunk_id": 90,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.632724,
+        "page_number": null,
+        "page_numbers": [6, 7],
+        "retrieval_method": "vector",
+        "content_sha256": "fb293e59b864b25e8e323fa44d5f4d1fae135fe416374eb304345efd7e20ddbd"
+      },
+      {
+        "order": 5,
+        "document_id": 13,
+        "chunk_id": 91,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.61019063,
+        "page_number": null,
+        "page_numbers": [7, 8],
+        "retrieval_method": "vector",
+        "content_sha256": "f297b43508700ffb9b012f2e298624df1d5c5dc42795d2b818539c685e8b70dc"
+      },
+      {
+        "order": 6,
+        "document_id": 13,
+        "chunk_id": 84,
+        "filename": "中华人民共和国网络安全法.pdf",
+        "score": 0.60741484,
+        "page_number": 3,
+        "page_numbers": [3],
+        "retrieval_method": "vector",
+        "content_sha256": "615ae35af898b283e5b632f05b43fbcd82670a91f97b4b966232d321b18ec992"
+      }
+    ]
+  },
+  "chunk_84_verification": {
+    "present_in_final_context": true,
+    "present_in_http_citations": true,
+    "document_id": 13,
+    "chunk_id": 84,
+    "filename": "中华人民共和国网络安全法.pdf",
+    "score": 0.60741484,
+    "page_number": 3,
+    "page_numbers": [3],
+    "active_generation": "a04c3546-2fe2-4673-a9c4-5f9c950c4dab",
+    "point_id": "36858fe0-94ab-5e6f-83f8-7752b7b8226f",
+    "content_sha256": "615ae35af898b283e5b632f05b43fbcd82670a91f97b4b966232d321b18ec992",
+    "database_hash_valid": true,
+    "citation_hash_matches_database": true
+  },
+  "answer": "依据《中华人民共和国网络安全法》，国家实行网络安全等级保护制度；网络运营者应当按照网络安全等级保护制度的要求履行下列基本安全保护义务：\n\n1. 制定内部安全管理制度和操作规程，确定网络安全负责人，落实网络安全保护责任。\n2. 采取技术措施防范危害网络安全的行为，包括防范计算机病毒、网络攻击、网络侵入等。\n3. 采取监测、记录网络运行状态和网络安全事件的技术措施，并按照规定留存相关网络日志不少于六个月。\n4. 采取数据分类、重要数据备份和加密等措施。\n5. 履行法律、行政法规规定的其他义务。",
+  "gold_coverage": [
+    {
+      "point": "制定内部安全管理制度和操作规程，确定负责人并落实责任。",
+      "covered": true,
+      "supporting_chunk_ids": [84]
+    },
+    {
+      "point": "采取防范计算机病毒、网络攻击和网络侵入等技术措施。",
+      "covered": true,
+      "supporting_chunk_ids": [84]
+    },
+    {
+      "point": "监测和记录网络运行状态及网络安全事件。",
+      "covered": true,
+      "supporting_chunk_ids": [84]
+    },
+    {
+      "point": "相关网络日志按规定留存不少于六个月。",
+      "covered": true,
+      "supporting_chunk_ids": [84]
+    },
+    {
+      "point": "采取数据分类、重要数据备份和加密等措施。",
+      "covered": true,
+      "supporting_chunk_ids": [84, 85]
+    }
+  ],
+  "postcheck": {
+    "collection_after": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    },
+    "conversations_before": 10,
+    "conversations_after": 11,
+    "messages_before": 20,
+    "messages_after": 22,
+    "new_conversations": 1,
+    "new_messages": 2,
+    "knowledge_digest_before": "8b47a0d983e307e25ea07df2d98399cbd041b659c64f1d746eb2aa3f5d562efd",
+    "knowledge_digest_after": "8b47a0d983e307e25ea07df2d98399cbd041b659c64f1d746eb2aa3f5d562efd",
+    "knowledge_and_index_data_unchanged": true
+  },
+  "sensitive_objects_cleared": true,
+  "previous_failure_reports_overwritten": false
+}

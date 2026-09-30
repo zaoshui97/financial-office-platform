@@ -1,0 +1,76 @@
+{
+  "evaluation": "rag_baseline_smoke",
+  "generated_at": "2026-09-27",
+  "status": "stopped_infrastructure_error",
+  "fixed_case_ids": [
+    "single-07",
+    "single-08",
+    "cross-02",
+    "refusal-01",
+    "confusion-02"
+  ],
+  "selection": [
+    {
+      "case_id": "single-07",
+      "reason": "OCR文档12的单文档事实题"
+    },
+    {
+      "case_id": "single-08",
+      "reason": "OCR文档13的单文档事实题"
+    },
+    {
+      "case_id": "cross-02",
+      "reason": "通用法律与行业办法的跨文档综合题"
+    },
+    {
+      "case_id": "refusal-01",
+      "reason": "无业务数据依据的拒答题"
+    },
+    {
+      "case_id": "confusion-02",
+      "reason": "区分互联网贷款与消费者信息规则的易混淆题"
+    }
+  ],
+  "preflight": {
+    "initial_application_http_status": 200,
+    "initial_application_status": "ready",
+    "initial_database_status": "connected",
+    "initial_qdrant_http_status": 200,
+    "collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+    "initial_collection_status": "green",
+    "vector_size": 1024,
+    "distance": "Cosine",
+    "points_before": 95
+  },
+  "failure": {
+    "stage": "login",
+    "login_attempts": 1,
+    "received_http_response": false,
+    "error_type": "connection_refused",
+    "safe_summary": "本机应用端口 127.0.0.1:8000 拒绝连接。",
+    "chat_requests_sent": 0,
+    "query_embedding_calls": 0,
+    "qdrant_search_calls": 0,
+    "chat_model_calls": 0
+  },
+  "cases": [],
+  "scores": {
+    "document_recall": null,
+    "citation_page_accuracy": null,
+    "faithfulness": null,
+    "refusal_accuracy": null,
+    "average_latency_ms": null,
+    "p95_latency_ms": null,
+    "reason": "五题均未执行，不能计算评分。"
+  },
+  "postcheck": {
+    "performed": false,
+    "reason": "基础设施错误后按要求立即停止。"
+  },
+  "database_changes": {
+    "expected_new_conversations": 0,
+    "expected_new_messages": 0,
+    "verification": "未登录且未发送聊天请求。"
+  },
+  "sensitive_values_cleared": true
+}

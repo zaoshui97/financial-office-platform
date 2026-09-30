@@ -1,0 +1,1628 @@
+{
+  "analysis": "knowledge_base_inventory",
+  "generated_at": "2026-09-30T15:19:41.469945+08:00",
+  "mode": "read_only",
+  "scope": {
+    "project": "D:\\shuzi马力\\financial-office-platform",
+    "source_directory": "D:\\rag_docs\\finance_policy",
+    "owner_id": 3,
+    "knowledge_base_id": 1,
+    "qdrant_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024"
+  },
+  "local_files": [
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\1.参考模板组织的规则与语法.pdf",
+      "filename": "1.参考模板组织的规则与语法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 257948,
+      "sha256": "2652f0c7055550f18fea971d9e40d3948c3de4b24392c2c569c68f1b7824f63f",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 4,
+        "text_layer": "full",
+        "text_layer_page_count": 4,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "1.参考模板组织的规则与语法",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 5,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\2.规章制度类文件行文建议.pdf",
+      "filename": "2.规章制度类文件行文建议.pdf",
+      "extension": ".pdf",
+      "size_bytes": 214512,
+      "sha256": "fd8157c888458b680536aaa0101d5750d0c7a03e01e4788b07888f228bccabbb",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 14,
+        "text_layer": "full",
+        "text_layer_page_count": 14,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "2.规章制度类文件行文建议",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 8,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\3.{单位名称}规章制度管理办法模板.pdf",
+      "filename": "3.{单位名称}规章制度管理办法模板.pdf",
+      "extension": ".pdf",
+      "size_bytes": 1347472,
+      "sha256": "b1b899ab5ef050c43acda783b425559affcca2e298996f20806a3688f1b7558d",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 29,
+        "text_layer": "full",
+        "text_layer_page_count": 29,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "3.{单位名称}规章制度管理办法模板",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 22,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\4.{单位名称}企业标准化管理办法模板.pdf",
+      "filename": "4.{单位名称}企业标准化管理办法模板.pdf",
+      "extension": ".pdf",
+      "size_bytes": 2675351,
+      "sha256": "68deccbd5d0d67dffe043507fb72f8df1d6fa1ed232008e87afcc56e97090977",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 44,
+        "text_layer": "full",
+        "text_layer_page_count": 44,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "4.{单位名称}企业标准化管理办法模板",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 33,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\5.{单位名称}企业标准体系框架模板.pdf",
+      "filename": "5.{单位名称}企业标准体系框架模板.pdf",
+      "extension": ".pdf",
+      "size_bytes": 334553,
+      "sha256": "f6724b026875e007078e8a41ce2c211b704eb6c7c5f33478d38f6b46e83ad805",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 18,
+        "text_layer": "full",
+        "text_layer_page_count": 18,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "5.{单位名称}企业标准体系框架模板",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 23,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\6.{单位名称}标准体系记录样例.pdf",
+      "filename": "6.{单位名称}标准体系记录样例.pdf",
+      "extension": ".pdf",
+      "size_bytes": 105900,
+      "sha256": "8499d12aa0f66437846b4492d0f745da7d9720c3fcbd8b03866bf5665edff856",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 11,
+        "text_layer": "full",
+        "text_layer_page_count": 11,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "6.{单位名称}标准体系记录样例",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 2,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\7.{单位名称}企业标准模板（TCS格式).pdf",
+      "filename": "7.{单位名称}企业标准模板（TCS格式).pdf",
+      "extension": ".pdf",
+      "size_bytes": 157982,
+      "sha256": "e2fb5848a00d6771b1b96e8257a5cf6ff83caee78452f135af5b1b11fa0233c4",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 8,
+        "text_layer": "full",
+        "text_layer_page_count": 8,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "7.{单位名称}企业标准模板（TCS格式)",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 2,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "金融机构企业标准体系建设指南_附件\\8.{单位名称}技术规范模板（TCS格式).pdf",
+      "filename": "8.{单位名称}技术规范模板（TCS格式).pdf",
+      "extension": ".pdf",
+      "size_bytes": 158391,
+      "sha256": "fed8b9e3f6ec94f457a867cb84741651b096f22b957f706a3a2503bd9e6959ad",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 8,
+        "text_layer": "full",
+        "text_layer_page_count": 8,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+      "formal_title": "8.{单位名称}技术规范模板（TCS格式)",
+      "institution": "附件本身未明确，需结合主文件人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 2,
+      "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+    },
+    {
+      "relative_path": "中华人民共和国个人信息保护法.pdf",
+      "filename": "中华人民共和国个人信息保护法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 3378209,
+      "sha256": "41f5513323f7ce53790e58431e3d85d3d2b7680b62752485d3ed7679384eee67",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 7,
+        "text_layer": "none",
+        "text_layer_page_count": 0,
+        "no_text_layer_page_count": 7
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        12
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "中华人民共和国个人信息保护法",
+      "institution": null,
+      "requires_ocr": true,
+      "estimated_chunk_count": null,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "中华人民共和国数据安全法.pdf",
+      "filename": "中华人民共和国数据安全法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 860148,
+      "sha256": "865621df5cff041a539c96187ec1a11428b7f9ab732b47ccb64e58dbde8a2e7b",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 6,
+        "text_layer": "full",
+        "text_layer_page_count": 6,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        9
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "中华人民共和国数据安全法",
+      "institution": null,
+      "requires_ocr": false,
+      "estimated_chunk_count": 8,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "中华人民共和国网络安全法.pdf",
+      "filename": "中华人民共和国网络安全法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 3057961,
+      "sha256": "0f30c1b5f2bc92bbe4e0645ffc065d6101e4d76f09e88fb5265f8cedbcda3a9c",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 11,
+        "text_layer": "none",
+        "text_layer_page_count": 0,
+        "no_text_layer_page_count": 11
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        13
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "中华人民共和国网络安全法",
+      "institution": null,
+      "requires_ocr": true,
+      "estimated_chunk_count": null,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "中国人民银行金融消费者权益保护实施办法.pdf",
+      "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 4923015,
+      "sha256": "e17f056a4e7da9c9cccdedb9d4c65c850ed32f4f550273e0a72ec0cc9b8c9a44",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 14,
+        "text_layer": "none",
+        "text_layer_page_count": 0,
+        "no_text_layer_page_count": 14
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        7,
+        8
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "中国人民银行金融消费者权益保护实施办法",
+      "institution": null,
+      "requires_ocr": true,
+      "estimated_chunk_count": null,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "商业银行互联网贷款管理暂行办法.docx",
+      "filename": "商业银行互联网贷款管理暂行办法.docx",
+      "extension": ".docx",
+      "size_bytes": 43854,
+      "sha256": "5e07da3b7e51630cd76781d9d9f084903eb7dd54b5e1590019e2f4a3dcb0f77e",
+      "pdf": null,
+      "docx": {
+        "readable": true,
+        "required_parts": {
+          "[Content_Types].xml": true,
+          "_rels/.rels": true,
+          "word/document.xml": true
+        }
+      },
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        4
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "商业银行互联网贷款管理暂行办法",
+      "institution": null,
+      "requires_ocr": false,
+      "estimated_chunk_count": 11,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "支付体系运行总体情况（月度统计） 9月.pdf",
+      "filename": "支付体系运行总体情况（月度统计） 9月.pdf",
+      "extension": ".pdf",
+      "size_bytes": 180445,
+      "sha256": "3c1f4dfa1715374f1b7ca1de85e0507ed3fc74d740a7a2dfec094583717a66e0",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 4,
+        "text_layer": "full",
+        "text_layer_page_count": 4,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+      "formal_title": "2026年第二季度支付体系运行总体情况",
+      "institution": "文件正文未明确，需人工核验",
+      "requires_ocr": false,
+      "estimated_chunk_count": 3,
+      "version_or_validity_risk": "文件名标注“9月”，正文标题为“2026年第二季度”，命名与内容不一致。"
+    },
+    {
+      "relative_path": "深圳证券交易所债券交易规则.pdf",
+      "filename": "深圳证券交易所债券交易规则.pdf",
+      "extension": ".pdf",
+      "size_bytes": 546904,
+      "sha256": "571ab528a8a934bfe7ea28aa5d9a088a79100ab6fc96c51f567fafe64118e01f",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 40,
+        "text_layer": "full",
+        "text_layer_page_count": 40,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+      "formal_title": "深圳证券交易所债券交易规则",
+      "institution": "深圳证券交易所",
+      "requires_ocr": false,
+      "estimated_chunk_count": 24,
+      "version_or_validity_risk": "文件注明2022年4月25日起施行；是否为最新修订版本需人工核验。"
+    },
+    {
+      "relative_path": "私募投资基金信息披露监督管理办法.pdf",
+      "filename": "私募投资基金信息披露监督管理办法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 204641,
+      "sha256": "5b24470c1e597c0ae9419814dc3bc49d9b54aa07263748a5f6da3263eccd532f",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 16,
+        "text_layer": "full",
+        "text_layer_page_count": 16,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+      "formal_title": "私募投资基金信息披露监督管理办法",
+      "institution": "中国证券监督管理委员会",
+      "requires_ocr": false,
+      "estimated_chunk_count": 9,
+      "version_or_validity_risk": "文件注明2025年12月30日审议通过、2026年9月1日起施行；来源及现行版本需人工核验。"
+    },
+    {
+      "relative_path": "衍生品交易监督管理办法.pdf",
+      "filename": "衍生品交易监督管理办法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 343324,
+      "sha256": "c79f9edb626fe2f828cc70cb34a7b6e1b3a775126e53327c4b48c45e3b9ba9e1",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 14,
+        "text_layer": "full",
+        "text_layer_page_count": 14,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "B",
+      "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+      "formal_title": "衍生品交易监督管理办法",
+      "institution": "中国证券监督管理委员会",
+      "requires_ocr": false,
+      "estimated_chunk_count": 8,
+      "version_or_validity_risk": "文件注明2026年11月16日起施行；截至本次清点日期尚未生效，不宜作为当前有效规则。"
+    },
+    {
+      "relative_path": "货币政策执行报告.pdf",
+      "filename": "货币政策执行报告.pdf",
+      "extension": ".pdf",
+      "size_bytes": 469508,
+      "sha256": "17c76031dc5720b6058d3d65617241985a367bd41531427abca36a8c4c70b216",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 3,
+        "text_layer": "none",
+        "text_layer_page_count": 0,
+        "no_text_layer_page_count": 3
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "D",
+      "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+      "formal_title": "货币政策执行报告（具体期次无法从文本层确认）",
+      "institution": "需人工核验",
+      "requires_ocr": true,
+      "estimated_chunk_count": null,
+      "version_or_validity_risk": "仅3页且无文本层，无法确认期次、来源和完整性。"
+    },
+    {
+      "relative_path": "金融数据安全 数据安全分级指南.pdf",
+      "filename": "金融数据安全 数据安全分级指南.pdf",
+      "extension": ".pdf",
+      "size_bytes": 375024,
+      "sha256": "37968bf117319c27eb30ec3d5f97acb1c4963dc55db9538a7e37d642b1414ad7",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 3,
+        "text_layer": "partial",
+        "text_layer_page_count": 2,
+        "no_text_layer_page_count": 1
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        5,
+        6
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "金融数据安全 数据安全分级指南",
+      "institution": null,
+      "requires_ocr": true,
+      "estimated_chunk_count": 2,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "金融机构合规管理办法.pdf",
+      "filename": "金融机构合规管理办法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 74060,
+      "sha256": "5210a8087e9fefec8e8a043e8393eeadc9f85067a318ebac48e77c936b29a3a8",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 2,
+        "text_layer": "full",
+        "text_layer_page_count": 2,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "D",
+      "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+      "formal_title": "国家金融监督管理总局发布《金融机构合规管理办法》",
+      "institution": "国家金融监督管理总局",
+      "requires_ocr": false,
+      "estimated_chunk_count": 1,
+      "version_or_validity_risk": "仅2页、882字符，为发布说明或新闻摘要，不是五章五十八条完整办法。"
+    },
+    {
+      "relative_path": "银行保险机构数据安全管理办法.pdf",
+      "filename": "银行保险机构数据安全管理办法.pdf",
+      "extension": ".pdf",
+      "size_bytes": 235777,
+      "sha256": "3a02c0f31cc597a68e1d069db4e162e37d7cb9274c41f78ad03c6dceb6d06082",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 31,
+        "text_layer": "full",
+        "text_layer_page_count": 31,
+        "no_text_layer_page_count": 0
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [
+        10,
+        11
+      ],
+      "classification": "C",
+      "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+      "formal_title": "银行保险机构数据安全管理办法",
+      "institution": null,
+      "requires_ocr": false,
+      "estimated_chunk_count": 15,
+      "version_or_validity_risk": null
+    },
+    {
+      "relative_path": "银行保险机构数据安全管理办法（征求意见稿）.pdf",
+      "filename": "银行保险机构数据安全管理办法（征求意见稿）.pdf",
+      "extension": ".pdf",
+      "size_bytes": 432573,
+      "sha256": "4ef6bf8d2088ac486c16d27ffd4ca480b07c9068fc1151a3bb0570eb90657e20",
+      "pdf": {
+        "valid_header": true,
+        "readable": true,
+        "encrypted": false,
+        "page_count": 3,
+        "text_layer": "none",
+        "text_layer_page_count": 0,
+        "no_text_layer_page_count": 3
+      },
+      "docx": null,
+      "exact_local_duplicate": false,
+      "matching_document_ids": [],
+      "classification": "D",
+      "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+      "formal_title": "银行保险机构数据安全管理办法（征求意见稿）",
+      "institution": "需人工核验",
+      "requires_ocr": true,
+      "estimated_chunk_count": null,
+      "version_or_validity_risk": "征求意见稿且当前目录已有正式版，不应同时作为主要知识来源。"
+    }
+  ],
+  "duplicate_analysis": {
+    "exact_local_duplicate_groups": [],
+    "cross_format_same_content_groups": [],
+    "same_subject_versions": [
+      {
+        "files": [
+          "银行保险机构数据安全管理办法.pdf",
+          "银行保险机构数据安全管理办法（征求意见稿）.pdf"
+        ],
+        "conclusion": "正式版与征求意见稿并存；正式版已入库，征求意见稿归为D。"
+      }
+    ],
+    "database_same_file_groups": [
+      {
+        "sha256": "37968bf117319c27eb30ec3d5f97acb1c4963dc55db9538a7e37d642b1414ad7",
+        "document_ids": [
+          5,
+          6
+        ],
+        "filenames": [
+          "金融数据安全 数据安全分级指南.pdf",
+          "金融数据安全 数据安全分级指南.pdf"
+        ]
+      },
+      {
+        "sha256": "e17f056a4e7da9c9cccdedb9d4c65c850ed32f4f550273e0a72ec0cc9b8c9a44",
+        "document_ids": [
+          7,
+          8
+        ],
+        "filenames": [
+          "中国人民银行金融消费者权益保护实施办法.pdf",
+          "中国人民银行金融消费者权益保护实施办法.pdf"
+        ]
+      },
+      {
+        "sha256": "3a02c0f31cc597a68e1d069db4e162e37d7cb9274c41f78ad03c6dceb6d06082",
+        "document_ids": [
+          10,
+          11
+        ],
+        "filenames": [
+          "银行保险机构数据安全管理办法.pdf",
+          "银行保险机构数据安全管理办法.pdf"
+        ]
+      }
+    ]
+  },
+  "database": {
+    "transaction_finalized_with_rollback": true,
+    "documents": [
+      {
+        "document_id": 1,
+        "original_filename": "demo_policy_20260917_113822872650.txt",
+        "file_type": "txt",
+        "file_size": 167,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": null,
+        "parsed_char_count": 59,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "ab90fe3f-1c11-4d74-9027-97c9c64b03e8",
+        "building_index_generation": null,
+        "chunk_count": 1,
+        "point_mapping_count": 1,
+        "stored_file_exists": true,
+        "stored_file_sha256": "3d72cea9f3075aa1f3535bde111381ffacbd066b0d546bbd50d9ef9bbfa37578",
+        "matching_local_files": []
+      },
+      {
+        "document_id": 2,
+        "original_filename": "a21_financial_office_platform.docx",
+        "file_type": "docx",
+        "file_size": 23135,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": null,
+        "parsed_char_count": 4247,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "10abd68b-73bb-461e-8015-86f7fc8e08ee",
+        "building_index_generation": null,
+        "chunk_count": 5,
+        "point_mapping_count": 5,
+        "stored_file_exists": true,
+        "stored_file_sha256": "adee0dc0eabbd9e87d5aa3b42e6bbe54ef963e48e249043cdb13a349d895e05e",
+        "matching_local_files": []
+      },
+      {
+        "document_id": 3,
+        "original_filename": "金融行业知识库使用规范.txt",
+        "file_type": "txt",
+        "file_size": 843,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": null,
+        "parsed_char_count": 317,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "42b46467-9614-453b-8cc2-5ba61f7b5c32",
+        "building_index_generation": null,
+        "chunk_count": 1,
+        "point_mapping_count": 1,
+        "stored_file_exists": true,
+        "stored_file_sha256": "75802b00179171644e795acb3024a3432862370f91379d067bcf1bbb080a25a8",
+        "matching_local_files": []
+      },
+      {
+        "document_id": 4,
+        "original_filename": "商业银行互联网贷款管理暂行办法.docx",
+        "file_type": "docx",
+        "file_size": 43854,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": null,
+        "parsed_char_count": 9303,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "faa005aa-3921-41d6-985d-65762d3639b9",
+        "building_index_generation": null,
+        "chunk_count": 11,
+        "point_mapping_count": 11,
+        "stored_file_exists": true,
+        "stored_file_sha256": "5e07da3b7e51630cd76781d9d9f084903eb7dd54b5e1590019e2f4a3dcb0f77e",
+        "matching_local_files": [
+          "商业银行互联网贷款管理暂行办法.docx"
+        ]
+      },
+      {
+        "document_id": 5,
+        "original_filename": "金融数据安全 数据安全分级指南.pdf",
+        "file_type": "pdf",
+        "file_size": 375024,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 3,
+        "parsed_char_count": 1225,
+        "index_status": "pending",
+        "index_error": null,
+        "index_collection": null,
+        "active_index_generation": null,
+        "building_index_generation": null,
+        "chunk_count": 2,
+        "point_mapping_count": 0,
+        "stored_file_exists": true,
+        "stored_file_sha256": "37968bf117319c27eb30ec3d5f97acb1c4963dc55db9538a7e37d642b1414ad7",
+        "matching_local_files": [
+          "金融数据安全 数据安全分级指南.pdf"
+        ]
+      },
+      {
+        "document_id": 6,
+        "original_filename": "金融数据安全 数据安全分级指南.pdf",
+        "file_type": "pdf",
+        "file_size": 375024,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 3,
+        "parsed_char_count": 1225,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "12a3d3da-b8a6-4c6f-965c-db6271362a99",
+        "building_index_generation": null,
+        "chunk_count": 2,
+        "point_mapping_count": 2,
+        "stored_file_exists": true,
+        "stored_file_sha256": "37968bf117319c27eb30ec3d5f97acb1c4963dc55db9538a7e37d642b1414ad7",
+        "matching_local_files": [
+          "金融数据安全 数据安全分级指南.pdf"
+        ]
+      },
+      {
+        "document_id": 7,
+        "original_filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+        "file_type": "pdf",
+        "file_size": 4923015,
+        "parse_status": "failed",
+        "parse_error": "文档中没有可提取文本，扫描PDF请先进行OCR",
+        "page_count": null,
+        "parsed_char_count": 0,
+        "index_status": "pending",
+        "index_error": null,
+        "index_collection": null,
+        "active_index_generation": null,
+        "building_index_generation": null,
+        "chunk_count": 0,
+        "point_mapping_count": 0,
+        "stored_file_exists": true,
+        "stored_file_sha256": "e17f056a4e7da9c9cccdedb9d4c65c850ed32f4f550273e0a72ec0cc9b8c9a44",
+        "matching_local_files": [
+          "中国人民银行金融消费者权益保护实施办法.pdf"
+        ]
+      },
+      {
+        "document_id": 8,
+        "original_filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+        "file_type": "pdf",
+        "file_size": 4923015,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 14,
+        "parsed_char_count": 16315,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "15dca766-fc87-4389-a7f8-313143272982",
+        "building_index_generation": null,
+        "chunk_count": 20,
+        "point_mapping_count": 20,
+        "stored_file_exists": true,
+        "stored_file_sha256": "e17f056a4e7da9c9cccdedb9d4c65c850ed32f4f550273e0a72ec0cc9b8c9a44",
+        "matching_local_files": [
+          "中国人民银行金融消费者权益保护实施办法.pdf"
+        ]
+      },
+      {
+        "document_id": 9,
+        "original_filename": "中华人民共和国数据安全法.pdf",
+        "file_type": "pdf",
+        "file_size": 860148,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 6,
+        "parsed_char_count": 6937,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "15e5a923-1d9a-46a2-a2bc-208d1b79dc27",
+        "building_index_generation": null,
+        "chunk_count": 8,
+        "point_mapping_count": 8,
+        "stored_file_exists": true,
+        "stored_file_sha256": "865621df5cff041a539c96187ec1a11428b7f9ab732b47ccb64e58dbde8a2e7b",
+        "matching_local_files": [
+          "中华人民共和国数据安全法.pdf"
+        ]
+      },
+      {
+        "document_id": 10,
+        "original_filename": "银行保险机构数据安全管理办法.pdf",
+        "file_type": "pdf",
+        "file_size": 235777,
+        "parse_status": "failed",
+        "parse_error": "PDF OCR失败[OCR_PAGE_LIMIT_EXCEEDED]: PDF页数超过同步OCR限制",
+        "page_count": null,
+        "parsed_char_count": 0,
+        "index_status": "pending",
+        "index_error": null,
+        "index_collection": null,
+        "active_index_generation": null,
+        "building_index_generation": null,
+        "chunk_count": 0,
+        "point_mapping_count": 0,
+        "stored_file_exists": true,
+        "stored_file_sha256": "3a02c0f31cc597a68e1d069db4e162e37d7cb9274c41f78ad03c6dceb6d06082",
+        "matching_local_files": [
+          "银行保险机构数据安全管理办法.pdf"
+        ]
+      },
+      {
+        "document_id": 11,
+        "original_filename": "银行保险机构数据安全管理办法.pdf",
+        "file_type": "pdf",
+        "file_size": 235777,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 31,
+        "parsed_char_count": 12684,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "b01c2a98-ef2f-4eab-9ef1-3d78a0b89a52",
+        "building_index_generation": null,
+        "chunk_count": 15,
+        "point_mapping_count": 15,
+        "stored_file_exists": true,
+        "stored_file_sha256": "3a02c0f31cc597a68e1d069db4e162e37d7cb9274c41f78ad03c6dceb6d06082",
+        "matching_local_files": [
+          "银行保险机构数据安全管理办法.pdf"
+        ]
+      },
+      {
+        "document_id": 12,
+        "original_filename": "中华人民共和国个人信息保护法.pdf",
+        "file_type": "pdf",
+        "file_size": 3378209,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 7,
+        "parsed_char_count": 12689,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "5912f827-8f41-4c2f-a05d-0093a4f163a3",
+        "building_index_generation": null,
+        "chunk_count": 15,
+        "point_mapping_count": 15,
+        "stored_file_exists": true,
+        "stored_file_sha256": "41f5513323f7ce53790e58431e3d85d3d2b7680b62752485d3ed7679384eee67",
+        "matching_local_files": [
+          "中华人民共和国个人信息保护法.pdf"
+        ]
+      },
+      {
+        "document_id": 13,
+        "original_filename": "中华人民共和国网络安全法.pdf",
+        "file_type": "pdf",
+        "file_size": 3057961,
+        "parse_status": "parsed",
+        "parse_error": null,
+        "page_count": 11,
+        "parsed_char_count": 14369,
+        "index_status": "indexed",
+        "index_error": null,
+        "index_collection": "enterprise_knowledge_qwen3_7_text_embedding_v1_1024",
+        "active_index_generation": "a04c3546-2fe2-4673-a9c4-5f9c950c4dab",
+        "building_index_generation": null,
+        "chunk_count": 17,
+        "point_mapping_count": 17,
+        "stored_file_exists": true,
+        "stored_file_sha256": "0f30c1b5f2bc92bbe4e0645ffc065d6101e4d76f09e88fb5265f8cedbcda3a9c",
+        "matching_local_files": [
+          "中华人民共和国网络安全法.pdf"
+        ]
+      }
+    ],
+    "document_record_count": 13,
+    "parsed_record_count": 11,
+    "active_indexed_document_count": 10,
+    "active_indexed_document_ids": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      8,
+      9,
+      11,
+      12,
+      13
+    ],
+    "active_point_mapping_count": 95
+  },
+  "known_anomalies": [
+    {
+      "document_id": 5,
+      "status": "confirmed_exact_duplicate",
+      "detail": "与文档6的保存文件SHA-256相同；文档5为parsed/pending，文档6为parsed/indexed。"
+    },
+    {
+      "document_id": 7,
+      "status": "confirmed_pre_ocr_failure",
+      "detail": "与成功文档8的文件SHA-256相同；0 Chunk、0 Point映射，保留未修改。"
+    },
+    {
+      "document_id": 10,
+      "status": "confirmed_pre_fix_page_limit_failure",
+      "detail": "与成功文档11的文件SHA-256相同；0 Chunk、0 Point映射，保留未修改。"
+    }
+  ],
+  "classification": {
+    "A_current_knowledge_base_candidates": [],
+    "B_separate_topic_candidates": [
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\1.参考模板组织的规则与语法.pdf",
+        "filename": "1.参考模板组织的规则与语法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 257948,
+        "sha256": "2652f0c7055550f18fea971d9e40d3948c3de4b24392c2c569c68f1b7824f63f",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 4,
+          "text_layer": "full",
+          "text_layer_page_count": 4,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "1.参考模板组织的规则与语法",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 5,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\2.规章制度类文件行文建议.pdf",
+        "filename": "2.规章制度类文件行文建议.pdf",
+        "extension": ".pdf",
+        "size_bytes": 214512,
+        "sha256": "fd8157c888458b680536aaa0101d5750d0c7a03e01e4788b07888f228bccabbb",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 14,
+          "text_layer": "full",
+          "text_layer_page_count": 14,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "2.规章制度类文件行文建议",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 8,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\3.{单位名称}规章制度管理办法模板.pdf",
+        "filename": "3.{单位名称}规章制度管理办法模板.pdf",
+        "extension": ".pdf",
+        "size_bytes": 1347472,
+        "sha256": "b1b899ab5ef050c43acda783b425559affcca2e298996f20806a3688f1b7558d",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 29,
+          "text_layer": "full",
+          "text_layer_page_count": 29,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "3.{单位名称}规章制度管理办法模板",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 22,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\4.{单位名称}企业标准化管理办法模板.pdf",
+        "filename": "4.{单位名称}企业标准化管理办法模板.pdf",
+        "extension": ".pdf",
+        "size_bytes": 2675351,
+        "sha256": "68deccbd5d0d67dffe043507fb72f8df1d6fa1ed232008e87afcc56e97090977",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 44,
+          "text_layer": "full",
+          "text_layer_page_count": 44,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "4.{单位名称}企业标准化管理办法模板",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 33,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\5.{单位名称}企业标准体系框架模板.pdf",
+        "filename": "5.{单位名称}企业标准体系框架模板.pdf",
+        "extension": ".pdf",
+        "size_bytes": 334553,
+        "sha256": "f6724b026875e007078e8a41ce2c211b704eb6c7c5f33478d38f6b46e83ad805",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 18,
+          "text_layer": "full",
+          "text_layer_page_count": 18,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "5.{单位名称}企业标准体系框架模板",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 23,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\6.{单位名称}标准体系记录样例.pdf",
+        "filename": "6.{单位名称}标准体系记录样例.pdf",
+        "extension": ".pdf",
+        "size_bytes": 105900,
+        "sha256": "8499d12aa0f66437846b4492d0f745da7d9720c3fcbd8b03866bf5665edff856",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 11,
+          "text_layer": "full",
+          "text_layer_page_count": 11,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "6.{单位名称}标准体系记录样例",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 2,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\7.{单位名称}企业标准模板（TCS格式).pdf",
+        "filename": "7.{单位名称}企业标准模板（TCS格式).pdf",
+        "extension": ".pdf",
+        "size_bytes": 157982,
+        "sha256": "e2fb5848a00d6771b1b96e8257a5cf6ff83caee78452f135af5b1b11fa0233c4",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 8,
+          "text_layer": "full",
+          "text_layer_page_count": 8,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "7.{单位名称}企业标准模板（TCS格式)",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 2,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "金融机构企业标准体系建设指南_附件\\8.{单位名称}技术规范模板（TCS格式).pdf",
+        "filename": "8.{单位名称}技术规范模板（TCS格式).pdf",
+        "extension": ".pdf",
+        "size_bytes": 158391,
+        "sha256": "fed8b9e3f6ec94f457a867cb84741651b096f22b957f706a3a2503bd9e6959ad",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 8,
+          "text_layer": "full",
+          "text_layer_page_count": 8,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "金融机构标准体系与制度模板资料，适合独立“标准化与制度治理”专题。",
+        "formal_title": "8.{单位名称}技术规范模板（TCS格式)",
+        "institution": "附件本身未明确，需结合主文件人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 2,
+        "version_or_validity_risk": "仅有附件，主指南、正式来源与版本需人工核验。"
+      },
+      {
+        "relative_path": "支付体系运行总体情况（月度统计） 9月.pdf",
+        "filename": "支付体系运行总体情况（月度统计） 9月.pdf",
+        "extension": ".pdf",
+        "size_bytes": 180445,
+        "sha256": "3c1f4dfa1715374f1b7ca1de85e0507ed3fc74d740a7a2dfec094583717a66e0",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 4,
+          "text_layer": "full",
+          "text_layer_page_count": 4,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+        "formal_title": "2026年第二季度支付体系运行总体情况",
+        "institution": "文件正文未明确，需人工核验",
+        "requires_ocr": false,
+        "estimated_chunk_count": 3,
+        "version_or_validity_risk": "文件名标注“9月”，正文标题为“2026年第二季度”，命名与内容不一致。"
+      },
+      {
+        "relative_path": "深圳证券交易所债券交易规则.pdf",
+        "filename": "深圳证券交易所债券交易规则.pdf",
+        "extension": ".pdf",
+        "size_bytes": 546904,
+        "sha256": "571ab528a8a934bfe7ea28aa5d9a088a79100ab6fc96c51f567fafe64118e01f",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 40,
+          "text_layer": "full",
+          "text_layer_page_count": 40,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+        "formal_title": "深圳证券交易所债券交易规则",
+        "institution": "深圳证券交易所",
+        "requires_ocr": false,
+        "estimated_chunk_count": 24,
+        "version_or_validity_risk": "文件注明2022年4月25日起施行；是否为最新修订版本需人工核验。"
+      },
+      {
+        "relative_path": "私募投资基金信息披露监督管理办法.pdf",
+        "filename": "私募投资基金信息披露监督管理办法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 204641,
+        "sha256": "5b24470c1e597c0ae9419814dc3bc49d9b54aa07263748a5f6da3263eccd532f",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 16,
+          "text_layer": "full",
+          "text_layer_page_count": 16,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+        "formal_title": "私募投资基金信息披露监督管理办法",
+        "institution": "中国证券监督管理委员会",
+        "requires_ocr": false,
+        "estimated_chunk_count": 9,
+        "version_or_validity_risk": "文件注明2025年12月30日审议通过、2026年9月1日起施行；来源及现行版本需人工核验。"
+      },
+      {
+        "relative_path": "衍生品交易监督管理办法.pdf",
+        "filename": "衍生品交易监督管理办法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 343324,
+        "sha256": "c79f9edb626fe2f828cc70cb34a7b6e1b3a775126e53327c4b48c45e3b9ba9e1",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 14,
+          "text_layer": "full",
+          "text_layer_page_count": 14,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "B",
+        "classification_reason": "主题边界与当前法规/数据安全库不同，建议建立独立专题知识库。",
+        "formal_title": "衍生品交易监督管理办法",
+        "institution": "中国证券监督管理委员会",
+        "requires_ocr": false,
+        "estimated_chunk_count": 8,
+        "version_or_validity_risk": "文件注明2026年11月16日起施行；截至本次清点日期尚未生效，不宜作为当前有效规则。"
+      }
+    ],
+    "C_already_ingested": [
+      {
+        "relative_path": "中华人民共和国个人信息保护法.pdf",
+        "filename": "中华人民共和国个人信息保护法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 3378209,
+        "sha256": "41f5513323f7ce53790e58431e3d85d3d2b7680b62752485d3ed7679384eee67",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 7,
+          "text_layer": "none",
+          "text_layer_page_count": 0,
+          "no_text_layer_page_count": 7
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          12
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "中华人民共和国个人信息保护法",
+        "institution": null,
+        "requires_ocr": true,
+        "estimated_chunk_count": null,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "中华人民共和国数据安全法.pdf",
+        "filename": "中华人民共和国数据安全法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 860148,
+        "sha256": "865621df5cff041a539c96187ec1a11428b7f9ab732b47ccb64e58dbde8a2e7b",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 6,
+          "text_layer": "full",
+          "text_layer_page_count": 6,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          9
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "中华人民共和国数据安全法",
+        "institution": null,
+        "requires_ocr": false,
+        "estimated_chunk_count": 8,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "中华人民共和国网络安全法.pdf",
+        "filename": "中华人民共和国网络安全法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 3057961,
+        "sha256": "0f30c1b5f2bc92bbe4e0645ffc065d6101e4d76f09e88fb5265f8cedbcda3a9c",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 11,
+          "text_layer": "none",
+          "text_layer_page_count": 0,
+          "no_text_layer_page_count": 11
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          13
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "中华人民共和国网络安全法",
+        "institution": null,
+        "requires_ocr": true,
+        "estimated_chunk_count": null,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "中国人民银行金融消费者权益保护实施办法.pdf",
+        "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 4923015,
+        "sha256": "e17f056a4e7da9c9cccdedb9d4c65c850ed32f4f550273e0a72ec0cc9b8c9a44",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 14,
+          "text_layer": "none",
+          "text_layer_page_count": 0,
+          "no_text_layer_page_count": 14
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          7,
+          8
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "中国人民银行金融消费者权益保护实施办法",
+        "institution": null,
+        "requires_ocr": true,
+        "estimated_chunk_count": null,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "商业银行互联网贷款管理暂行办法.docx",
+        "filename": "商业银行互联网贷款管理暂行办法.docx",
+        "extension": ".docx",
+        "size_bytes": 43854,
+        "sha256": "5e07da3b7e51630cd76781d9d9f084903eb7dd54b5e1590019e2f4a3dcb0f77e",
+        "pdf": null,
+        "docx": {
+          "readable": true,
+          "required_parts": {
+            "[Content_Types].xml": true,
+            "_rels/.rels": true,
+            "word/document.xml": true
+          }
+        },
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          4
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "商业银行互联网贷款管理暂行办法",
+        "institution": null,
+        "requires_ocr": false,
+        "estimated_chunk_count": 11,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "金融数据安全 数据安全分级指南.pdf",
+        "filename": "金融数据安全 数据安全分级指南.pdf",
+        "extension": ".pdf",
+        "size_bytes": 375024,
+        "sha256": "37968bf117319c27eb30ec3d5f97acb1c4963dc55db9538a7e37d642b1414ad7",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 3,
+          "text_layer": "partial",
+          "text_layer_page_count": 2,
+          "no_text_layer_page_count": 1
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          5,
+          6
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "金融数据安全 数据安全分级指南",
+        "institution": null,
+        "requires_ocr": true,
+        "estimated_chunk_count": 2,
+        "version_or_validity_risk": null
+      },
+      {
+        "relative_path": "银行保险机构数据安全管理办法.pdf",
+        "filename": "银行保险机构数据安全管理办法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 235777,
+        "sha256": "3a02c0f31cc597a68e1d069db4e162e37d7cb9274c41f78ad03c6dceb6d06082",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 31,
+          "text_layer": "full",
+          "text_layer_page_count": 31,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [
+          10,
+          11
+        ],
+        "classification": "C",
+        "classification_reason": "已按相同文件SHA-256入库并已有成功索引记录，无需重复处理。",
+        "formal_title": "银行保险机构数据安全管理办法",
+        "institution": null,
+        "requires_ocr": false,
+        "estimated_chunk_count": 15,
+        "version_or_validity_risk": null
+      }
+    ],
+    "D_not_recommended": [
+      {
+        "relative_path": "货币政策执行报告.pdf",
+        "filename": "货币政策执行报告.pdf",
+        "extension": ".pdf",
+        "size_bytes": 469508,
+        "sha256": "17c76031dc5720b6058d3d65617241985a367bd41531427abca36a8c4c70b216",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 3,
+          "text_layer": "none",
+          "text_layer_page_count": 0,
+          "no_text_layer_page_count": 3
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "D",
+        "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+        "formal_title": "货币政策执行报告（具体期次无法从文本层确认）",
+        "institution": "需人工核验",
+        "requires_ocr": true,
+        "estimated_chunk_count": null,
+        "version_or_validity_risk": "仅3页且无文本层，无法确认期次、来源和完整性。"
+      },
+      {
+        "relative_path": "金融机构合规管理办法.pdf",
+        "filename": "金融机构合规管理办法.pdf",
+        "extension": ".pdf",
+        "size_bytes": 74060,
+        "sha256": "5210a8087e9fefec8e8a043e8393eeadc9f85067a318ebac48e77c936b29a3a8",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 2,
+          "text_layer": "full",
+          "text_layer_page_count": 2,
+          "no_text_layer_page_count": 0
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "D",
+        "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+        "formal_title": "国家金融监督管理总局发布《金融机构合规管理办法》",
+        "institution": "国家金融监督管理总局",
+        "requires_ocr": false,
+        "estimated_chunk_count": 1,
+        "version_or_validity_risk": "仅2页、882字符，为发布说明或新闻摘要，不是五章五十八条完整办法。"
+      },
+      {
+        "relative_path": "银行保险机构数据安全管理办法（征求意见稿）.pdf",
+        "filename": "银行保险机构数据安全管理办法（征求意见稿）.pdf",
+        "extension": ".pdf",
+        "size_bytes": 432573,
+        "sha256": "4ef6bf8d2088ac486c16d27ffd4ca480b07c9068fc1151a3bb0570eb90657e20",
+        "pdf": {
+          "valid_header": true,
+          "readable": true,
+          "encrypted": false,
+          "page_count": 3,
+          "text_layer": "none",
+          "text_layer_page_count": 0,
+          "no_text_layer_page_count": 3
+        },
+        "docx": null,
+        "exact_local_duplicate": false,
+        "matching_document_ids": [],
+        "classification": "D",
+        "classification_reason": "不完整、非正式版本或来源/版本信息不足，不建议当前入库。",
+        "formal_title": "银行保险机构数据安全管理办法（征求意见稿）",
+        "institution": "需人工核验",
+        "requires_ocr": true,
+        "estimated_chunk_count": null,
+        "version_or_validity_risk": "征求意见稿且当前目录已有正式版，不应同时作为主要知识来源。"
+      }
+    ]
+  },
+  "qdrant": {
+    "version": "1.19.1",
+    "collection_status": "green",
+    "vector_size": 1024,
+    "distance": "Cosine",
+    "point_count": 95,
+    "database_active_mapping_count": 95,
+    "counts_match": true,
+    "point_payloads_read": false
+  },
+  "summary": {
+    "local_file_count": 22,
+    "current_effective_document_count": 10,
+    "current_knowledge_base_new_files": [],
+    "separate_topic_files": [
+      "金融机构企业标准体系建设指南_附件\\1.参考模板组织的规则与语法.pdf",
+      "金融机构企业标准体系建设指南_附件\\2.规章制度类文件行文建议.pdf",
+      "金融机构企业标准体系建设指南_附件\\3.{单位名称}规章制度管理办法模板.pdf",
+      "金融机构企业标准体系建设指南_附件\\4.{单位名称}企业标准化管理办法模板.pdf",
+      "金融机构企业标准体系建设指南_附件\\5.{单位名称}企业标准体系框架模板.pdf",
+      "金融机构企业标准体系建设指南_附件\\6.{单位名称}标准体系记录样例.pdf",
+      "金融机构企业标准体系建设指南_附件\\7.{单位名称}企业标准模板（TCS格式).pdf",
+      "金融机构企业标准体系建设指南_附件\\8.{单位名称}技术规范模板（TCS格式).pdf",
+      "支付体系运行总体情况（月度统计） 9月.pdf",
+      "深圳证券交易所债券交易规则.pdf",
+      "私募投资基金信息披露监督管理办法.pdf",
+      "衍生品交易监督管理办法.pdf"
+    ],
+    "already_ingested_files": [
+      "中华人民共和国个人信息保护法.pdf",
+      "中华人民共和国数据安全法.pdf",
+      "中华人民共和国网络安全法.pdf",
+      "中国人民银行金融消费者权益保护实施办法.pdf",
+      "商业银行互联网贷款管理暂行办法.docx",
+      "金融数据安全 数据安全分级指南.pdf",
+      "银行保险机构数据安全管理办法.pdf"
+    ],
+    "not_recommended_files": [
+      "货币政策执行报告.pdf",
+      "金融机构合规管理办法.pdf",
+      "银行保险机构数据安全管理办法（征求意见稿）.pdf"
+    ],
+    "next_best_uploads": [
+      {
+        "file": "深圳证券交易所债券交易规则.pdf",
+        "target": "新建债券交易专题知识库",
+        "condition": "先人工核验是否为最新修订版本。"
+      },
+      {
+        "file": "私募投资基金信息披露监督管理办法.pdf",
+        "target": "新建私募基金专题知识库",
+        "condition": "先人工核验来源；文件载明已于2026年9月1日起施行。"
+      }
+    ]
+  },
+  "changes": {
+    "database_modified": false,
+    "qdrant_modified": false,
+    "source_files_modified": false,
+    "embedding_calls": 0,
+    "chat_model_calls": 0,
+    "external_network_calls": 0
+  }
+}

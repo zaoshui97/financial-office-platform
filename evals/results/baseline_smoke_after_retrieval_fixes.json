@@ -1,0 +1,943 @@
+{
+  "evaluation": "baseline_smoke_after_retrieval_fixes",
+  "generated_at": "2026-09-29T10:39:00.203658+00:00",
+  "status": "completed",
+  "fixed_case_ids": [
+    "single-07",
+    "single-08",
+    "cross-02",
+    "refusal-01",
+    "confusion-02"
+  ],
+  "preflight": {
+    "application": {
+      "http_status": 200,
+      "status": "ready",
+      "database": "connected"
+    },
+    "configuration": {
+      "top_k": 20,
+      "top_n": 6,
+      "score_threshold": 0.45,
+      "vector_search_enabled": true,
+      "keyword_fallback_enabled": false
+    },
+    "collection": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    },
+    "database": {
+      "owner_conversations": 12,
+      "owner_messages": 24,
+      "document_count": 13,
+      "chunk_count": 97,
+      "knowledge_index_digest": "cd3dbfc9e3478fd7a5d9cb5b30fbd185c516fdfada8aece0ba855ed6a3881d87"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "single-07",
+      "category": "single_document_fact",
+      "question": "《中华人民共和国个人信息保护法》对敏感个人信息的定义和处理条件有哪些规定？",
+      "should_answer": true,
+      "http_status": 200,
+      "total_latency_ms": 38992.32,
+      "query_embedding_request_count": 1,
+      "qdrant_query_count": 1,
+      "qdrant_limit": 20,
+      "candidates_before_threshold": 20,
+      "candidates_after_threshold": 20,
+      "qwen_call_count": 1,
+      "deepseek_call_count": 0,
+      "llm_call_count": 1,
+      "fallback_count": 0,
+      "keyword_fallback_used": false,
+      "retrieval_method": "vector",
+      "actual_provider": "qwen",
+      "actual_model": "qwen3.8-flash",
+      "answer": "根据提供的《中华人民共和国个人信息保护法》材料，关于敏感个人信息的定义和处理条件如下：\n\n## 一、敏感个人信息的定义\n\n敏感个人信息是一旦泄露或者非法使用，容易导致自然人的人格尊严受到侵害或者人身、财产安全受到危害的个人信息，包括：\n\n- 生物识别信息；\n- 宗教信仰；\n- 特定身份；\n- 医疗健康信息；\n- 金融账户；\n- 行踪轨迹；\n- 其他类似信息；\n- 不满十四周岁未成年人的个人信息。[1]\n\n## 二、敏感个人信息的处理条件\n\n### 1. 必须具有特定目的、充分必要性，并采取严格保护措施\n\n个人信息处理者只有在具有特定的目的和充分的必要性，并采取严格保护措施的情形下，方可处理敏感个人信息。[1]\n\n### 2. 应当取得个人的单独同意\n\n处理敏感个人信息应当取得个人的单独同意；如果法律、行政法规规定处理敏感个人信息应当取得书面同意的，从其规定。[1]\n\n### 3. 应当履行更严格的告知义务\n\n个人信息处理者处理敏感个人信息的，除一般个人信息处理告知事项外，还应当向个人告知处理敏感个人信息的必要性以及对个人权益的影响；依照法律规定可以不向个人告知的除外。[1][4]\n\n### 4. 处理不满十四周岁未成年人个人信息有特殊要求\n\n个人信息处理者处理不满十四周岁未成年人个人信息的，应当取得未成年人的父母或者其他监护人的同意，并应当制定专门的个人信息处理规则。[1]\n\n### 5. 法律、行政法规有行政许可或其他限制的，从其规定\n\n如果法律、行政法规对处理敏感个人信息规定应当取得相关行政许可或者作出其他限制的，应当遵守其规定。[1]\n\n### 6. 处理敏感个人信息前应当进行个人信息保护影响评估\n\n处理敏感个人信息属于应当事前进行个人信息保护影响评估的情形，并对处理情况进行记录。影响评估应当包括：\n\n- 个人信息的处理目的、处理方式等是否合法、正当、必要；\n- 对个人权益的影响及安全风险；\n- 所采取的保护措施是否合法、有效并与风险程度相适应。\n\n个人信息保护影响评估报告和处理情况记录应当至少保存三年。[6]\n\n### 7. 同时应遵守个人信息处理的一般原则\n\n处理个人信息应当遵循合法、正当、必要和诚信原则；应当具有明确、合理的目的，并采取对个人权益影响最小的方式；收集个人信息应当限于实现处理目的的最小范围，不得过度收集；并应当公开、透明，明示处理的目的、方式和范围。[5]",
+      "citations": [
+        {
+          "document_id": 12,
+          "chunk_id": 71,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.79780275,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 12,
+          "chunk_id": 66,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 1,
+          "page_numbers": [
+            1
+          ],
+          "score": 0.74767727,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 12,
+          "chunk_id": 70,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.70342183,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 12,
+          "chunk_id": 68,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": 2,
+          "page_numbers": [
+            2
+          ],
+          "score": 0.690879,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 12,
+          "chunk_id": 67,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.66237664,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 12,
+          "chunk_id": 75,
+          "filename": "中华人民共和国个人信息保护法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.66020334,
+          "retrieval_method": "vector"
+        }
+      ],
+      "conversation_id": 49,
+      "assistant_message_id": 56,
+      "expected_document_ids": [
+        12
+      ],
+      "recalled_expected_document_ids": [
+        12
+      ],
+      "expected_support_chunk_ids": [
+        71
+      ],
+      "recalled_support_chunk_ids": [
+        71
+      ],
+      "expected_page_numbers": {
+        "12": [
+          3
+        ]
+      },
+      "gold_answer_points": [
+        "敏感个人信息是泄露或非法使用后容易侵害人格尊严或危害人身、财产安全的信息。",
+        "示例包括生物识别、宗教信仰、特定身份、医疗健康、金融账户和行踪轨迹等信息。",
+        "不满十四周岁未成年人的个人信息属于敏感个人信息。",
+        "只有具备特定目的和充分必要性并采取严格保护措施时方可处理。",
+        "处理敏感个人信息原则上应取得单独同意，并额外告知处理必要性及对个人权益的影响。"
+      ],
+      "forbidden_claims": [
+        "所有公开的个人信息都不再属于敏感信息。",
+        "敏感个人信息只需普通同意且无需额外告知。"
+      ],
+      "manual_scoring": {
+        "document_recall": 1.0,
+        "support_chunk_recall": 1.0,
+        "citation_page_accuracy": 0.3333333333333333,
+        "citation_pages_correct": 2,
+        "citation_pages_evaluated": 6,
+        "faithfulness": 1.0,
+        "gold_coverage": [
+          "covered",
+          "covered",
+          "covered",
+          "covered",
+          "covered"
+        ],
+        "forbidden_claims_detected": [],
+        "correct_refusal": null,
+        "notes": "5/5要点完整；新增两条同文档引用未改变答案正确性。"
+      },
+      "comparison_to_baseline_smoke_run2": {
+        "document_recall_before": 1.0,
+        "document_recall_after": 1.0,
+        "citation_page_accuracy_before": 0.5,
+        "citation_page_accuracy_after": 0.3333333333333333,
+        "faithfulness_before": 1.0,
+        "faithfulness_after": 1.0,
+        "latency_ms_before": 18449.81,
+        "latency_ms_after": 38992.32,
+        "citation_chunk_ids_before": [
+          71,
+          66,
+          70,
+          68
+        ],
+        "citation_chunk_ids_after": [
+          71,
+          66,
+          70,
+          68,
+          67,
+          75
+        ],
+        "fallback_count_before": 0,
+        "fallback_count_after": 0
+      }
+    },
+    {
+      "case_id": "single-08",
+      "category": "single_document_fact",
+      "question": "《中华人民共和国网络安全法》要求网络运营者在网络安全等级保护制度下履行哪些基本义务？",
+      "should_answer": true,
+      "http_status": 200,
+      "total_latency_ms": 11872.89,
+      "query_embedding_request_count": 1,
+      "qdrant_query_count": 1,
+      "qdrant_limit": 20,
+      "candidates_before_threshold": 20,
+      "candidates_after_threshold": 20,
+      "qwen_call_count": 1,
+      "deepseek_call_count": 0,
+      "llm_call_count": 1,
+      "fallback_count": 0,
+      "keyword_fallback_used": false,
+      "retrieval_method": "vector",
+      "actual_provider": "qwen",
+      "actual_model": "qwen3.8-flash",
+      "answer": "依据知识库材料，《中华人民共和国网络安全法》要求网络运营者按照网络安全等级保护制度的要求，履行下列基本安全保护义务：\n\n1. **制定内部安全管理制度和操作规程，确定网络安全负责人，落实网络安全保护责任**[6]。  \n2. **采取防范计算机病毒和网络攻击、网络侵入等危害网络安全行为的技术措施**[6]。  \n3. **采取监测、记录网络运行状态、网络安全事件的技术措施，并按照规定留存相关网络日志不少于六个月**[6]。  \n4. **采取数据分类、重要数据备份和加密等措施**[6]。  \n5. **履行法律、行政法规规定的其他网络安全保护义务**[6]。  \n\n此外，网络运营者开展经营和服务活动时，还应当遵守法律、行政法规，履行网络安全保护义务，接受政府和社会监督，承担社会责任[2]。",
+      "citations": [
+        {
+          "document_id": 13,
+          "chunk_id": 87,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            4,
+            5
+          ],
+          "score": 0.6988418,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 13,
+          "chunk_id": 82,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.67074525,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 13,
+          "chunk_id": 85,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            3,
+            4
+          ],
+          "score": 0.66652596,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 13,
+          "chunk_id": 90,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.632724,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 13,
+          "chunk_id": 91,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.61019063,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 13,
+          "chunk_id": 84,
+          "filename": "中华人民共和国网络安全法.pdf",
+          "page_number": 3,
+          "page_numbers": [
+            3
+          ],
+          "score": 0.60741484,
+          "retrieval_method": "vector"
+        }
+      ],
+      "conversation_id": 50,
+      "assistant_message_id": 58,
+      "expected_document_ids": [
+        13
+      ],
+      "recalled_expected_document_ids": [
+        13
+      ],
+      "expected_support_chunk_ids": [
+        84,
+        85
+      ],
+      "recalled_support_chunk_ids": [
+        84,
+        85
+      ],
+      "expected_page_numbers": {
+        "13": [
+          3
+        ]
+      },
+      "gold_answer_points": [
+        "制定内部安全管理制度和操作规程，确定负责人并落实责任。",
+        "采取防范计算机病毒、网络攻击和网络侵入等技术措施。",
+        "监测和记录网络运行状态及网络安全事件。",
+        "相关网络日志按规定留存不少于六个月。",
+        "采取数据分类、重要数据备份和加密等措施。"
+      ],
+      "forbidden_claims": [
+        "网络日志只需保存三个月。",
+        "等级保护义务仅适用于关键信息基础设施运营者。"
+      ],
+      "manual_scoring": {
+        "document_recall": 1.0,
+        "support_chunk_recall": 1.0,
+        "citation_page_accuracy": 0.16666666666666666,
+        "citation_pages_correct": 1,
+        "citation_pages_evaluated": 6,
+        "faithfulness": 1.0,
+        "gold_coverage": [
+          "covered",
+          "covered",
+          "covered",
+          "covered",
+          "covered"
+        ],
+        "forbidden_claims_detected": [],
+        "correct_refusal": null,
+        "notes": "Chunk 84进入第6条引用，五项等级保护义务全部覆盖。"
+      },
+      "comparison_to_baseline_smoke_run2": {
+        "document_recall_before": 1.0,
+        "document_recall_after": 1.0,
+        "citation_page_accuracy_before": 0.0,
+        "citation_page_accuracy_after": 0.16666666666666666,
+        "faithfulness_before": 0.3,
+        "faithfulness_after": 1.0,
+        "latency_ms_before": 56123.58,
+        "latency_ms_after": 11872.89,
+        "citation_chunk_ids_before": [
+          87,
+          82,
+          85,
+          90
+        ],
+        "citation_chunk_ids_after": [
+          87,
+          82,
+          85,
+          90,
+          91,
+          84
+        ],
+        "fallback_count_before": 0,
+        "fallback_count_after": 0
+      }
+    },
+    {
+      "case_id": "cross-02",
+      "category": "cross_document_synthesis",
+      "question": "《数据安全法》的通用义务如何在《银行保险机构数据安全管理办法》中被细化为行业治理和分类分级措施？",
+      "should_answer": true,
+      "http_status": 200,
+      "total_latency_ms": 83602.87,
+      "query_embedding_request_count": 1,
+      "qdrant_query_count": 1,
+      "qdrant_limit": 20,
+      "candidates_before_threshold": 20,
+      "candidates_after_threshold": 20,
+      "qwen_call_count": 1,
+      "deepseek_call_count": 1,
+      "llm_call_count": 2,
+      "fallback_count": 1,
+      "keyword_fallback_used": false,
+      "retrieval_method": "vector",
+      "actual_provider": "deepseek",
+      "actual_model": "ep-m-20260725121915-nrpgs",
+      "answer": "《数据安全法》规定的通用义务在《银行保险机构数据安全管理办法》中被细化为具体的行业治理框架和数据分类分级措施，主要体现在以下两方面：\n\n**一、行业治理责任的细化**\n\n《数据安全法》原则性地规定了“各地区、各部门对本地区、本部门工作中收集和产生的数据及数据安全负责”[1]，并要求“工业、电信、交通、金融……等主管部门承担本行业、本领域数据安全监管职责”[1]。在此基础上，《银行保险机构数据安全管理办法》将责任压实到金融机构本身，构建了完整的内部治理架构：\n\n*   **明确机构主体责任**：规定银行保险机构对数据安全“负主体责任”，并确立了“主要负责人为数据安全第一责任人，分管数据安全的高级管理人员为直接责任人”的问责机制[6]。\n*   **设立归口管理部门**：要求机构指定“数据安全归口管理部门”，负责统筹数据分类分级、安全评估、风险监测等工作[6]。\n*   **划分业务与科技责任**：明确“谁管业务、谁管业务数据、谁管数据安全”的原则，并单独规定“信息科技部门是数据安全的技术保护主责部门”，将管理责任和技术保护责任分离[6]。\n*   **融入全面风险管理**：要求将数据安全纳入本机构的“全面风险管理体系”和“内控评价体系”[6]。\n\n**二、分类分级措施的细化**\n\n《数据安全法》确立了“国家建立数据分类分级保护制度”的原则，并要求各地区、各部门“确定本地区、本部门以及相关行业、领域的重要数据具体目录”[3]。《银行保险机构数据安全管理办法》则将这一制度具体化为银行保险行业的可执行标准：\n\n*   **制定具体分级标准**：在《数据安全法》“分类分级”原则和“核心数据”概念[3]的基础上，《办法》将数据清晰地划分为四级，即核心数据、重要数据、一般数据，并将一般数据进一步细分为**敏感数据**和其他一般数据[4]，并对每一级别给出了明确的定义[4]。\n*   **建立动态管理机制**：要求机构“制定数据分类分级保护制度”，并建立“动态调整审批机制”，当数据属性或危害程度发生变化时，须及时调整其安全级别[4]。\n*   **落实差异化和全流程管控**：要求机构采取“差异化安全保护措施”，建立包括数据处理全生命周期的管控机制[4]，并要求在处理敏感级及以上数据等情形时，须“事先开展数据安全评估”[5]。",
+      "citations": [
+        {
+          "document_id": 9,
+          "chunk_id": 43,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2
+          ],
+          "score": 0.5567447,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 11,
+          "chunk_id": 51,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            1,
+            2,
+            3
+          ],
+          "score": 0.7689316,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 9,
+          "chunk_id": 45,
+          "filename": "中华人民共和国数据安全法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            2,
+            3
+          ],
+          "score": 0.54947054,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 11,
+          "chunk_id": 54,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8,
+            9,
+            10
+          ],
+          "score": 0.742475,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 11,
+          "chunk_id": 55,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            9,
+            10,
+            11
+          ],
+          "score": 0.72367775,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 11,
+          "chunk_id": 53,
+          "filename": "银行保险机构数据安全管理办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "score": 0.72365385,
+          "retrieval_method": "vector"
+        }
+      ],
+      "conversation_id": 51,
+      "assistant_message_id": 60,
+      "expected_document_ids": [
+        9,
+        11
+      ],
+      "recalled_expected_document_ids": [
+        9,
+        11
+      ],
+      "expected_support_chunk_ids": [
+        46,
+        52,
+        53,
+        54,
+        55
+      ],
+      "recalled_support_chunk_ids": [
+        53,
+        54,
+        55
+      ],
+      "expected_page_numbers": {
+        "9": [
+          3,
+          4
+        ],
+        "11": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      "gold_answer_points": [
+        "数据安全法提出全流程制度、培训、技术措施、风险监测和事件处置等通用义务。",
+        "重要数据处理者还应明确负责人和管理机构，并定期开展风险评估和报告。",
+        "行业办法进一步建立覆盖董事会、高管层、归口管理和技术保护部门的组织架构及责任制。",
+        "行业办法要求建立数据目录和分类分级规范，将数据分为核心、重要、一般并细分一般数据。",
+        "行业办法要求动态调整安全级别、采取差异化措施，并对敏感级及以上高影响处理活动事前评估。"
+      ],
+      "forbidden_claims": [
+        "行业办法取代或排除数据安全法。",
+        "数据安全法直接规定了银行保险机构内部所有具体岗位职责。"
+      ],
+      "manual_scoring": {
+        "document_recall": 1.0,
+        "support_chunk_recall": 0.6,
+        "citation_page_accuracy": 0.3333333333333333,
+        "citation_pages_correct": 2,
+        "citation_pages_evaluated": 6,
+        "faithfulness": 0.4,
+        "gold_coverage": [
+          "missed",
+          "missed",
+          "partial",
+          "partial",
+          "covered"
+        ],
+        "forbidden_claims_detected": [],
+        "correct_refusal": null,
+        "notes": "已同时召回文档9和11并进行比较，但文档9命中的Chunk 43/45不是gold支持Chunk 46；未覆盖通用全流程义务及重要数据处理者定期风险评估报告要求。"
+      },
+      "comparison_to_baseline_smoke_run2": {
+        "document_recall_before": 0.5,
+        "document_recall_after": 1.0,
+        "citation_page_accuracy_before": 0.5,
+        "citation_page_accuracy_after": 0.3333333333333333,
+        "faithfulness_before": 0.6,
+        "faithfulness_after": 0.4,
+        "latency_ms_before": 78059.95,
+        "latency_ms_after": 83602.87,
+        "citation_chunk_ids_before": [
+          51,
+          54,
+          55,
+          53
+        ],
+        "citation_chunk_ids_after": [
+          43,
+          51,
+          45,
+          54,
+          55,
+          53
+        ],
+        "fallback_count_before": 1,
+        "fallback_count_after": 1
+      }
+    },
+    {
+      "case_id": "refusal-01",
+      "category": "unsupported_refusal",
+      "question": "请根据知识库给出本公司 2026 年第三季度净利润、同比变化以及利润下降的前三个原因。",
+      "should_answer": false,
+      "http_status": 200,
+      "total_latency_ms": 318.13,
+      "query_embedding_request_count": 1,
+      "qdrant_query_count": 1,
+      "qdrant_limit": 20,
+      "candidates_before_threshold": 20,
+      "candidates_after_threshold": 0,
+      "qwen_call_count": 0,
+      "deepseek_call_count": 0,
+      "llm_call_count": 0,
+      "fallback_count": 0,
+      "keyword_fallback_used": false,
+      "retrieval_method": "vector",
+      "actual_provider": null,
+      "actual_model": null,
+      "answer": "当前知识库中没有找到足够依据。",
+      "citations": [],
+      "conversation_id": 52,
+      "assistant_message_id": 62,
+      "expected_document_ids": [],
+      "recalled_expected_document_ids": [],
+      "expected_support_chunk_ids": [],
+      "recalled_support_chunk_ids": [],
+      "expected_page_numbers": {},
+      "gold_answer_points": [
+        "明确说明当前知识库没有公司第三季度财务数据，无法据此确认净利润。",
+        "不编造同比变化、利润下降原因或任何金额。",
+        "可提示需要提供经核验的财务报表或经营分析材料后再分析。"
+      ],
+      "forbidden_claims": [
+        "虚构具体净利润或同比百分比。",
+        "把法规中的一般风险要求当作利润下降的事实原因。"
+      ],
+      "manual_scoring": {
+        "document_recall": null,
+        "support_chunk_recall": null,
+        "citation_page_accuracy": null,
+        "citation_pages_correct": 0,
+        "citation_pages_evaluated": 0,
+        "faithfulness": 0.6666666666666666,
+        "gold_coverage": [
+          "covered",
+          "covered",
+          "missed"
+        ],
+        "forbidden_claims_detected": [],
+        "correct_refusal": true,
+        "notes": "正确拒答且无引用、无模型调用；未提示补充经核验财务材料。"
+      },
+      "comparison_to_baseline_smoke_run2": {
+        "document_recall_before": null,
+        "document_recall_after": null,
+        "citation_page_accuracy_before": null,
+        "citation_page_accuracy_after": null,
+        "faithfulness_before": 0.6667,
+        "faithfulness_after": 0.6666666666666666,
+        "latency_ms_before": 8078.78,
+        "latency_ms_after": 318.13,
+        "citation_chunk_ids_before": [
+          93,
+          92,
+          40,
+          75
+        ],
+        "citation_chunk_ids_after": [],
+        "fallback_count_before": 0,
+        "fallback_count_after": 0
+      }
+    },
+    {
+      "case_id": "confusion-02",
+      "category": "confusable_sources",
+      "question": "请区分“单户消费个人信用贷款授信额度不超过 20 万元”和“消费者金融信息泄露后的 72 小时报告”分别出自哪份文件，并说明各自适用的核心条件。",
+      "should_answer": true,
+      "http_status": 200,
+      "total_latency_ms": 26082.04,
+      "query_embedding_request_count": 1,
+      "qdrant_query_count": 1,
+      "qdrant_limit": 20,
+      "candidates_before_threshold": 20,
+      "candidates_after_threshold": 20,
+      "qwen_call_count": 1,
+      "deepseek_call_count": 0,
+      "llm_call_count": 1,
+      "fallback_count": 0,
+      "keyword_fallback_used": false,
+      "retrieval_method": "vector",
+      "actual_provider": "qwen",
+      "actual_model": "qwen3.8-flash",
+      "answer": "| 事项 | 出自文件 | 适用核心条件 |\n|---|---|---|\n| “单户用于消费的个人信用贷款授信额度应当不超过人民币20万元” | 《商业银行互联网贷款管理暂行办法》 | 适用于商业银行互联网贷款业务中的“单户用于消费的个人信用贷款”，授信额度不超过人民币20万元；到期一次性还本的，授信期限不超过一年；互联网贷款应遵循小额、短期、高效和风险可控原则，监管机构可根据情况调整额度，商业银行可在规定额度内制定差异化授信额度。[1][3] |\n| “消费者金融信息泄露后的72小时报告” | 《中国人民银行金融消费者权益保护实施办法》 | 适用于银行、支付机构发生消费者金融信息泄露、毁损、丢失的情形；若可能危及金融消费者人身、财产安全，应立即向住所地中国人民银行分支机构报告并告知金融消费者；若可能对金融消费者产生其他不利影响，应及时告知金融消费者，并在72小时以内报告住所地中国人民银行分支机构。[2] |\n\n简言之，前者是互联网贷款授信额度和期限的监管要求，后者是消费者金融信息泄露事件中的报告与告知时限要求。",
+      "citations": [
+        {
+          "document_id": 4,
+          "chunk_id": 9,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.7305951,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 8,
+          "chunk_id": 32,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            7,
+            8
+          ],
+          "score": 0.67802256,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 4,
+          "chunk_id": 8,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.6448015,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 4,
+          "chunk_id": 12,
+          "filename": "商业银行互联网贷款管理暂行办法.docx",
+          "page_number": null,
+          "page_numbers": [],
+          "score": 0.62890524,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 8,
+          "chunk_id": 41,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            13,
+            14
+          ],
+          "score": 0.6231305,
+          "retrieval_method": "vector"
+        },
+        {
+          "document_id": 8,
+          "chunk_id": 31,
+          "filename": "中国人民银行金融消费者权益保护实施办法.pdf",
+          "page_number": null,
+          "page_numbers": [
+            6,
+            7
+          ],
+          "score": 0.62112164,
+          "retrieval_method": "vector"
+        }
+      ],
+      "conversation_id": 53,
+      "assistant_message_id": 64,
+      "expected_document_ids": [
+        4,
+        8
+      ],
+      "recalled_expected_document_ids": [
+        4,
+        8
+      ],
+      "expected_support_chunk_ids": [
+        9,
+        32
+      ],
+      "recalled_support_chunk_ids": [
+        9,
+        32
+      ],
+      "expected_page_numbers": {
+        "4": [],
+        "8": [
+          7,
+          8
+        ]
+      },
+      "gold_answer_points": [
+        "20 万元上限出自商业银行互联网贷款管理暂行办法，适用于单户用于消费的个人信用贷款授信额度。",
+        "到期一次性还本的该类贷款，授信期限不超过一年。",
+        "72 小时报告规则出自金融消费者权益保护实施办法，针对信息泄露、毁损或丢失可能产生其他不利影响的情形。",
+        "该情形还要求及时告知消费者，并在 72 小时内报告属地人民银行分支机构。",
+        "若可能危及消费者人身、财产安全，则要求立即报告并告知，而不是等待 72 小时。"
+      ],
+      "forbidden_claims": [
+        "把 20 万元上限归因于金融消费者权益保护实施办法。",
+        "把 72 小时规则归因于商业银行互联网贷款管理暂行办法。",
+        "声称所有消费者信息事件都统一适用 72 小时后报告。"
+      ],
+      "manual_scoring": {
+        "document_recall": 1.0,
+        "support_chunk_recall": 1.0,
+        "citation_page_accuracy": 0.6666666666666666,
+        "citation_pages_correct": 4,
+        "citation_pages_evaluated": 6,
+        "faithfulness": 1.0,
+        "gold_coverage": [
+          "covered",
+          "covered",
+          "covered",
+          "covered",
+          "covered"
+        ],
+        "forbidden_claims_detected": [],
+        "correct_refusal": null,
+        "notes": "5/5要点完整且来源未混淆；新增两条PDF引用超出预期页码范围。"
+      },
+      "comparison_to_baseline_smoke_run2": {
+        "document_recall_before": 1.0,
+        "document_recall_after": 1.0,
+        "citation_page_accuracy_before": 1.0,
+        "citation_page_accuracy_after": 0.6666666666666666,
+        "faithfulness_before": 1.0,
+        "faithfulness_after": 1.0,
+        "latency_ms_before": 14671.96,
+        "latency_ms_after": 26082.04,
+        "citation_chunk_ids_before": [
+          9,
+          32,
+          8,
+          12
+        ],
+        "citation_chunk_ids_after": [
+          9,
+          32,
+          8,
+          12,
+          41,
+          31
+        ],
+        "fallback_count_before": 0,
+        "fallback_count_after": 0
+      }
+    }
+  ],
+  "scores": {
+    "document_recall": {
+      "micro": 1.0,
+      "macro": 1.0,
+      "recalled_expected_documents": 6,
+      "expected_documents": 6
+    },
+    "support_chunk_recall": {
+      "value": 0.8,
+      "recalled_support_chunks": 8,
+      "expected_support_chunks": 10
+    },
+    "citation_page_accuracy": {
+      "value": 0.375,
+      "correct_expected_document_citations": 9,
+      "evaluated_expected_document_citations": 24
+    },
+    "faithfulness": {
+      "value": 0.8260869565217391,
+      "weighted_gold_points": 19.0,
+      "total_gold_points": 23,
+      "partial_credit": 0.5,
+      "forbidden_claims_detected": 0
+    },
+    "refusal_accuracy": {
+      "value": 1.0,
+      "correct_refusals": 1,
+      "refusal_cases": 1
+    },
+    "latency_ms": {
+      "average": 32173.65,
+      "p95_linear_interpolation": 74680.76,
+      "p95_nearest_rank": 83602.87
+    },
+    "model_calls": {
+      "query_embedding": 5,
+      "qdrant_search": 5,
+      "qwen": 4,
+      "deepseek": 1,
+      "chat_model_attempts": 5,
+      "fallbacks": 1
+    }
+  },
+  "comparison_to_baseline_smoke_run2": {
+    "document_recall_micro": {
+      "before": 0.8333,
+      "after": 1.0
+    },
+    "document_recall_macro": {
+      "before": 0.875,
+      "after": 1.0
+    },
+    "support_chunk_recall": {
+      "before": 0.7,
+      "after": 0.8
+    },
+    "citation_page_accuracy": {
+      "before": 0.5,
+      "after": 0.375
+    },
+    "faithfulness": {
+      "before": 0.7174,
+      "after": 0.8260869565217391
+    },
+    "refusal_accuracy": {
+      "before": 1.0,
+      "after": 1.0
+    },
+    "average_latency_ms": {
+      "before": 35076.82,
+      "after": 32173.65
+    },
+    "p95_latency_ms": {
+      "before": 73672.68,
+      "after": 74680.76
+    },
+    "model_calls": {
+      "query_embedding_before": 5,
+      "query_embedding_after": 5,
+      "qdrant_before": 5,
+      "qdrant_after": 5,
+      "qwen_before": 5,
+      "qwen_after": 4,
+      "deepseek_before": 1,
+      "deepseek_after": 1,
+      "chat_model_attempts_before": 6,
+      "chat_model_attempts_after": 5,
+      "fallbacks_before": 1,
+      "fallbacks_after": 1
+    },
+    "summary": {
+      "improved": [
+        "Expected-document recall improved because cross-02 now cites documents 9 and 11.",
+        "Support-chunk recall improved because single-08 now includes Chunk 84.",
+        "Faithfulness improved overall, led by complete single-08 coverage.",
+        "refusal-01 now returns no citations and makes no chat-model call.",
+        "Average latency decreased, mainly because refusal-01 no longer calls a model."
+      ],
+      "regressed": [
+        "Citation page accuracy fell because Top-6 added off-range citations in single-07 and confusion-02.",
+        "cross-02 recalled both documents but still missed support Chunks 46 and 52; its manual faithfulness score decreased.",
+        "P95 latency increased slightly because cross-02 again timed out on Qwen and fell back to DeepSeek."
+      ],
+      "unchanged": [
+        "Refusal accuracy remained 100%.",
+        "Embedding and Qdrant call counts remained one per case.",
+        "Fallback count remained one."
+      ]
+    }
+  },
+  "postcheck": {
+    "collection": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    },
+    "database": {
+      "owner_conversations": 17,
+      "owner_messages": 34,
+      "document_count": 13,
+      "chunk_count": 97,
+      "knowledge_index_digest": "cd3dbfc9e3478fd7a5d9cb5b30fbd185c516fdfada8aece0ba855ed6a3881d87"
+    },
+    "conversation_delta": 5,
+    "message_delta": 10,
+    "knowledge_and_index_unchanged": true
+  },
+  "sensitive_values_cleared": true
+}

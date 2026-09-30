@@ -1,0 +1,88 @@
+{
+  "case_id": "refusal-01",
+  "run": 2,
+  "status": "passed",
+  "preconditions": {
+    "uvicorn": {
+      "pid": 44404,
+      "started_at": "2026-09-29T18:16:04.0090035+08:00",
+      "threshold_code_modified_at": "2026-09-29T13:08:39.5947069+08:00",
+      "started_after_threshold_code": true
+    },
+    "application": {
+      "http_status": 200,
+      "status": "ready",
+      "database": "connected"
+    },
+    "configuration": {
+      "top_k": 20,
+      "top_n": 6,
+      "score_threshold": 0.45,
+      "keyword_fallback_enabled": false
+    },
+    "collection": {
+      "status": "green",
+      "vector_size": 1024,
+      "distance": "Cosine",
+      "points": 95
+    }
+  },
+  "execution": {
+    "login_http_status": 200,
+    "chat_http_status": 200,
+    "elapsed_ms": 1242.57,
+    "query_embedding_calls": 1,
+    "embedding_batches": 1,
+    "embedding_vector_count": 1,
+    "qdrant_search_calls": 1,
+    "qdrant_limit": 20,
+    "qwen_calls": 0,
+    "deepseek_calls": 0,
+    "chat_model_calls": 0,
+    "keyword_fallback_calls": 0
+  },
+  "retrieval": {
+    "security_validated_candidates_before_threshold": 20,
+    "candidates_after_threshold": 0,
+    "final_context_count": 0,
+    "raw_highest_score": 0.33558702,
+    "raw_highest_score_source": "retrieval_threshold_calibration.json for the same case and unchanged 95-point collection",
+    "threshold": 0.45,
+    "boundary_rule": "score_greater_than_or_equal_to_threshold_is_retained"
+  },
+  "http_result": {
+    "status": 200,
+    "answer": "当前知识库中没有找到足够依据。",
+    "citation_count": 0,
+    "retrieval_method": "vector",
+    "provider": null,
+    "model": null,
+    "model_latency_ms": null,
+    "conversation_id": 48,
+    "assistant_message_id": 54
+  },
+  "data_changes": {
+    "owner_conversations_before": 11,
+    "owner_conversations_after": 12,
+    "owner_conversation_delta": 1,
+    "owner_messages_before": 22,
+    "owner_messages_after": 24,
+    "owner_message_delta": 2,
+    "document_count_before": 13,
+    "document_count_after": 13,
+    "chunk_count_before": 97,
+    "chunk_count_after": 97,
+    "knowledge_index_digest_before": "cd3dbfc9e3478fd7a5d9cb5b30fbd185c516fdfada8aece0ba855ed6a3881d87",
+    "knowledge_index_digest_after": "cd3dbfc9e3478fd7a5d9cb5b30fbd185c516fdfada8aece0ba855ed6a3881d87",
+    "knowledge_and_index_unchanged": true,
+    "collection_points_before": 95,
+    "collection_points_after": 95
+  },
+  "sensitive_objects_cleared": true,
+  "notes": [
+    "The production log recorded one successful query embedding call and one Qdrant points/query request.",
+    "The production threshold log recorded before=20 and after=0 at threshold=0.4500.",
+    "No chat provider was selected because no valid context remained.",
+    "The raw highest score is sourced from the immediately preceding 18-case calibration because production logs intentionally do not record candidate scores."
+  ]
+}

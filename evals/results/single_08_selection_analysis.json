@@ -1,0 +1,226 @@
+{
+  "analysis": "single_08_offline_candidate_selection",
+  "generated_at": "2026-09-28T15:01:08.250+08:00",
+  "status": "completed",
+  "constraints": {
+    "external_service_calls": 0,
+    "http_business_requests": 0,
+    "database_mode": "read_only_session_with_rollback",
+    "production_code_modified": false,
+    "configuration_modified": false,
+    "database_modified": false
+  },
+  "case": {
+    "id": "single-08",
+    "question": "《中华人民共和国网络安全法》要求网络运营者在网络安全等级保护制度下履行哪些基本义务？",
+    "expected_document_ids": [13],
+    "expected_page_numbers": {
+      "13": [3]
+    },
+    "expected_supporting_chunks": [84, 85],
+    "gold_answer_points": [
+      "制定内部安全管理制度和操作规程，确定负责人并落实责任。",
+      "采取防范计算机病毒、网络攻击和网络侵入等技术措施。",
+      "监测和记录网络运行状态及网络安全事件。",
+      "相关网络日志按规定留存不少于六个月。",
+      "采取数据分类、重要数据备份和加密等措施。"
+    ]
+  },
+  "database_snapshot": {
+    "owner_id": 3,
+    "knowledge_base_id": 1,
+    "document_id": 13,
+    "filename": "中华人民共和国网络安全法.pdf",
+    "parse_status": "parsed",
+    "index_status": "indexed",
+    "active_index_generation": "a04c3546-2fe2-4673-a9c4-5f9c950c4dab",
+    "building_index_generation": null,
+    "top_6_point_mappings_present": true,
+    "top_6_content_hashes_valid": true
+  },
+  "raw_top_6": [
+    {
+      "rank": 1,
+      "chunk_id": 87,
+      "chunk_index": 6,
+      "score": 0.69885415,
+      "page_number": null,
+      "page_numbers": [4, 5],
+      "char_count": 961,
+      "topic": "关键信息基础设施的重点保护及其运营者的增强义务",
+      "relevance": "包含等级保护术语，但主体和义务范围偏向关键信息基础设施，不是第二十三条的一般网络运营者五项基本义务。",
+      "redundancy": "与问题表述高度相似但法律适用范围更窄，属于易混淆证据；与Chunk 84不是重复答案。"
+    },
+    {
+      "rank": 2,
+      "chunk_id": 82,
+      "chunk_index": 1,
+      "score": 0.6707109,
+      "page_number": null,
+      "page_numbers": [1, 2],
+      "char_count": 956,
+      "topic": "网络安全法总则和网络运营者的一般守法、安全保护责任",
+      "relevance": "只能支持网络运营者负有一般安全保护义务，未列出等级保护制度下的具体五项措施。",
+      "redundancy": "与Chunk 84有主体层面的关联，但不重复具体义务清单。"
+    },
+    {
+      "rank": 3,
+      "chunk_id": 85,
+      "chunk_index": 4,
+      "score": 0.66656387,
+      "page_number": null,
+      "page_numbers": [3, 4],
+      "char_count": 998,
+      "topic": "第二十三条末项及后续网络产品、实名和事件应急规定",
+      "relevance": "直接支持数据分类、重要数据备份和加密这一项，但不完整覆盖前四项。",
+      "redundancy": "与Chunk 84在第二十三条末项存在重叠；其余内容转入后续条款，对本题主要是补充而非完整替代。"
+    },
+    {
+      "rank": 4,
+      "chunk_id": 90,
+      "chunk_index": 9,
+      "score": 0.63269377,
+      "page_number": null,
+      "page_numbers": [6, 7],
+      "char_count": 1000,
+      "topic": "监督检查、监测预警和应急机制",
+      "relevance": "与网络安全监测有关，但属于监管和预警机制，不是等级保护制度下网络运营者的基础义务清单。",
+      "redundancy": "与Chunk 91在监测预警和应急主题上明显相邻、部分重复。"
+    },
+    {
+      "rank": 5,
+      "chunk_id": 91,
+      "chunk_index": 10,
+      "score": 0.6101781,
+      "page_number": null,
+      "page_numbers": [7, 8],
+      "char_count": 1000,
+      "topic": "网络安全事件处置、整改和法律责任",
+      "relevance": "涉及网络运营者在事件发生后的措施和整改，不回答第二十三条规定的日常基础义务。",
+      "redundancy": "与Chunk 90主题相邻且部分重叠，但与Chunk 84的五项义务互补性有限。"
+    },
+    {
+      "rank": 6,
+      "chunk_id": 84,
+      "chunk_index": 3,
+      "score": 0.6074338,
+      "page_number": 3,
+      "page_numbers": [3],
+      "char_count": 957,
+      "topic": "第二十三条网络安全等级保护制度及网络运营者五项基本安全保护义务",
+      "relevance": "完整支持全部五条标准答案要点，包括内部制度和负责人、病毒与攻击防护、运行与事件监测记录、日志至少留存六个月、数据分类及重要数据备份和加密。",
+      "redundancy": "与Chunk 85仅在最后一项有重叠；对当前Top-4其余候选提供的是决定性互补证据。"
+    }
+  ],
+  "chunk_84_analysis": {
+    "raw_rank": 6,
+    "raw_score": 0.6074338,
+    "supports_gold_point_indexes": [1, 2, 3, 4, 5],
+    "current_top_4_supports_gold_point_indexes": [5],
+    "why_current_top_4_misses_it": "当前选择器在单标题唯一匹配后仍按向量分数截取前4；Chunk 84原始排名第6，因此在截断前没有文本相关性或条款完整性补偿。",
+    "relationship_to_current_top_4": "与Chunk 85在第五项有少量重叠，但Chunk 84独有前四项并完整呈现第二十三条清单；相对于Chunk 87、82、90均是互补且更直接的证据。"
+  },
+  "offline_simulations": {
+    "current_top_4": [87, 82, 85, 90],
+    "top_6": [87, 82, 85, 90, 91, 84],
+    "deterministic_text_rerank": {
+      "algorithm": {
+        "normalization": "Unicode NFKC；移除《》中的显式标题；只保留中日韩统一表意文字与字母数字并转小写。",
+        "features": "从问题正文和候选正文提取2、3、4字符n-gram；在当前标题约束后的候选池内计算IDF。",
+        "lexical_score": "查询n-gram命中IDF权重之和除以查询n-gram总IDF权重。",
+        "final_score": "0.75 * lexical_score + 0.25 * original_vector_score；同分按原始分数和原始顺序稳定排序。",
+        "hardcoded_case_data": false
+      },
+      "simulated_top_4": [87, 84, 91, 90],
+      "chunk_84_new_rank": 2,
+      "simulated_scores": [
+        {"chunk_id": 87, "lexical_score": 0.378139, "combined_score": 0.458318},
+        {"chunk_id": 84, "lexical_score": 0.322481, "combined_score": 0.393719},
+        {"chunk_id": 91, "lexical_score": 0.19727, "combined_score": 0.300497},
+        {"chunk_id": 90, "lexical_score": 0.165257, "combined_score": 0.282116}
+      ]
+    },
+    "page_diversity": {
+      "jaccard_0_75_or_exact_page_set_top_4": [87, 82, 85, 90],
+      "selects_chunk_84": false,
+      "strict_any_page_overlap_top_4": [87, 82, 90, 84],
+      "strict_variant_selects_chunk_84": true,
+      "warning": "页码相交并不等同于内容重复；严格排除共享页可能删除同页互补条款。"
+    },
+    "adjacent_expansion": {
+      "source_top_4": [87, 82, 85, 90],
+      "expanded_chunk_ids": [86, 87, 88, 81, 82, 83, 84, 85, 89, 90, 91],
+      "selects_chunk_84": true,
+      "warning": "对全部Top-4做前后相邻扩展会将候选从4条扩大到11条；若仍限制4条，还需要另一套排序规则。"
+    }
+  },
+  "option_assessment": [
+    {
+      "option": "A",
+      "name": "保持Top-4不变",
+      "selects_chunk_84": false,
+      "gold_coverage": "约1/5，仅Chunk 85支持数据分类、重要数据备份和加密。",
+      "regression_risk": "无新增风险，但保留已确认缺陷。",
+      "context_and_latency": "约3915字符；无变化。",
+      "complexity": "无。",
+      "overfitting": "无，但不能解决问题。"
+    },
+    {
+      "option": "B",
+      "name": "最终上下文扩大为Top-6",
+      "selects_chunk_84": true,
+      "gold_coverage": "5/5；Chunk 84完整覆盖。",
+      "regression_risk": "可能引入两个较低分噪声候选；单标题约束可将噪声限制在命中文档内。",
+      "context_and_latency": "约5872字符，比Top-4增加1957字符和约50%；Embedding和Qdrant调用次数不变，只增加Prompt token与模型处理量。",
+      "complexity": "低；配置化并补充上下文数量及引用测试即可。",
+      "overfitting": "低；属于通用召回兜底，但需用完整基线集确认噪声影响。"
+    },
+    {
+      "option": "C",
+      "name": "保持4条并做确定性文本相关性重排",
+      "selects_chunk_84": true,
+      "gold_coverage": "本题5/5；模拟后Chunk 84升至第2。",
+      "regression_risk": "可能偏好字面重合，弱化同义表达、OCR噪声和跨条款语义；Chunk 87仍因术语重合排第1。",
+      "context_and_latency": "仍为4条；仅增加本地字符串计算，延迟很低。",
+      "complexity": "中；需固化规范化、n-gram、IDF、权重和稳定排序，并覆盖全18题。",
+      "overfitting": "算法无题目硬编码，但0.75/0.25权重仅在本题模拟，未经跨题验证前存在调参过拟合。"
+    },
+    {
+      "option": "D",
+      "name": "保持4条并按页码或内容去重做多样性选择",
+      "selects_chunk_84": "取决于阈值",
+      "gold_coverage": "温和页码去重仍为约1/5；禁止任何页码重叠时可达到5/5。",
+      "regression_risk": "高；跨页Chunk共享页码很常见，页码重叠不等于语义重复，可能删掉互补证据。",
+      "context_and_latency": "仍为4条；本地计算开销低。",
+      "complexity": "中；需要可靠的内容相似度阈值和跨页语义测试。",
+      "overfitting": "严格页码排斥恰好使本题入选84，针对当前Chunk布局的过拟合风险明显。"
+    },
+    {
+      "option": "E",
+      "name": "从高分候选扩展相邻法规Chunk",
+      "selects_chunk_84": true,
+      "gold_coverage": "扩展Chunk 85的前邻居可得到5/5。",
+      "regression_risk": "会同时扩展多个不相关邻居；文档边界、条款跨Chunk和索引顺序需要严格验证。",
+      "context_and_latency": "简单±1扩展将当前4条扩为11条，Prompt显著增长；若保持4条仍需额外选择器。",
+      "complexity": "中高；需数据库邻接读取、活动版本一致性、边界和去重测试。",
+      "overfitting": "对法规连续条款有通用价值，但以Chunk 85前邻居救回84的规则容易围绕本题设计。"
+    }
+  ],
+  "recommendation": {
+    "minimal_option": "B",
+    "proposal": "先将最终Top-N做成可配置的6，并保留Top-20候选池、标题约束和现有安全校验；暂不引入新的重排启发式。",
+    "reasons": [
+      "Chunk 84已稳定位于现有原始候选第6名，Top-6无需猜测语义即可直接纳入。",
+      "它完整覆盖全部五条标准答案，而当前Top-4仅明确覆盖其中一条。",
+      "不增加Embedding或Qdrant调用，也不改变安全过滤，只增加约1957字符上下文。",
+      "确定性n-gram重排在本题有效，但尚未证明对其余17题可靠；现在上线权重规则证据不足。"
+    ],
+    "required_follow_up_tests": [
+      "离线重放18题候选，比较Top-4与Top-6的gold覆盖和噪声率。",
+      "验证单标题、多标题轮询在Top-N=6时的确定性分配。",
+      "验证Prompt、HTTP引用和最终候选仍完全一致且不超过配置上限。",
+      "测量Top-6对平均/P95聊天延迟和Token使用的影响。",
+      "为无依据问题结合score threshold单独评估，避免Top-6放大低分引用。"
+    ]
+  }
+}
