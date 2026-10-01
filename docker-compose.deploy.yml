@@ -1,4 +1,4 @@
-name: financial-office-platform
+name: financial-office-deploy
 
 services:
   mysql:
@@ -99,15 +99,15 @@ services:
       EMBEDDING_VERSION: ${EMBEDDING_VERSION:-v1}
       EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-10}
       EMBEDDING_TIMEOUT_SECONDS: ${EMBEDDING_TIMEOUT_SECONDS:-30}
-      EMBEDDING_MAX_RETRIES: "0"
+      EMBEDDING_MAX_RETRIES: ${EMBEDDING_MAX_RETRIES:-0}
       EMBEDDING_TRUST_ENV: "false"
       AI_PROVIDER: openai_compatible
       AI_API_STYLE: chat_completions
       AI_API_KEY: ${AI_API_KEY:-CHANGE_ME}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
       AI_CHAT_MODEL: ${AI_CHAT_MODEL:-CHANGE_ME}
-      AI_SDK_MAX_RETRIES: "0"
-      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-1}
+      AI_SDK_MAX_RETRIES: ${AI_SDK_MAX_RETRIES:-0}
+      AI_MAX_RETRIES: ${AI_MAX_RETRIES:-0}
       AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
       QWEN_API_KEY: ${QWEN_API_KEY:?Set QWEN_API_KEY in .env.deploy}
       QWEN_BASE_URL: ${QWEN_BASE_URL:?Set QWEN_BASE_URL in .env.deploy}
@@ -128,13 +128,13 @@ services:
 
 networks:
   backend:
-    name: financial-office-backend
+    name: financial-office-deploy-backend
     driver: bridge
 
 volumes:
   mysql_data:
-    name: financial-office-mysql-data
+    name: financial-office-deploy-mysql-data
   qdrant_data:
-    name: financial-office-qdrant-data
+    name: financial-office-deploy-qdrant-data
   api_uploads:
-    name: financial-office-api-uploads
+    name: financial-office-deploy-api-uploads

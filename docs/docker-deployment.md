@@ -14,6 +14,10 @@ is currently available.
 The existing `docker-compose.yml` remains the local development definition and is
 not used by this deployment stack.
 
+The deployment Compose project is explicitly named `financial-office-deploy`, so
+its generated container names do not overlap the development project named
+`financial-office-platform`.
+
 ## Security model
 
 1. Copy `.env.deploy.example` to `.env.deploy` locally.
@@ -25,20 +29,24 @@ not used by this deployment stack.
 
 The deployment network is a regular bridge network because the API needs outbound
 access to the configured model providers. A future Nginx service can join
-`financial-office-backend` and proxy to `api:8000`; no placeholder frontend service
-is included.
+`financial-office-deploy-backend` and proxy to `api:8000`; no placeholder frontend
+service is included.
 
 ## Services and persistence
 
 | Service | Image or build | Host port | Persistent volume |
 | --- | --- | --- | --- |
-| `api` | Local `Dockerfile` | `127.0.0.1:8000` by default | `financial-office-api-uploads` |
-| `mysql` | `mysql:8.0.43` | None | `financial-office-mysql-data` |
-| `qdrant` | `qdrant/qdrant:v1.19.1` | None | `financial-office-qdrant-data` |
+| `api` | Local `Dockerfile` | `127.0.0.1:8000` by default | `financial-office-deploy-api-uploads` |
+| `mysql` | `mysql:8.0.43` | None | `financial-office-deploy-mysql-data` |
+| `qdrant` | `qdrant/qdrant:v1.19.1` | None | `financial-office-deploy-qdrant-data` |
 
 MySQL uses `utf8mb4` and `utf8mb4_unicode_ci`. Qdrant is reached by the API at
 `http://qdrant:6333`. Existing host MySQL data, host Qdrant data, uploads, logs, and
 backups are not copied into the image or the named volumes.
+
+The deployment network is `financial-office-deploy-backend`. All model retry
+controls are explicitly disabled with `AI_MAX_RETRIES=0`, `AI_SDK_MAX_RETRIES=0`,
+and `EMBEDDING_MAX_RETRIES=0`, matching the validated single-attempt behavior.
 
 Never run `docker compose down -v` against this stack unless permanent deletion of
 all three named data volumes is explicitly intended and independently backed up.
