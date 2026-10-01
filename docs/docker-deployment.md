@@ -44,6 +44,10 @@ MySQL uses `utf8mb4` and `utf8mb4_unicode_ci`. Qdrant is reached by the API at
 `http://qdrant:6333`. Existing host MySQL data, host Qdrant data, uploads, logs, and
 backups are not copied into the image or the named volumes.
 
+The Qdrant health check uses Bash `/dev/tcp` and does not depend on `curl` or
+`wget`; it only verifies that Qdrant accepts an in-container connection on port
+`6333`.
+
 The deployment network is `financial-office-deploy-backend`. All model retry
 controls are explicitly disabled with `AI_MAX_RETRIES=0`, `AI_SDK_MAX_RETRIES=0`,
 and `EMBEDDING_MAX_RETRIES=0`, matching the validated single-attempt behavior.
