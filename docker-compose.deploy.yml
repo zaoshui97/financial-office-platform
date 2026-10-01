@@ -103,9 +103,9 @@ services:
       EMBEDDING_TRUST_ENV: "false"
       AI_PROVIDER: openai_compatible
       AI_API_STYLE: chat_completions
-      AI_API_KEY: ${AI_API_KEY:-CHANGE_ME}
+      AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
-      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-CHANGE_ME}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-}
       AI_SDK_MAX_RETRIES: ${AI_SDK_MAX_RETRIES:-0}
       AI_MAX_RETRIES: ${AI_MAX_RETRIES:-0}
       AI_FALLBACK_ENABLED: ${AI_FALLBACK_ENABLED:-true}
