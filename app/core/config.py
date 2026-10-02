@@ -94,6 +94,35 @@ class Settings(BaseSettings):
     AI_MAX_RETRIES: int = Field(default=1, ge=0, le=5)
     AI_RETRY_BACKOFF_SECONDS: float = Field(default=0.2, ge=0, le=10)
     AI_LOG_PROMPTS: bool = False
+
+    # ============== 合规沙箱 LLM 配置 ==============
+    # 闸门控制：业务是否启用沙箱 LLM 模式作为 ChatRequest 的一种合法回答方式。
+    SANDBOX_MODE_ENABLED: bool = False
+    # 沙箱 Provider 白名单：留空表示仅校验 base_url 是否在内网段（无默认 Provider）。
+    SANDBOX_PROVIDER_WHITELIST: list[str] = Field(default_factory=list)
+    # 沙箱调用禁用工具调用（联网 / Function Call / Agent 工具）。
+    SANDBOX_DISALLOW_TOOLS: bool = True
+    # 沙箱调用禁用联网搜索。
+    SANDBOX_DISALLOW_WEB_SEARCH: bool = True
+    # 紧急熔断开关，开启后所有沙箱请求直接 503。
+    SANDBOX_KILL_SWITCH: bool = False
+    # 风险词黑名单（命中即拒绝），逗号分隔字符串。
+    SANDBOX_RISK_KEYWORDS: str = ""
+    # 沙箱调用固定 temperature（按需求置 0）。
+    SANDBOX_TEMPERATURE: float = Field(default=0.0, ge=0.0, le=2.0)
+    # 沙箱调用 max_tokens 上限（按需求 ≤2000）。
+    SANDBOX_MAX_TOKENS: int = Field(default=2000, ge=1, le=2000)
+    # 沙箱降级策略：strict=拒绝 / fallback=静默降级到普通 LLM / off=关闭沙箱。
+    SANDBOX_DEGRADATION_POLICY: Literal["strict", "fallback", "off"] = "strict"
+    # 审计日志保留天数。
+    SANDBOX_AUDIT_RETENTION_DAYS: int = Field(default=180, ge=1, le=3650)
+    # 预览字段最大字符数（按需求：前 500 字脱敏）。
+    SANDBOX_PREVIEW_CHARS: int = Field(default=500, ge=50, le=2000)
+    # 内网 base_url 后缀白名单（如 *.hengsheng.com）。
+    SANDBOX_BASE_URL_INTERNAL_SUFFIXES: list[str] = Field(
+        default_factory=lambda: [".hengsheng.com"]
+    )
+
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
     DEEPSEEK_MODEL: str = "deepseek-reasoner"
@@ -135,11 +164,24 @@ class Settings(BaseSettings):
     LOG_BACKUP_COUNT: int = 10
 
     CORS_ORIGINS: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://localhost:8080"]
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:8080",
+        ]
     )
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = Field(default_factory=lambda: ["*"])
-    CORS_ALLOW_HEADERS: list[str] = Field(default_factory=lambda: ["*"])
+    CORS_ALLOW_HEADERS: list[str] = Field(
+        default_factory=lambda: [
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With",
+            "X-Request-ID",
+        ]
+    )
 
     @field_validator("API_V1_PREFIX")
     @classmethod
@@ -170,6 +212,28 @@ class Settings(BaseSettings):
         ):
             raise ValueError("PDF_OCR_LANGUAGES配置无效")
         return "+".join(parts)
+
+    @field_validator("SANDBOX_RISK_KEYWORDS")
+    @classmethod
+    def validate_sandbox_risk_keywords(cls, value: object) -> list[str]:
+        """允许逗号或换行分隔的关键词，规范化后返回列表。"""
+        if isinstance(value, list):
+            items = value
+        else:
+            items = str(value or "").replace("\n", ",").split(",")
+        return [item.strip() for item in items if item.strip()]
+
+    @field_validator("SANDBOX_PROVIDER_WHITELIST", "SANDBOX_BASE_URL_INTERNAL_SUFFIXES")
+    @classmethod
+    def validate_sandbox_string_list(cls, value: object) -> list[str]:
+        """允许逗号分隔或 Python list。"""
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return [
+            item.strip()
+            for item in str(value or "").split(",")
+            if item.strip()
+        ]
 
     @computed_field
     @property

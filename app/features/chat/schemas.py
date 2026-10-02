@@ -13,6 +13,7 @@ class ChatMode(StrEnum):
     LLM = "llm"
     RAG = "rag"
     WEB_SEARCH = "web_search"
+    COMPLIANCE_SANDBOX = "compliance_sandbox"
 
 
 class ChatRequest(BaseModel):
