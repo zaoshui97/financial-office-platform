@@ -31,6 +31,7 @@ class AuditPayload:
     blocked: bool
     block_reason: str | None
     latency_ms: float | None
+    scenario: dict[str, Any] | None = None
 
 
 def _sha256(text: str) -> str:
@@ -66,6 +67,7 @@ def write_audit_log(
         blocked=payload.blocked,
         block_reason=payload.block_reason,
         latency_ms=payload.latency_ms,
+        scenario=payload.scenario,
         completed_at=datetime.now(tz=timezone.utc).replace(tzinfo=None),
     )
     db.add(record)

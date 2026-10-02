@@ -80,6 +80,13 @@ class ComplianceAuditLog(TimestampMixin, Base):
     completed_at: Mapped[Any | None] = mapped_column(
         DateTime, nullable=True, comment="调用结束时间（含失败）"
     )
+    scenario: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True,
+        comment=(
+            "调用场景元数据：mode(rule_only/llm_only/combined)、"
+            "biz_type、biz_id、rule_risk_level、llm_risk_level 等"
+        ),
+    )
 
     __table_args__ = (
         Index("idx_compliance_audit_user_created", "user_id", "created_at"),
