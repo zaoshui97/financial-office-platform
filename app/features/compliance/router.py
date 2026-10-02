@@ -86,42 +86,75 @@ def list_audit_logs(
 def read_kill_switch(
     _current_user: CurrentUser,
 ) -> KillSwitchResponse:
-    """返回当前合规沙箱熔断开关状态（仅登录用户）。"""
+    """返回当前合规沙箱熔断开关状态。"""
+    from app.sandbox.kill_switch import kill_switch
+
     return KillSwitchResponse(
-        enabled=settings.SANDBOX_KILL_SWITCH,
+        enabled=kill_switch.is_active(),
         updated_by=None,
         updated_at=None,
-        reason=None,
+        reason=kill_switch.reason,
     )
 
 
 @router.post(
     "/kill-switch",
     response_model=KillSwitchResponse,
-    summary="切换 Kill Switch",
+    summary="开启 Kill Switch（熔断）",
     status_code=status.HTTP_200_OK,
 )
-def toggle_kill_switch(
+def activate_kill_switch(
     data: KillSwitchRequest,
     current_user: CurrentUser,
 ) -> KillSwitchResponse:
-    """运行时切换 SANDBOX_KILL_SWITCH，仅超级管理员可操作；进程重启后回到 .env 默认。"""
+    """运行时开启沙箱熔断（超级管理员）；标记文件 .sandbox_killed 持久化。"""
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="仅超级管理员可切换 Kill Switch",
+            detail="仅超级管理员可操作 Kill Switch",
         )
-    if settings.SANDBOX_DEGRADATION_POLICY == "off" and data.enabled:
+    if data.enabled:
+        from app.sandbox.kill_switch import kill_switch
+
+        kill_switch.activate(reason=data.reason or "admin_api")
+    else:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="SANDBOX_DEGRADATION_POLICY=off 时无法启用沙箱",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="关闭 Kill Switch 请使用 POST /kill-switch/resume",
         )
-    settings.SANDBOX_KILL_SWITCH = data.enabled
     from datetime import datetime, timezone
 
     return KillSwitchResponse(
-        enabled=data.enabled,
+        enabled=True,
         updated_by=data.operator,
         updated_at=datetime.now(tz=timezone.utc).replace(tzinfo=None),
         reason=data.reason,
+    )
+
+
+@router.post(
+    "/kill-switch/resume",
+    response_model=KillSwitchResponse,
+    summary="关闭 Kill Switch（恢复）",
+    status_code=status.HTTP_200_OK,
+)
+def deactivate_kill_switch(
+    current_user: CurrentUser,
+) -> KillSwitchResponse:
+    """关闭沙箱熔断（超级管理员）；删除 .sandbox_killed 标记文件。"""
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="仅超级管理员可操作 Kill Switch",
+        )
+    from app.sandbox.kill_switch import kill_switch
+
+    kill_switch.deactivate()
+    from datetime import datetime, timezone
+
+    return KillSwitchResponse(
+        enabled=False,
+        updated_by=None,
+        updated_at=datetime.now(tz=timezone.utc).replace(tzinfo=None),
+        reason=None,
     )

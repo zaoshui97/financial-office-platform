@@ -1,11 +1,12 @@
 """合规沙箱统一入口：规则 + LLM 二次确认 + 审计落库。
 
 核心流程（check_text）：
-1. rule_engine.match(text)   — 永远先跑（fast 模式）
-2. mode == "combined" 且 rule 命中 medium/high → LLMJudge.assess() 二次确认
-3. 合并结果（LLM 风险等级覆盖规则）
-4. 写审计日志（fail-open：审计失败不影响业务结果）
-5. 返回 dict 给上层（router / 业务编排）
+1. kill_switch 前置守卫 — 熔断激活时拒绝（写 kill_switch scenario）
+2. rule_engine.match(text)   — 永远先跑（fast 模式）
+3. mode == "combined" 且 rule 命中 medium/high → LLMJudge.assess() 二次确认
+4. 合并结果（LLM 风险等级覆盖规则）
+5. 写审计日志（fail-open：审计失败不影响业务结果）
+6. 返回 dict 给上层（router / 业务编排）
 
 mode 取值：
 - "rule_only"   只跑规则（最快、最便宜；合规底线）
@@ -16,7 +17,6 @@ mode 取值：
 from __future__ import annotations
 
 import time
-from dataclasses import asdict
 from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
@@ -24,6 +24,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.features.compliance.audit import AuditPayload, write_audit_log
+from app.sandbox.exceptions import SandboxUnavailable
+from app.sandbox.kill_switch import KillSwitch, kill_switch as _kill_switch
 from app.sandbox.llm_judge import LLMJudge, JudgeResult
 from app.sandbox.rule_engine import RuleEngine, RuleResult
 
@@ -53,6 +55,14 @@ class RuleEngineLike(Protocol):
     def match(self, text: str) -> RuleResult: ...
 
 
+class KillSwitchLike(Protocol):
+    """KillSwitch 最小契约。"""
+
+    def is_active(self) -> bool: ...
+    @property
+    def reason(self) -> str | None: ...
+
+
 # ---- 主函数 ------------------------------------------------------------------
 
 
@@ -67,6 +77,7 @@ def check_text(
     db: Session | None = None,
     rule_engine: RuleEngineLike | None = None,
     llm_judge: LLMJudgeLike | None = None,
+    kill_switch: KillSwitchLike | None = None,
 ) -> dict[str, Any]:
     """对一段文本做合规风险检测，必要时写审计日志。
 
@@ -80,6 +91,10 @@ def check_text(
         db: SQLAlchemy Session（可空；为空时不写审计日志）
         rule_engine: 可注入自定义规则引擎（默认使用 settings 派生 + 业务注入）
         llm_judge: 可注入自定义 LLM 判定器（默认使用全局 llm_gateway）
+        kill_switch: 可注入自定义熔断器（默认使用全局单例）
+
+    Raises:
+        SandboxUnavailable: kill_switch 激活时抛出，audit_id 可用于追踪
 
     Returns:
         dict，结构：
@@ -98,6 +113,36 @@ def check_text(
     """
     if mode not in VALID_MODES:
         raise ValueError(f"mode 必须是 {VALID_MODES} 之一，当前: {mode!r}")
+
+    ks = kill_switch or _kill_switch
+
+    # ---- 0. 前置守卫：Kill Switch ----
+    if ks.is_active():
+        ks_reason = ks.reason or "unknown"
+        logger.warning(
+            "KillSwitch 激活，拒绝沙箱调用 | biz_type=%s biz_id=%s reason=%s",
+            biz_type,
+            biz_id,
+            ks_reason,
+        )
+        # 即使在熔断时也写审计日志（留痕）
+        audit_id: int | None = None
+        if db is not None:
+            audit_id = _write_audit_kill_switch(
+                db=db,
+                text=text,
+                user_id=user_id,
+                conversation_id=conversation_id,
+                biz_type=biz_type,
+                biz_id=biz_id,
+                ks_reason=ks_reason,
+            )
+        raise SandboxUnavailable(
+            message="合规沙箱已熔断，请稍后重试",
+            error_code="SANDBOX_KILLED",
+            audit_id=audit_id,
+            kill_switch_reason=ks_reason,
+        )
 
     started = time.perf_counter()
     engine = rule_engine or RuleEngine()
@@ -130,7 +175,7 @@ def check_text(
     latency_ms = (time.perf_counter() - started) * 1000
 
     # ---- 4. 写审计日志（fail-open）----
-    audit_id: int | None = None
+    audit_id = None
     if db is not None:
         audit_id = _write_audit(
             db=db,
@@ -291,6 +336,50 @@ def _write_audit(
             biz_id,
             exc,
         )
+        return None
+
+
+def _write_audit_kill_switch(
+    *,
+    db: Session,
+    text: str,
+    user_id: int | None,
+    conversation_id: int | None,
+    biz_type: str,
+    biz_id: str,
+    ks_reason: str,
+) -> int | None:
+    """写 kill_switch 触发时的审计日志；失败不抛异常。"""
+    scenario = {
+        "event_type": "kill_switch_triggered",
+        "biz_type": biz_type,
+        "biz_id": biz_id,
+        "ks_reason": ks_reason,
+    }
+    payload = AuditPayload(
+        user_id=user_id if user_id is not None else 0,
+        conversation_id=conversation_id,
+        request_id=biz_id[:64],
+        provider="-",
+        model="-",
+        prompt=text,
+        answer=None,
+        pii_detected={},
+        risk_hits=["kill_switch_activated"],
+        blocked=True,
+        block_reason=f"SANDBOX_KILLED: {ks_reason}",
+        latency_ms=None,
+        scenario=scenario,
+    )
+    try:
+        record = write_audit_log(
+            db,
+            payload,
+            preview_chars=settings.SANDBOX_PREVIEW_CHARS,
+        )
+        return record.id
+    except Exception as exc:
+        logger.error("KillSwitch 审计写入失败（已降级）| user_id=%s error=%s", user_id, exc)
         return None
 
 
