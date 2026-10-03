@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -26,6 +27,15 @@ class MeetingCreate(BaseModel):
     agenda: str | None = Field(default=None, max_length=500, description="初始议题")
 
 
+class MeetingPhase(StrEnum):
+    """会议阶段：moderator 写入黑板后同步回 MeetingSession。"""
+
+    OPEN = "open"
+    DISCUSSING = "discussing"
+    CLOSING = "closing"
+    CLOSED = "closed"
+
+
 class MeetingRead(BaseModel):
     """会议只读视图。"""
 
@@ -36,12 +46,12 @@ class MeetingRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    # 运行时透传：便于前端一次性拿到完整上下文
+    # 会议元数据：来源 MeetingSession 表，不再从 moderator 黑板拼
     topic: str | None = None
     agenda: str | None = None
-    current_phase: str | None = Field(
+    current_phase: MeetingPhase | None = Field(
         default=None,
-        description="moderator 最近写入的 phase（open/discussing/closing）",
+        description="主持人最近写入的 phase（open/discussing/closing/closed）",
     )
 
 

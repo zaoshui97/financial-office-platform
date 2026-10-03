@@ -5,8 +5,9 @@
   - 4 Agent (moderator/noter/decision/dispatcher)：BaseAgent.run()
 
 设计：
-  - 会议生命周期仅管 status (preparing/active/closed)
-  - topic / agenda / phase 一律存在黑板的 moderator.state 里
+  - 会议元数据 topic/agenda/current_phase 存在 MeetingSession 表
+  - 黑板只放 4 Agent 运行时状态（不存会议级元数据）
+  - moderator 跑完会写新 phase 回 MeetingSession.current_phase
   - 触发 Agent 时框架自动注入 session_id + blackboard_snapshot
 """
 
@@ -17,7 +18,6 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.features.agent.agents import AGENT_REGISTRY, get_agent
-from app.features.agent.blackboard import BlackboardService
 from app.features.agent.models import MeetingSession, MeetingStatus
 from app.features.meeting.schemas import (
     AgentTriggerResponse,
@@ -26,6 +26,7 @@ from app.features.meeting.schemas import (
     MeetingCreate,
     MeetingListResponse,
     MeetingRead,
+    MeetingPhase,
 )
 from app.features.meeting.ws import get_blackboard_service as _get_shared_blackboard
 
@@ -54,11 +55,18 @@ def _get_owned_meeting(
     return meeting
 
 
-def _to_read(
-    db: Session,
-    meeting: MeetingSession,
-) -> MeetingRead:
-    """DB 行 → API 出参，附带 moderator 的 phase（如果写过）。"""
+def _normalize_phase(raw: str | None) -> MeetingPhase | None:
+    """从 moderator state 抽出合法 phase；非法值忽略。"""
+    if not raw:
+        return None
+    try:
+        return MeetingPhase(raw)
+    except ValueError:
+        return None
+
+
+def _to_read(meeting: MeetingSession) -> MeetingRead:
+    """DB 行 → API 出参。topic/agenda/phase 直接读表。"""
     from fastapi import HTTPException, status
 
     if meeting.status not in {s.value for s in MeetingStatus}:
@@ -66,11 +74,6 @@ def _to_read(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"会议 status 异常: {meeting.status}",
         )
-    # 拿 moderator state 里的 phase / topic / agenda
-    svc = _get_shared_blackboard()
-    moderator_state = svc.read_one(meeting.id, "moderator")
-    topic = moderator_state.get("topic")
-    agenda = moderator_state.get("agenda")
     return MeetingRead(
         id=meeting.id,
         title=meeting.title,
@@ -78,9 +81,30 @@ def _to_read(
         status=MeetingStatus(meeting.status),
         created_at=meeting.created_at,
         updated_at=meeting.updated_at,
-        topic=str(topic) if topic is not None else None,
-        agenda=str(agenda) if agenda is not None else None,
-        current_phase=moderator_state.get("action") or moderator_state.get("phase"),
+        topic=meeting.topic,
+        agenda=meeting.agenda,
+        current_phase=_normalize_phase(meeting.current_phase),
+    )
+
+
+def _sync_phase_from_state(
+    db: Session, meeting: MeetingSession, new_state: dict
+) -> None:
+    """Agent 跑完从新 state 抽取 phase 写回 MeetingSession。
+
+    仅在新 state 含合法 phase 时更新；不抛错（不阻塞 Agent 调用结果返回）。
+    """
+    raw = new_state.get("action") or new_state.get("phase")
+    phase = _normalize_phase(raw)
+    if phase is None:
+        return
+    if meeting.current_phase == phase.value:
+        return
+    meeting.current_phase = phase.value
+    db.commit()
+    db.refresh(meeting)
+    logger.info(
+        "meeting phase 同步 | meeting_id=%s phase=%s", meeting.id, phase.value,
     )
 
 
@@ -91,32 +115,23 @@ def create_meeting(
     owner_id: int,
     data: MeetingCreate,
 ) -> MeetingRead:
-    """创建会议 → 自动激活 → 写入 moderator 初始 state（topic/agenda）。"""
+    """创建会议 → 自动激活 → 写入 topic/agenda/current_phase='open'。"""
     meeting = MeetingSession(
         title=data.title,
         host_user_id=owner_id,
-        status=MeetingStatus.ACTIVE.value,  # 创建即激活，简化流程
+        status=MeetingStatus.ACTIVE.value,
+        topic=data.topic,
+        agenda=data.agenda,
+        current_phase=MeetingPhase.OPEN.value,
     )
     db.add(meeting)
     db.commit()
     db.refresh(meeting)
-
-    # 初始化 moderator 黑板（含 topic/agenda）
-    svc = _get_shared_blackboard()
-    initial_state = {
-        "agent_role": "moderator",
-        "topic": data.topic,
-        "agenda": data.agenda,
-        "action": "open",
-        "version": 1,
-    }
-    svc.write(meeting.id, "moderator", initial_state)
-
     logger.info(
         "meeting 创建 | meeting_id=%s owner_id=%s title=%s",
         meeting.id, owner_id, data.title,
     )
-    return _to_read(db, meeting)
+    return _to_read(meeting)
 
 
 def list_meetings(
@@ -143,7 +158,7 @@ def list_meetings(
         or 0
     )
     return MeetingListResponse(
-        items=[_to_read(db, m) for m in rows],
+        items=[_to_read(m) for m in rows],
         total=total,
     )
 
@@ -155,7 +170,7 @@ def get_meeting(
 ) -> MeetingRead:
     """会议详情。"""
     meeting = _get_owned_meeting(db, meeting_id, owner_id)
-    return _to_read(db, meeting)
+    return _to_read(meeting)
 
 
 def close_meeting(
@@ -173,10 +188,11 @@ def close_meeting(
             detail="会议已处于关闭状态",
         )
     meeting.status = MeetingStatus.CLOSED.value
+    meeting.current_phase = MeetingPhase.CLOSED.value
     db.commit()
     db.refresh(meeting)
     logger.info("meeting 关闭 | meeting_id=%s", meeting.id)
-    return _to_read(db, meeting)
+    return _to_read(meeting)
 
 
 # ---------- 黑板 ----------
@@ -213,13 +229,14 @@ def trigger_agent(
 
     流程：
       1. 校验会议存在 + 角色合法
-      2. 注入 session_id + blackboard_snapshot 到 context
+      2. 注入 session_id + blackboard_snapshot + 会议元数据到 context
       3. Agent.run() 内部完成：build_prompt → llm_gateway → write blackboard
-      4. 返回新 state（含 new_version）
+      4. 抽取新 state 中的 phase 同步回 MeetingSession.current_phase
+      5. 返回新 state（含 new_version）
     """
     from fastapi import HTTPException, status
 
-    _get_owned_meeting(db, meeting_id, owner_id)
+    meeting = _get_owned_meeting(db, meeting_id, owner_id)
 
     if agent_role not in AGENT_REGISTRY:
         raise HTTPException(
@@ -228,18 +245,15 @@ def trigger_agent(
         )
 
     svc = _get_shared_blackboard()
-    # 注入运行时上下文
+    # 注入运行时上下文：会议元数据 + 黑板快照
     full_context = {
         **context,
         "session_id": meeting_id,
         "blackboard_snapshot": svc.read_all(meeting_id),
+        "topic": meeting.topic,
+        "agenda": meeting.agenda,
+        "phase": meeting.current_phase or MeetingPhase.OPEN.value,
     }
-    # 从 moderator state 兜底补 topic/agenda
-    moderator_state = svc.read_one(meeting_id, "moderator")
-    for k in ("topic", "agenda"):
-        if k not in full_context and moderator_state.get(k) is not None:
-            full_context[k] = moderator_state[k]
-    full_context.setdefault("phase", moderator_state.get("action", "open"))
 
     agent = get_agent(agent_role)
     new_state = agent.run(full_context, svc)
@@ -250,6 +264,9 @@ def trigger_agent(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Agent {agent_role} 执行失败: {new_state.get('error', 'unknown')}",
         )
+
+    # 同步 phase 回表（不抛错）
+    _sync_phase_from_state(db, meeting, new_state)
 
     return AgentTriggerResponse(
         session_id=meeting_id,

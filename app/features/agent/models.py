@@ -82,6 +82,19 @@ class MeetingSession(TimestampMixin, Base):
         default=MeetingStatus.PREPARING.value,
         comment="preparing / active / closed",
     )
+    # ---------- 会议元数据（不再混入 moderator 黑板） ----------
+    topic: Mapped[str | None] = mapped_column(
+        String(500), nullable=True,
+        comment="会议主题",
+    )
+    agenda: Mapped[str | None] = mapped_column(
+        String(500), nullable=True,
+        comment="初始议题",
+    )
+    current_phase: Mapped[str | None] = mapped_column(
+        String(32), nullable=True,
+        comment="主持人最近写入的 phase（open/discussing/closing）",
+    )
 
 
 class AgentExecutionStatus(StrEnum):
