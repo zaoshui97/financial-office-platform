@@ -108,6 +108,8 @@ class Settings(BaseSettings):
     SANDBOX_KILL_SWITCH: bool = False
     # 风险词黑名单（命中即拒绝），逗号分隔字符串。
     SANDBOX_RISK_KEYWORDS: str = ""
+    # 风险词黑名单（list 形式，与内置词库合并）。优先级高于字符串版本。
+    SANDBOX_RISK_KEYWORDS_LIST: list[str] = Field(default_factory=list)
     # 沙箱调用固定 temperature（按需求置 0）。
     SANDBOX_TEMPERATURE: float = Field(default=0.0, ge=0.0, le=2.0)
     # 沙箱调用 max_tokens 上限（按需求 ≤2000）。
@@ -122,6 +124,16 @@ class Settings(BaseSettings):
     SANDBOX_BASE_URL_INTERNAL_SUFFIXES: list[str] = Field(
         default_factory=lambda: [".hengsheng.com"]
     )
+
+    # ============== LLM Judge 语义判断 ==============
+    # 是否启用 LLM Judge（硬匹配 + 语义判断双保险）
+    SANDBOX_LLM_JUDGE_ENABLED: bool = True
+    # LLM Judge 置信度阈值：低于此值视为放行
+    SANDBOX_LLM_JUDGE_CONFIDENCE_THRESHOLD: float = Field(default=0.7, ge=0.0, le=1.0)
+    # LLM Judge 调用的 Provider（留空则用主路由的候选）
+    SANDBOX_LLM_JUDGE_PROVIDER: str = ""
+    # LLM Judge 单次调用超时（毫秒）
+    SANDBOX_LLM_JUDGE_TIMEOUT_MS: int = 15000
 
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"

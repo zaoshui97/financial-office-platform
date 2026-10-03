@@ -35,6 +35,21 @@ class SandboxChatResponse(BaseModel):
     audit_id: int | None = Field(
         default=None, description="合规审计日志 ID"
     )
+    # 结构化风险分类：与 guard 的 GuardDecision 对齐，供前端分级展示
+    risk_category: str | None = Field(
+        default=None,
+        description=(
+            "风险分类：money_laundering/insider_trading/tax_evasion/bribery/"
+            "privacy_leak/illegal_commitment/conflict_of_interest/"
+            "illegal_finance/regulatory_evasion/other"
+        ),
+    )
+    confidence: float | None = Field(
+        default=None, ge=0.0, le=1.0, description="Judge 置信度（0-1）"
+    )
+    judge_source: str | None = Field(
+        default=None, description="判定来源：rule / llm_judge"
+    )
 
 
 class KillSwitchRequest(BaseModel):

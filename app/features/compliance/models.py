@@ -68,6 +68,15 @@ class ComplianceAuditLog(TimestampMixin, Base):
     risk_hits: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True, comment="命中了哪些风险词"
     )
+    risk_category: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, comment="风险分类（money_laundering 等）"
+    )
+    confidence: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="Judge 置信度（0-1）"
+    )
+    judge_source: Mapped[str | None] = mapped_column(
+        String(16), nullable=True, comment="判定来源 rule/llm_judge"
+    )
     blocked: Mapped[bool] = mapped_column(
         nullable=False, default=False, comment="是否被拦截"
     )
@@ -92,4 +101,5 @@ class ComplianceAuditLog(TimestampMixin, Base):
         Index("idx_compliance_audit_user_created", "user_id", "created_at"),
         Index("idx_compliance_audit_request", "request_id"),
         Index("idx_compliance_audit_blocked", "blocked"),
+        Index("idx_compliance_audit_category", "risk_category"),
     )

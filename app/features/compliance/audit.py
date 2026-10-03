@@ -32,6 +32,10 @@ class AuditPayload:
     block_reason: str | None
     latency_ms: float | None
     scenario: dict[str, Any] | None = None
+    # 结构化分类与置信度（合规沙箱 4 层防御配套字段）
+    risk_category: str | None = None
+    confidence: float | None = None
+    judge_source: str | None = None
 
 
 def _sha256(text: str) -> str:
@@ -64,6 +68,9 @@ def write_audit_log(
         answer_preview=answer_preview or None,
         pii_detected=payload.pii_detected or None,
         risk_hits=payload.risk_hits or None,
+        risk_category=payload.risk_category,
+        confidence=payload.confidence,
+        judge_source=payload.judge_source,
         blocked=payload.blocked,
         block_reason=payload.block_reason,
         latency_ms=payload.latency_ms,

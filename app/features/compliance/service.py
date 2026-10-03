@@ -119,6 +119,9 @@ def execute_sandbox_chat(
                 answer=None,
                 pii_detected=sanitization.hits,
                 risk_hits=decision.risk_hits,
+                risk_category=decision.risk_category,
+                confidence=decision.confidence,
+                judge_source=decision.judge_source,
                 blocked=True,
                 block_reason=decision.blocked_reason,
                 latency_ms=None,
@@ -138,6 +141,9 @@ def execute_sandbox_chat(
                 "reason": decision.blocked_reason,
                 "audit_id": audit.id,
                 "risk_hits": decision.risk_hits,
+                "risk_category": decision.risk_category,
+                "confidence": decision.confidence,
+                "judge_source": decision.judge_source,
             },
         )
 
@@ -220,6 +226,9 @@ def execute_sandbox_chat(
             answer=response.text,
             pii_detected=sanitization.hits,
             risk_hits=decision.risk_hits,
+            risk_category=decision.risk_category,
+            confidence=decision.confidence,
+            judge_source=decision.judge_source,
             blocked=False,
             block_reason=None,
             latency_ms=latency_ms,
@@ -237,5 +246,8 @@ def execute_sandbox_chat(
         latency_ms=latency_ms,
         sanitized_fields=sanitization.hits,
         risk_hits=decision.risk_hits,
+        risk_category=decision.risk_category,
+        confidence=decision.confidence,
+        judge_source=decision.judge_source,
         audit_id=audit.id,
     )
