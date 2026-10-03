@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, String
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, TimestampMixin
@@ -124,7 +124,7 @@ class AgentExecution(TimestampMixin, Base):
         comment="触发时的输入快照（如语音文本 / 状态 diff）",
     )
     output: Mapped[str] = mapped_column(
-        String(65535), nullable=False,
+        Text, nullable=False,
         comment="Agent 输出内容（纯文本，最大 64KB）",
     )
     status: Mapped[str] = mapped_column(

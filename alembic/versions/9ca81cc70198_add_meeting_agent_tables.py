@@ -67,7 +67,7 @@ def upgrade() -> None:
     sa.Column('agent_role', sa.String(length=32), nullable=False, comment='moderator / noter / decision / dispatcher'),
     sa.Column('trigger', sa.String(length=32), nullable=False, comment='speech_chunk / state_update'),
     sa.Column('input_snapshot', sa.JSON(), nullable=False, comment='触发时的输入快照（如语音文本 / 状态 diff）'),
-    sa.Column('output', sa.String(length=65535), nullable=False, comment='Agent 输出内容（纯文本，最大 64KB）'),
+    sa.Column('output', sa.Text(), nullable=False, comment='Agent 输出内容（纯文本，最大 64KB）'),
     sa.Column('status', sa.String(length=16), nullable=False, comment='thinking / done / failed'),
     sa.Column('finished_at', sa.DateTime(), nullable=True, comment='执行结束时间（thinking 阶段为 null）'),
     sa.Column('id', sa.BigInteger().with_variant(sa.Integer(), 'sqlite'), autoincrement=True, nullable=False, comment='主键ID'),
