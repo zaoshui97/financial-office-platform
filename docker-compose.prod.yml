@@ -1,0 +1,156 @@
+# 生产环境编排：前端 Nginx + 后端 FastAPI + MySQL + Redis + Qdrant
+#
+# 用法：
+#   1) cp .env.deploy .env.prod，按需修改密钥
+#   2) docker compose -f docker-compose.prod.yml --env-file .env.prod build
+#   3) docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#   4) docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend \
+#        python scripts/create_user.py --username admin --email admin@example.com \
+#          --password-env ADMIN_PASSWORD --superuser
+#
+# 注意：
+#   - DATABASE_CHECK_ON_STARTUP=false，迁移必须显式跑；后端容器启动时默认会跑 alembic upgrade head。
+#   - 只想启动中间件、本地跑后端时，把 backend / frontend 注释掉即可。
+#   - 所有密码请用 openssl rand -hex 32 生成；不要把生产密码写进 git。
+
+name: finoffice-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-financial_office}
+      MYSQL_USER: ${MYSQL_USER:?MYSQL_USER is required}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+      - --max_connections=500
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - finoffice_net
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - finoffice_net
+    logging: *default-logging
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:6333/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finoffice_net
+    logging: *default-logging
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finoffice-backend:${API_IMAGE_TAG:-local}
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    environment:
+      # 把 docker-compose 里的内部地址注入到容器 env
+      DATABASE_HOST: mysql
+      DATABASE_PORT: "3306"
+      DATABASE_USER: ${MYSQL_USER}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_NAME: ${MYSQL_DATABASE:-financial_office}
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
+      RUN_MIGRATIONS_ON_START: "true"
+      WAIT_FOR_DB: "true"
+      DB_WAIT_TIMEOUT: "120"
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      API_WORKERS: "2"
+      PYTHONUNBUFFERED: "1"
+      TZ: Asia/Shanghai
+    volumes:
+      - backend_storage:/srv/app/storage
+      - backend_uploads:/srv/app/storage/uploads
+      - backend_logs:/srv/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request, sys; sys.exit(0) if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/system/health/live', timeout=3).status == 200 else -1\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - finoffice_net
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ./frontend/digital-horse
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_USE_MOCK: "false"
+        VITE_APP_TITLE: ${VITE_APP_TITLE:-金融智能办公平台}
+    image: finoffice-frontend:${API_IMAGE_TAG:-local}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - finoffice_net
+    # 不在这里 expose 端口；由前端 nginx 直接对外（或放在 edge 反代后面）
+    logging: *default-logging
+
+networks:
+  finoffice_net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  qdrant_data:
+  backend_storage:
+  backend_uploads:
+  backend_logs:
