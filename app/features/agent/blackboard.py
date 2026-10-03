@@ -57,6 +57,8 @@ class BlackboardService:
         self._cache: dict[int, dict[str, dict[str, Any]]] = {}
         # {session_id: {callback_id: callback}}
         self._subscribers: dict[int, dict[int, StateCallback]] = {}
+        # 全局订阅：所有 session 内的写都触发（EventBus 用）
+        self._global_subscribers: dict[int, StateCallback] = {}
         # 防止回调内部修改订阅列表导致迭代错误。
         self._lock = threading.RLock()
         self._next_callback_id = 1
@@ -87,9 +89,15 @@ class BlackboardService:
         流程：
           1. 读缓存（命中即用），未命中则从 DB 加载。
           2. UPDATE ... WHERE version = old_version，影响 0 行则冲突 → 重试。
-          3. 写入成功后更新缓存 + 同步通知订阅者。
+          3. 写入成功后更新缓存 + 同步通知订阅者（含 global）。
+
+        payload 增强：
+          - 自动注入 event_type = "{agent_role}_updated"
+            用于 EventBus 触发链判断事件类型（避免改订阅签名）
         """
         payload = self._validate_state(state)
+        # 注入事件类型（不覆盖用户传入）
+        payload.setdefault("event_type", f"{agent_role}_updated")
         session = self._session()
         try:
             for attempt in range(1, MAX_RETRY + 1):
@@ -239,11 +247,26 @@ class BlackboardService:
             logger.info("blackboard 订阅 | session=%s callback_id=%s", session_id, cid)
             return cid
 
+    def subscribe_global(self, callback: StateCallback) -> int:
+        """全局订阅：所有 session 内的写都触发。
+
+        用于跨 session 的触发链（如 EventBus）。返回 callback_id。
+        """
+        with self._lock:
+            cid = self._next_callback_id
+            self._next_callback_id += 1
+            self._global_subscribers[cid] = callback
+            logger.info("blackboard 全局订阅 | callback_id=%s", cid)
+            return cid
+
     def unsubscribe(self, session_id: int, callback_id: int) -> None:
-        """取消订阅。"""
+        """取消订阅（session 级 或 global 级）。"""
         with self._lock:
             bucket = self._subscribers.get(session_id, {})
-            bucket.pop(callback_id, None)
+            if callback_id in bucket:
+                bucket.pop(callback_id, None)
+                return
+            self._global_subscribers.pop(callback_id, None)
 
     # ---------- 内部 ----------
 
@@ -281,10 +304,22 @@ class BlackboardService:
         state: dict[str, Any],
         version: int,
     ) -> None:
-        """同步通知所有订阅者；回调抛错不影响其他订阅者。"""
+        """同步通知所有订阅者；回调抛错不影响其他订阅者。
+
+        通知顺序：先 global 后 session 级。EventBus 全局订阅可借此做触发链。
+        """
         with self._lock:
-            callbacks = list(self._subscribers.get(session_id, {}).items())
-        for cid, cb in callbacks:
+            global_cbs = list(self._global_subscribers.items())
+            session_cbs = list(self._subscribers.get(session_id, {}).items())
+        for cid, cb in global_cbs:
+            try:
+                cb(session_id, agent_role, state, version)
+            except Exception:
+                logger.exception(
+                    "blackboard 全局订阅回调异常 | session=%s callback_id=%s",
+                    session_id, cid,
+                )
+        for cid, cb in session_cbs:
             try:
                 cb(session_id, agent_role, state, version)
             except Exception:

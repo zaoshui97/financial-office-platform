@@ -47,13 +47,27 @@ QUEUE_MAX_SIZE = 256
 # 多 ws 连接 + 业务 svc 必须共享同一个 BlackboardService 实例，否则各跑各的
 # 内存缓存 + 订阅列表互不可见。
 _blackboard_singleton: BlackboardService | None = None
+# EventBus 启动标志：装默认触发链时上锁，避免并发
+_eventbus_installed = False
+_eventbus_lock = None  # type: ignore[var-annotated]
 
 
 def get_blackboard_service() -> BlackboardService:
-    """进程级 BlackboardService 单例（懒加载，首次访问时建）。"""
-    global _blackboard_singleton
+    """进程级 BlackboardService 单例（懒加载，首次访问时建）。
+
+    首次创建时自动绑定 EventBus 并装默认触发链（moderator → noter → decision → dispatcher）。
+    触发链只装一次：后续调用幂等。
+    """
+    global _blackboard_singleton, _eventbus_installed, _eventbus_lock
     if _blackboard_singleton is None:
         _blackboard_singleton = BlackboardService(SessionLocal())
+        # 安装 EventBus 默认链
+        from app.features.meeting.event_bus import get_event_bus
+        bus = get_event_bus()
+        bus.attach_blackboard(_blackboard_singleton)
+        if not bus.is_installed():
+            bus.install_default_chain()
+            _eventbus_installed = True
     return _blackboard_singleton
 
 
