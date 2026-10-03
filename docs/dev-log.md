@@ -625,3 +625,68 @@ Migration: 9ca81cc70198_add_meeting_agent_tables.py (已 stamp)
 - `meeting_router.py` REST 路由
 - `meeting_ws.py` WebSocket 推送
 - `meeting_service.py` 业务编排 + 触发 Agent 写黑板
+
+---
+
+### 2026-10-03 22:30  @fans  [P1+P2+事件总线 + 前端联调骨架]
+
+#### 1. 今日后半段 commit
+
+```
+20:10 → 会议元数据 topic/agenda/current_phase 入 MeetingSession 表
+20:25 → 黑板事件回放：meeting_blackboard_events 表 + GET /blackboard/events
+20:40 → 事件总线：moderator→noter→decision→dispatcher 自动触发链
+```
+
+#### 2. P1：会议元数据入表
+
+- `MeetingSession` 加 `topic / agenda / current_phase` 3 字段
+- `MeetingPhase` 枚举：open / discussing / closing / closed
+- `_to_read` 直接读表，不再从 moderator 黑板拼
+- `_sync_phase_from_state` 在 Agent 写完时同步合法 phase 回表
+- alembic 迁移：`20261003_001_add_meeting_metadata.py`
+- 8 场景集成测试全通过（含旧数据 NULL 兼容）
+
+#### 3. P2：黑板事件回放
+
+- 新表 `meeting_blackboard_events`（区分老 `blackboard_events`，避开 MetaData 冲突）
+- 字段：session_id / agent_role / version / state / created_at
+- `BlackboardService.write` 成功后 1 次 INSERT 落事件（同事务）
+- 新增 `GET /api/v1/meetings/{id}/blackboard/events?since_event_id=N&limit=200`
+- 踩到 2 坑：
+  - MySQL 5.7 不支持 DATETIME DEFAULT CURRENT_TIMESTAMP(6) → 改 `now()`
+  - per-agent version 与全表 id 混用歧义 → 改用全局 `since_event_id`
+- 8 场景集成测试全通过
+
+#### 4. 事件总线 + 默认触发链
+
+- 新文件 `app/features/meeting/event_bus.py`
+- `BlackboardService.subscribe_global(callback)` 全局订阅（不绑 session）
+- `BlackboardService.write` 自动注入 `event_type = "{role}_updated"`
+- 默认链：`moderator_updated → noter → decision → dispatcher`
+- 启动时机：`ws.py get_blackboard_service()` 首次创建时懒装（幂等）
+- 错误隔离：双重 try/except（_notify + chain 内部）
+- 5 场景集成测试全通过
+
+#### 5. 前端联调骨架（在 `frontend/digital-horse/` 独立 repo）
+
+新增：
+- `src/api/meeting.ts`        REST 类型 + API 封装
+- `src/api/meetingWs.ts`     WS 客户端 + 重连 + 增量同步
+- `src/store/meetingStore.ts` zustand 状态管理
+- `src/pages/Meeting/index.tsx`   列表页 + 新建会议 Modal
+- `src/pages/Meeting/Detail.tsx`  详情页 + 4 Agent 黑板展示 + WS 推送
+- `router.tsx` 注册 `/meetings` + `/meetings/:id`
+
+WS 客户端特性：
+- 指数退避重连：1s → 2s → 5s → 10s → 30s 封顶
+- 重连后调 `/blackboard/events?since_event_id=N` 增量补齐
+- 按 (role, version) 合并，乱序丢弃
+- 心跳：服务端每 30s 推 ping，客户端无需响应
+
+#### 6. 下一阶段计划（已锁定）
+
+- [A] 前端联调骨架 ✅ 本次
+- [C] 压测：4 agent 串行触发链性能基线
+- [D] 鉴权：JWT 过期 → WS 自动断 + REST 401 统一
+- [B] LLM Gateway：抹 mock，接入真实 Provider
