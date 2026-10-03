@@ -27,6 +27,7 @@ from app.features.meeting.schemas import (
     MeetingListResponse,
     MeetingRead,
 )
+from app.features.meeting.ws import get_blackboard_service as _get_shared_blackboard
 
 logger = get_logger(__name__)
 
@@ -66,7 +67,7 @@ def _to_read(
             detail=f"会议 status 异常: {meeting.status}",
         )
     # 拿 moderator state 里的 phase / topic / agenda
-    svc = BlackboardService(db)
+    svc = _get_shared_blackboard()
     moderator_state = svc.read_one(meeting.id, "moderator")
     topic = moderator_state.get("topic")
     agenda = moderator_state.get("agenda")
@@ -101,7 +102,7 @@ def create_meeting(
     db.refresh(meeting)
 
     # 初始化 moderator 黑板（含 topic/agenda）
-    svc = BlackboardService(db)
+    svc = _get_shared_blackboard()
     initial_state = {
         "agent_role": "moderator",
         "topic": data.topic,
@@ -187,7 +188,7 @@ def read_blackboard(
 ) -> BlackboardReadResponse:
     """读会议黑板全部 Agent 的最新状态。"""
     _get_owned_meeting(db, meeting_id, owner_id)  # 权限校验
-    svc = BlackboardService(db)
+    svc = _get_shared_blackboard()
     all_states = svc.read_all(meeting_id)
     # 按角色字母序固定输出顺序
     snapshots = [
@@ -226,7 +227,7 @@ def trigger_agent(
             detail=f"未知 agent_role: {agent_role} | 已知: {list(AGENT_REGISTRY.keys())}",
         )
 
-    svc = BlackboardService(db)
+    svc = _get_shared_blackboard()
     # 注入运行时上下文
     full_context = {
         **context,

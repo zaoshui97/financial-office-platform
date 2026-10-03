@@ -13,6 +13,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import get_logger, setup_logging
 from app.core.middleware import setup_middleware
 from app.core.swagger import register_swagger_routes
+from app.features.meeting.ws import router as meeting_ws_router
 
 logger = get_logger(__name__)
 
@@ -50,6 +51,11 @@ def create_app() -> FastAPI:
     setup_middleware(application)
     register_exception_handlers(application)
     application.include_router(api_router)
+    # WebSocket 路由必须直接挂到 application（不能挂到带 prefix 的 api_router）
+    application.include_router(
+        meeting_ws_router,
+        prefix=settings.API_V1_PREFIX,
+    )
     if settings.DEBUG:
         register_swagger_routes(application)
     return application

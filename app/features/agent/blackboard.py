@@ -50,7 +50,8 @@ class BlackboardConflictError(RuntimeError):
 class BlackboardService:
     """会议共享黑板：4 Agent 写、最新读、订阅推送。"""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session | None = None) -> None:
+        # 单例场景下 db 不传，每次写/读自开新 session
         self._db = db
         # {session_id: {agent_role: state}}
         self._cache: dict[int, dict[str, dict[str, Any]]] = {}
@@ -61,6 +62,19 @@ class BlackboardService:
         self._next_callback_id = 1
 
     # ---------- 写入 ----------
+
+    def _session(self) -> Session:
+        """获取操作 session：单例场景下自开，注入场景下复用。"""
+        if self._db is not None:
+            return self._db
+        # 单例：自开 session（用完即关）
+        from app.core.database import SessionLocal
+        return SessionLocal()
+
+    def _close_session(self, session: Session) -> None:
+        """操作完成后是否需要关闭 session。"""
+        if self._db is None:  # 单例自开场景
+            session.close()
 
     def write(
         self,
@@ -76,45 +90,48 @@ class BlackboardService:
           3. 写入成功后更新缓存 + 同步通知订阅者。
         """
         payload = self._validate_state(state)
+        session = self._session()
+        try:
+            for attempt in range(1, MAX_RETRY + 1):
+                row = self._get_or_load(session, session_id, agent_role)
+                old_version = row.version
+                new_version = old_version + 1
 
-        for attempt in range(1, MAX_RETRY + 1):
-            row = self._get_or_load(session_id, agent_role)
-            old_version = row.version
-            new_version = old_version + 1
-
-            updated = self._db.execute(
-                Blackboard.__table__.update()
-                .where(Blackboard.id == row.id, Blackboard.version == old_version)
-                .values(
-                    state_json=payload,
-                    version=new_version,
-                    updated_at=func.now(),
-                ),
-            )
-            if updated.rowcount == 1:
-                self._db.commit()
-                # 写缓存
-                with self._lock:
-                    cache_for_session = self._cache.setdefault(session_id, {})
-                    cache_for_session[agent_role] = payload
-                # 通知订阅者（同步，避免异步丢失顺序）
-                self._notify(session_id, agent_role, payload, new_version)
-                logger.info(
-                    "blackboard 写入 | session=%s role=%s version=%s",
-                    session_id, agent_role, new_version,
+                updated = session.execute(
+                    Blackboard.__table__.update()
+                    .where(Blackboard.id == row.id, Blackboard.version == old_version)
+                    .values(
+                        state_json=payload,
+                        version=new_version,
+                        updated_at=func.now(),
+                    ),
                 )
-                return new_version
+                if updated.rowcount == 1:
+                    session.commit()
+                    # 写缓存
+                    with self._lock:
+                        cache_for_session = self._cache.setdefault(session_id, {})
+                        cache_for_session[agent_role] = payload
+                    # 通知订阅者（同步，避免异步丢失顺序）
+                    self._notify(session_id, agent_role, payload, new_version)
+                    logger.info(
+                        "blackboard 写入 | session=%s role=%s version=%s",
+                        session_id, agent_role, new_version,
+                    )
+                    return new_version
 
-            # 冲突：被别人先写了，回滚 + 重读
-            self._db.rollback()
-            logger.warning(
-                "blackboard 乐观锁冲突 | session=%s role=%s attempt=%s",
-                session_id, agent_role, attempt,
+                # 冲突：被别人先写了，回滚 + 重读
+                session.rollback()
+                logger.warning(
+                    "blackboard 乐观锁冲突 | session=%s role=%s attempt=%s",
+                    session_id, agent_role, attempt,
+                )
+
+            raise BlackboardConflictError(
+                f"blackboard 写入冲突：session={session_id} role={agent_role}"
             )
-
-        raise BlackboardConflictError(
-            f"blackboard 写入冲突：session={session_id} role={agent_role}"
-        )
+        finally:
+            self._close_session(session)
 
     # ---------- 读取 ----------
 
@@ -124,12 +141,16 @@ class BlackboardService:
             cached = self._cache.get(session_id, {}).get(agent_role)
         if cached is not None:
             return cached
-        row = self._db.scalar(
-            select(Blackboard).where(
-                Blackboard.session_id == session_id,
-                Blackboard.agent_role == agent_role,
+        session = self._session()
+        try:
+            row = session.scalar(
+                select(Blackboard).where(
+                    Blackboard.session_id == session_id,
+                    Blackboard.agent_role == agent_role,
+                )
             )
-        )
+        finally:
+            self._close_session(session)
         if row is None:
             return {}
         with self._lock:
@@ -143,11 +164,15 @@ class BlackboardService:
         if cached is not None:
             return {role: dict(state) for role, state in cached.items()}
 
-        rows = list(
-            self._db.scalars(
-                select(Blackboard).where(Blackboard.session_id == session_id)
-            ).all()
-        )
+        session = self._session()
+        try:
+            rows = list(
+                session.scalars(
+                    select(Blackboard).where(Blackboard.session_id == session_id)
+                ).all()
+            )
+        finally:
+            self._close_session(session)
         with self._lock:
             bucket = self._cache.setdefault(session_id, {})
             for row in rows:
@@ -174,10 +199,12 @@ class BlackboardService:
 
     # ---------- 内部 ----------
 
-    def _get_or_load(self, session_id: int, agent_role: str) -> Blackboard:
+    def _get_or_load(
+        self, session: Session, session_id: int, agent_role: str
+    ) -> Blackboard:
         """从缓存取行（DB 实体），没有就读 DB 一次。"""
         # cache 里只存 state_json，所以这里仍要从 DB 拿 row 实体做 UPDATE。
-        row = self._db.scalar(
+        row = session.scalar(
             select(Blackboard).where(
                 Blackboard.session_id == session_id,
                 Blackboard.agent_role == agent_role,
@@ -191,8 +218,8 @@ class BlackboardService:
                 state_json={},
                 version=0,
             )
-            self._db.add(row)
-            self._db.flush()
+            session.add(row)
+            session.flush()
             logger.info(
                 "blackboard 初始化 | session=%s role=%s",
                 session_id, agent_role,
