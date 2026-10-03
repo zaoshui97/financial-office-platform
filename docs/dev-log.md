@@ -398,7 +398,8 @@ class GuardDecision:
 \\\
 
 **③ \pp/features/compliance/{schemas,service,audit}.py\ — 透传分类**
-- \SandboxChatResponse\ 加 \isk_category\, \confidence\, \judge_source\
+- \SandboxChatResponse\ 加 \
+isk_category\, \confidence\, \judge_source\
 - \AuditPayload\ 加同样字段
 - service.py 写审计时同步记录
 - 拦截时 422 detail 也带分类
@@ -456,4 +457,171 @@ SANDBOX_DEGRADATION_POLICY=fallback  # 沙箱 Provider 不可用时降级到普�
 }
 \\\
 
-前端可基于 \isk_category\ 展示不同图标 / 文案 / 处置流程。
+前端可基于 \risk_category\ 展示不同图标 / 文案 / 处置流程。
+
+---
+
+### 2026-10-03 18:25  @fans  [feat(agent): 会议 Agent 数据模型 — MeetingSession / Blackboard / AgentExecution]
+
+**目标**：为后续会议场景的 4 Agent（moderator/noter/decision/dispatcher）建立数据底盘，
+让黑板共享、Agent 执行追踪有 MySQL 表可依赖。
+
+#### 1. 3 张表
+
+| 表 | 关键字段 | 用途 |
+|---|---|---|
+| `meeting_sessions` | title / host_user_id / status | 主持人发起的会议会话 |
+| `meeting_blackboard` | session_id / agent_role / state_json / **version** | 4 Agent 共享状态，乐观锁 |
+| `agent_executions` | session_id / agent_role / trigger / input_snapshot / output / status | 每次 Agent 调用的快照 |
+
+#### 2. 角色与生命周期枚举
+
+- **AgentRole**: `moderator` / `noter` / `decision` / `dispatcher`
+- **MeetingStatus**: `preparing` → `active` → `closed`
+- **AgentExecutionStatus**: `thinking` → `done` / `failed`
+- **AgentTrigger**: `speech_chunk` / `state_update`
+
+#### 3. 关键设计
+
+- `meeting_blackboard` 唯一索引 `(session_id, agent_role)`：每个 Agent 在每个会议里只有一行最新状态
+- `version` 字段：乐观锁，配合 BlackboardService 防并发写冲突
+- `output` 用 **TEXT**（不要 VARCHAR(65535)，MySQL 单行 VARCHAR 上限 16383）
+
+#### 4. 变更文件
+
+- 🆕 `app/features/agent/models.py` — 3 张表 + 4 个枚举（140 行）
+- 🆕 `app/features/agent/__init__.py` — 导出所有模型
+- ✏️ `alembic/env.py` + `app/models/__init__.py` — 注册 agent 模块
+- 🆕 `alembic/versions/9ca81cc70198_add_meeting_agent_tables.py` — autogenerate
+
+#### 5. 踩坑记录
+
+1. **VARCHAR(65535) 报错**：MySQL `ERROR 1074 Column length too big`，改成 Text 即可
+2. **DDL 部分提交**：第一次 migration 因 VARCHAR 失败，但前面 3 张表已在 DB 生效（MySQL DDL 非事务），第二次重跑又报 1050 已存在
+3. **手工补建**：写 `scripts/fix_meeting_tables.sql` 补建 `agent_executions` + `meeting_blackboard`，然后 `alembic stamp 9ca81cc70198` 标记版本对齐
+
+最终 DB 表：`meeting_sessions / meeting_blackboard / agent_executions / blackboard_sessions / blackboard_events`
+
+---
+
+### 2026-10-03 18:55  @fans  [feat(agent): BlackboardService — 乐观锁 + 内存缓存 + 订阅]
+
+**目标**：实现共享黑板的业务层封装，MySQL 是真相源、进程内 dict 是缓存、写后通知回调（WebSocket 推送由调用方在 callback 里实现）。
+
+#### 1. BlackboardService 核心 API
+
+```python
+class BlackboardService:
+    def write(session_id: int, agent_role: str, state: dict) -> int:
+        """乐观锁写入，返回新 version。冲突自动重试 3 次。"""
+
+    def read_one(session_id: int, agent_role: str) -> dict: ...
+    def read_all(session_id: int) -> dict[str, dict]: ...
+    def subscribe(session_id: int, callback: StateCallback) -> int: ...
+    def unsubscribe(session_id: int, callback_id: int) -> None: ...
+```
+
+回调签名：`StateCallback = Callable[[session_id, agent_role, state, version], None]`
+
+#### 2. 数据流
+
+```
+[Agent 调用] → BlackboardService.write()
+        ↓
+[1.读 DB → 2.UPDATE WHERE version=? → 3.冲突重试 3 次]
+        ↓ 成功
+[4.更新进程内 dict 缓存]
+        ↓
+[5.同步通知所有订阅者]
+        ↓
+[callback 里调用 ws.broadcast() → WebSocket 推前端]
+```
+
+#### 3. 关键设计决策
+
+| 设计 | 实现 | 理由 |
+|---|---|---|
+| **乐观锁防冲突** | `UPDATE ... WHERE version = old_version`，rowcount=0 则冲突 → 重试 3 次 | 简单可靠，比悲观锁轻 |
+| **进程内 dict 缓存** | `dict[session_id, dict[agent_role, state]]` | 不引入 Redis，单进程够用 |
+| **写后同步通知** | 回调列表快照后同步触发 | 保证顺序、避免异步丢事件 |
+| **回调抛错隔离** | 每个 callback 独立 try/except | 一个 WebSocket 挂了不影响其他订阅者 |
+| **state 大小校验** | JSON 编码 > 64KB 拒绝 | 防 OOM |
+
+#### 4. 踩坑
+
+- **Core update() 不触发 onupdate hook**：原本想靠 `onupdate=func.now()` 自动更新 `updated_at`，但 SQLAlchemy Core update 走 ORM 钩子失效。修复：UPDATE 时显式 `values(updated_at=func.now())`
+
+#### 5. 集成测试结果
+
+```
+会议 sid = 2
+写入 4 角色 versions = 1,1,1,1
+覆盖写 version = 2                       ← moderator 重复写 → version 自增
+read_all = {moderator, noter, decision, dispatcher} ← 4 角色状态全在
+回调触发次数 = 1 | [('noter', 2, None)] ← subscribe + 写后通知
+```
+
+#### 6. 变更文件
+
+- 🆕 `app/features/agent/blackboard.py` — BlackboardService + BlackboardConflictError（200 行）
+- ✏️ `app/features/agent/__init__.py` — 暴露 BlackboardService
+- 🆕 `scripts/fix_meeting_tables.sql` — 手工补建 2 张缺失表
+- ✏️ `alembic/versions/9ca81cc70198_add_meeting_agent_tables.py` — output 改 Text
+
+#### 7. 下一步
+
+| 步骤 | 内容 |
+|---|---|
+| `meeting_router.py` | REST：`POST /meetings` / `POST /blackboard/write` / `GET /blackboard/all` |
+| `meeting_ws.py` | WebSocket：`/ws/meetings/{id}` 把 BlackboardService 的回调广播给前端 |
+| `meeting_service.py` | 业务编排：会议生命周期 + 触发 Agent 写黑板 |
+
+---
+
+### 2026-10-03 19:00  @fans  [今日总结：会议 Agent 数据底盘完成]
+
+#### 1. 今日完整链路
+
+```
+17:50 → 合规沙箱 4 层防御 + LLM Judge + 风险分类       (commit 42bd2a7)
+17:50 → 风险词词库 100+ / Judge prompt / 测试集       (commit 7c87fa5)
+18:25 → 会议 Agent 数据模型（3 张表）                 (commit f453cff)
+18:55 → BlackboardService 乐观锁 + 缓存 + 订阅        (commit 9d503b7)
+```
+
+#### 2. 会议 Agent 体系全景
+
+```
+[会议主持人] → 创建 meeting_session (preparing → active → closed)
+                  ↓
+        ┌─────────────────────────────────────┐
+        │  4 个 Agent 角色                    │
+        │  moderator  控场 / 计时              │
+        │  noter      转写 / 摘要              │
+        │  decision   议题 / 方案推荐          │
+        │  dispatcher 待办 / 任务分发           │
+        └─────────────────────────────────────┘
+                  ↓ 各自写
+        ┌─────────────────────────────────────┐
+        │  BlackboardService                  │
+        │  · MySQL 持久化（乐观锁 version）    │
+        │  · 进程内 dict 缓存                  │
+        │  · write 后同步通知订阅者            │
+        └─────────────────────────────────────┘
+                  ↓ callback
+        [WebSocket 广播] → 前端实时看到状态变化
+```
+
+#### 3. 数据落地
+
+```
+DB: meeting_sessions / meeting_blackboard / agent_executions
+    + 原有: blackboard_sessions / blackboard_events
+Migration: 9ca81cc70198_add_meeting_agent_tables.py (已 stamp)
+```
+
+#### 4. 明日计划（P1）
+
+- `meeting_router.py` REST 路由
+- `meeting_ws.py` WebSocket 推送
+- `meeting_service.py` 业务编排 + 触发 Agent 写黑板
