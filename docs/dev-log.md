@@ -690,3 +690,117 @@ WS 客户端特性：
 - [C] 压测：4 agent 串行触发链性能基线
 - [D] 鉴权：JWT 过期 → WS 自动断 + REST 401 统一
 - [B] LLM Gateway：抹 mock，接入真实 Provider
+
+---
+
+### 2026-10-03 23:30  @fans  [前端联调骨架 + 压测 + 鉴权加固 + 真实 LLM 链路验证]
+
+#### 1. 今日后半段 commit（7 个）
+
+```
+20:10 → 会议元数据 topic/agenda/current_phase 入表                f534231
+20:25 → 黑板事件回放：meeting_blackboard_events + GET /events       0ef5273
+20:40 → 事件总线：moderator→noter→decision→dispatcher 自动链       70a03e4
+21:00 → 前端联调骨架（在 frontend/digital-horse/ 独立 repo）
+       · src/api/meeting.ts · meetingWs.ts
+       · src/store/meetingStore.ts (zustand)
+       · src/pages/Meeting/index.tsx (列表 + 新建)
+       · src/pages/Meeting/Detail.tsx (详情 + 4 Agent 黑板 + WS)
+       · router.tsx 注册 /meetings + /meetings/:id
+21:30 → 压测：触发链 p50=228ms p95=260ms (LLM 50ms×4)              061e9ea
+21:45 → 鉴权加固：统一错误响应 + WS token watchdog               f1c4966
+22:00 → 真实 LLM 链路：deepseek 3709ms / doubao 2257ms / qwen 1629ms 145766c
+22:15 → dev-log 总结                                            [本次]
+```
+
+#### 2. A. 前端联调骨架
+
+- `src/api/meeting.ts`        REST 类型 + API 封装
+- `src/api/meetingWs.ts`     WS 客户端 + 指数退避重连 + 增量同步
+- `src/store/meetingStore.ts` zustand 状态管理
+- `src/pages/Meeting/index.tsx`   列表页 + 新建会议 Modal
+- `src/pages/Meeting/Detail.tsx`  详情页 + 4 Agent 黑板展示 + WS 推送
+
+WS 客户端特性：
+- 指数退避重连：1s → 2s → 5s → 10s → 30s 封顶
+- 重连后调 `/blackboard/events?since_event_id=N` 增量补齐
+- 按 (role, version) 合并，乱序丢弃
+- 心跳：服务端每 30s 推 ping，客户端无需响应
+- token 过期不重连（onAuthFailure 回调）
+
+#### 3. C. 压测基线
+
+环境：LLM mock 延迟 50ms × 4 agent，MySQL + BlackboardService 缓存，TestClient 单线程 30 次
+
+| 指标 | 数值 |
+|---|---|
+| 理论下限 | 200 ms (4 × LLM 延迟) |
+| mean | 234 ms |
+| p50 | 228 ms |
+| p95 | 260 ms |
+| p99 | 363 ms |
+| max | 363 ms |
+| stdev | 25 ms |
+
+业务开销 = mean - 理论下限 = 34 ms (+17%)
+4 次 BlackboardService.write + 4 次 MySQL UPDATE + 4 次 INSERT 事件 + 订阅派发 + HTTP 序列化
+
+并发压测未跑：TestClient thread-safety 受限 + 同 connection 冲突，需 uvicorn + 连接池扩容。
+
+#### 4. D. 鉴权加固
+
+- `app/core/exceptions.py`
+    - 统一 HTTPException → `{code, detail, status}` JSON
+    - 401 → unauthorized / 404 → not_found / 422 → validation_error / 500 → internal_error
+    - 沙箱异常也加 code 字段
+- `app/features/meeting/ws.py`
+    - `_authenticate` 返回 (user_id, token, expiry)
+    - 新增 `_token_watchdog_loop`：每 60s 检查，过期前 30s 推 `token_expiring`，已过期推 `token_expired` + close(code=1008)
+- 前端 `meetingWs.ts`
+    - `onAuthFailure(reason)` 回调
+    - 收到 token_expired 或 close(code=1008|4401) → authFailed=true 不再重连
+
+10 场景集成测试全通过。
+
+#### 5. B. 真实 LLM 链路
+
+- `app/ai/router.py`（新增）
+    - GET /api/v1/ai/diagnostics — 手动触发三方 ping
+    - GET /api/v1/ai/diagnostics/profiles — 仅元数据
+    - 需要鉴权，不自动跑
+
+真实调用延迟（2026-10-03 21:34）：
+- deepseek  3709 ms  success
+- doubao    2257 ms  success
+- qwen      1629 ms  success
+
+5 场景集成测试全通过，链路全通。
+
+#### 6. 今日 commit 总览（16 个）
+
+```
+17:50  42bd2a7  合规沙箱 4 层防御
+17:50  7c87fa5  风险词词库 100+
+18:25  f453cff  会议 Agent 数据模型
+18:55  9d503b7  BlackboardService 乐观锁
+19:05  11019d0  dev-log 完整记录
+19:15  49ceda9  4 Agent 实现
+19:30  847dc3e  meeting REST 路由
+19:55  34d8564  WebSocket + 单例化
+20:10  f534231  会议元数据入表
+20:25  0ef5273  黑板事件回放
+20:40  70a03e4  事件总线触发链
+21:00  9a84bf4  dev-log (A+C+D+B 段)
+21:30  061e9ea  压测基线
+21:45  f1c4966  鉴权加固
+22:00  145766c  真实 LLM 链路
+22:15  [本次]    dev-log 总结
+```
+
+#### 7. 下一阶段候选
+
+- [并发压测] uvicorn + 连接池扩容后跑 10+ 并发会议
+- [LLM 流式] 把 BaseAgent 改造为支持 stream_chat，前端拿增量输出
+- [生产部署] Docker + ACS / 阿里云镜像仓库（DEPLOY.md 待补）
+- [鉴权刷新] JWT refresh token（当前只有 access，过期需重新登录）
+- [前端 e2e] Playwright 端到端测试 WS 断线重连
