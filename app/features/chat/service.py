@@ -1,5 +1,7 @@
 ﻿"""智能聊天业务服务：管理会话、历史、LLM调用和知识库引用。"""
 
+from collections.abc import Iterator
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -96,7 +98,6 @@ def create_chat_reply(
     owner_id: int,
     data: ChatRequest,
 ) -> ChatResponse:
-    """生成聊天回答，并将完整一轮对话原子保存到数据库。"""
     try:
         conversation = _get_or_create_conversation(db, owner_id, data)
         history = _load_history(db, conversation.id)
@@ -183,3 +184,71 @@ def create_chat_reply(
         latency_ms=ai_response.latency_ms if ai_response else None,
         retrieval_method=retrieval_method,
     )
+
+
+def create_chat_reply_stream(
+    owner_id: int,
+    data: ChatRequest,
+) -> Iterator[str]:
+    """流式版 chat：逐段 yield SSE 事件 JSON。
+
+    简化：
+      - 跳过 RAG citation 绑定（流式不便分 chunk 判断引用）
+      - 跳过 ChatMessage 落库（前端可在收到 'done' 后自行 POST 保存）
+      - 错误转 SSE error 事件而非 HTTP 状态码（流已开始后只能这样）
+    """
+    import json
+    from app.ai.llm_gateway import llm_gateway
+    from app.ai.schemas import AITask
+
+    history = [{"role": "user", "content": data.message}]
+    task = data.resolved_task()
+
+    def _sse(event: str, payload: dict) -> str:
+        return f"data: {json.dumps({'event': event, **payload}, ensure_ascii=False)}\n\n"
+
+    try:
+        # 简单 LLM 调用（流式）：不支持 RAG 的 citation
+        if data.resolved_mode() == ChatMode.RAG:
+            # RAG 流式要检索 + 注入上下文（一次性），实现稍重
+            # 这里走非流式 RAG 然后单 chunk yield
+            from app.core.database import SessionLocal
+            from app.features.chat.rag_retriever import retrieve_knowledge_context
+            db = SessionLocal()
+            try:
+                contexts = retrieve_knowledge_context(
+                    db=db,
+                    owner_id=owner_id,
+                    knowledge_base_id=data.knowledge_base_id,
+                    question=data.message,
+                )
+                prompt_contexts, _citations = _build_rag_payload(contexts)
+                if not contexts:
+                    yield _sse("chunk", {"content": NO_KNOWLEDGE_ANSWER})
+                else:
+                    # 一次性调完整 LLM 然后切段（伪流式）
+                    full = llm_gateway.complete(
+                        history, contexts=prompt_contexts, task=task,
+                    )
+                    # 按句号切分做简单"流式"（不实现真正的 token 级流）
+                    for seg in _split_to_chunks(full, 8):
+                        yield _sse("chunk", {"content": seg})
+            finally:
+                db.close()
+        else:
+            # LLM 模式：真流式
+            for chunk in llm_gateway.stream_complete(history, task=task):
+                yield _sse("chunk", {"content": chunk})
+
+        yield _sse("done", {"task": task.value})
+    except Exception as exc:
+        from app.ai.llm_gateway import LLMServiceError
+        msg = str(exc) if isinstance(exc, LLMServiceError) else f"{type(exc).__name__}: {exc}"
+        yield _sse("error", {"detail": msg})
+
+
+def _split_to_chunks(text: str, chars_per_chunk: int) -> Iterator[str]:
+    """把完整文本切成 chunk 用于伪流式（RAG 模式）。"""
+    text = text or ""
+    for i in range(0, len(text), chars_per_chunk):
+        yield text[i : i + chars_per_chunk]

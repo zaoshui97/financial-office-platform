@@ -222,6 +222,35 @@ class LLMGateway:
         )
         return self.generate(request).text
 
+    def stream_complete(
+        self,
+        history: list[dict[str, str]],
+        contexts: list[str] | None = None,
+        task: AITask | None = None,
+    ) -> Iterator[str]:
+        """流式版本 complete：逐段 yield 文本 chunk。
+
+        与 complete 区别：
+          - 不返回完整字符串，逐段 yield（流式）
+          - 失败时（首段前）抛 LLMServiceError；失败时（已开始 yield）静默终止
+          - 内部用 self.stream_chat(AIRequest) 实现，自动复用路由 + fallback
+        """
+        self._last_response = None
+        resolved_task = task or (AITask.RAG if contexts else AITask.CHAT)
+        task_name = resolved_task.value
+        if resolved_task == AITask.RAG and not contexts:
+            raise LLMServiceError("RAG任务缺少知识库上下文")
+        request = AIRequest(
+            task=task_name,
+            messages=history,
+            instructions=self._instructions(task_name, contexts),
+            need_long_context=resolved_task
+            in {AITask.RAG, AITask.LONG_CONTEXT_SUMMARY},
+            need_web_search=resolved_task == AITask.WEB_SEARCH,
+            need_tools=resolved_task in {AITask.WEB_SEARCH, AITask.AGENT},
+        )
+        yield from self.stream_chat(request)
+
     def complete_with_metadata(
         self,
         history: list[dict[str, str]],
