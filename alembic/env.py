@@ -8,6 +8,7 @@ from alembic import context
 from app.core.config import settings
 from app.core.database import Base
 from app.features.auth import models as auth_models  # noqa: F401
+from app.features.agent import models as agent_models  # noqa: F401
 from app.features.blackboard import models as blackboard_models  # noqa: F401
 from app.features.chat import models as chat_models  # noqa: F401
 from app.features.compliance import models as compliance_models  # noqa: F401
