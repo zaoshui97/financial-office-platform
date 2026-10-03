@@ -82,6 +82,29 @@ class BlackboardReadResponse(BaseModel):
     )
 
 
+class BlackboardEventItem(BaseModel):
+    """单条黑板变更事件，供重连后增量拉取。"""
+
+    id: int
+    agent_role: str
+    version: int
+    state: dict[str, Any]
+    created_at: str | None = None
+
+
+class BlackboardEventListResponse(BaseModel):
+    """事件流响应：前端用 since_event_id 增量同步。"""
+
+    session_id: int
+    since_event_id: int
+    events: list[BlackboardEventItem] = Field(
+        description="id > since_event_id 的事件，升序；空 list 表示已追平",
+    )
+    has_more: bool = Field(
+        description="True=还有未拉取完（命中 limit），前端应继续翻页",
+    )
+
+
 class AgentTriggerRequest(BaseModel):
     """触发指定 Agent 跑一次的请求。"""
 

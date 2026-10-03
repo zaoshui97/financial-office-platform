@@ -13,6 +13,7 @@ from app.features.auth.dependencies import CurrentUser
 from app.features.meeting.schemas import (
     AgentTriggerRequest,
     AgentTriggerResponse,
+    BlackboardEventListResponse,
     BlackboardReadResponse,
     MeetingCreate,
     MeetingListResponse,
@@ -22,6 +23,7 @@ from app.features.meeting.service import (
     close_meeting,
     create_meeting,
     get_meeting,
+    list_blackboard_events,
     list_meetings,
     read_blackboard,
     trigger_agent,
@@ -119,4 +121,22 @@ def post_agent(
     """agent_role ∈ {moderator, noter, decision, dispatcher}"""
     return trigger_agent(
         db, meeting_id, current_user.id, agent_role, data.context,
+    )
+
+
+@router.get(
+    "/{meeting_id}/blackboard/events",
+    response_model=BlackboardEventListResponse,
+    summary="拉取 id > since_event_id 的事件流（重连后增量同步）",
+)
+def get_blackboard_events(
+    meeting_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    since_event_id: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> BlackboardEventListResponse:
+    """前端重连后用本地最大 event id 调此接口，缺失事件全量补齐。"""
+    return list_blackboard_events(
+        db, meeting_id, current_user.id, since_event_id, limit,
     )

@@ -62,6 +62,56 @@ class Blackboard(Base):
     )
 
 
+class BlackboardEvent(Base):
+    """黑板变更事件：每次 write 落一条，供前端重连后增量拉取。
+
+    设计：
+      - 单 meeting 内按 (session_id, agent_role, version) 唯一
+      - 自增 ID 仅用于排序/分页游标
+      - 写时机：BlackboardService.write 成功后 1 次 INSERT（同步，与 cache 同步）
+      - 读时机：前端断线重连后 → GET /blackboard/events?since_version=N
+    """
+
+    __tablename__ = "meeting_blackboard_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("meeting_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="关联的会议会话 ID",
+    )
+    agent_role: Mapped[str] = mapped_column(
+        String(32), nullable=False,
+        comment="moderator / noter / decision / dispatcher",
+    )
+    version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False,
+        comment="写黑板后自增的 version 号",
+    )
+    state: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False,
+        comment="写入的 state 快照（与 meeting_blackboard.state_json 同步）",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False,
+        server_default="CURRENT_TIMESTAMP",
+        comment="事件落库时间",
+    )
+
+    __table_args__ = (
+        Index(
+            "idx_event_session_version",
+            "session_id", "version",
+        ),
+        Index(
+            "uq_event_session_role_version",
+            "session_id", "agent_role", "version",
+            unique=True,
+        ),
+    )
+
+
 class MeetingSession(TimestampMixin, Base):
     """会议会话：主持人的一次实时会议上下文。"""
 

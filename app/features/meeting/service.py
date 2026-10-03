@@ -21,6 +21,8 @@ from app.features.agent.agents import AGENT_REGISTRY, get_agent
 from app.features.agent.models import MeetingSession, MeetingStatus
 from app.features.meeting.schemas import (
     AgentTriggerResponse,
+    BlackboardEventItem,
+    BlackboardEventListResponse,
     BlackboardReadResponse,
     BlackboardSnapshot,
     MeetingCreate,
@@ -216,6 +218,42 @@ def read_blackboard(
         for role, state in sorted(all_states.items())
     ]
     return BlackboardReadResponse(session_id=meeting_id, states=snapshots)
+
+
+def list_blackboard_events(
+    db: Session,
+    meeting_id: int,
+    owner_id: int,
+    since_event_id: int = 0,
+    limit: int = 200,
+) -> BlackboardEventListResponse:
+    """拉取 id > since_event_id 的事件流（升序），供前端重连增量同步。
+
+    limit 默认 200（防止一次拉太多），最大 500。
+    返回 has_more=True 表示有下一页。
+    """
+    from fastapi import HTTPException, status
+
+    _get_owned_meeting(db, meeting_id, owner_id)
+    if since_event_id < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="since_event_id 不能为负",
+        )
+    if limit < 1 or limit > 500:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit 必须在 1-500",
+        )
+    svc = _get_shared_blackboard()
+    raw_events = svc.list_events(meeting_id, since_event_id, limit)
+    has_more = len(raw_events) == limit
+    return BlackboardEventListResponse(
+        session_id=meeting_id,
+        since_event_id=since_event_id,
+        events=[BlackboardEventItem(**e) for e in raw_events],
+        has_more=has_more,
+    )
 
 
 def trigger_agent(

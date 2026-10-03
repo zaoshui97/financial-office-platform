@@ -29,7 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
-from app.features.agent.models import Blackboard
+from app.features.agent.models import Blackboard, BlackboardEvent
 
 logger = get_logger(__name__)
 
@@ -107,6 +107,14 @@ class BlackboardService:
                     ),
                 )
                 if updated.rowcount == 1:
+                    # 落事件（与 cache 同步，在 commit 后独立 insert）
+                    event = BlackboardEvent(
+                        session_id=session_id,
+                        agent_role=agent_role,
+                        version=new_version,
+                        state=payload,
+                    )
+                    session.add(event)
                     session.commit()
                     # 写缓存
                     with self._lock:
@@ -178,6 +186,46 @@ class BlackboardService:
             for row in rows:
                 bucket[row.agent_role] = row.state_json
             return {role: dict(state) for role, state in bucket.items()}
+
+    # ---------- 事件回放 ----------
+
+    def list_events(
+        self,
+        session_id: int,
+        since_event_id: int = 0,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        """拉取 id > since_event_id 的事件流（升序），供前端重连增量同步。
+
+        返回每条：{id, agent_role, version, state, created_at}
+        前端拿到的 events 中 max(id) 传给下次 since_event_id。
+        limit 默认 200，防止一次性拉太多。
+        """
+        session = self._session()
+        try:
+            rows = list(
+                session.scalars(
+                    select(BlackboardEvent)
+                    .where(
+                        BlackboardEvent.session_id == session_id,
+                        BlackboardEvent.id > since_event_id,
+                    )
+                    .order_by(BlackboardEvent.id.asc())
+                    .limit(limit)
+                ).all()
+            )
+        finally:
+            self._close_session(session)
+        return [
+            {
+                "id": row.id,
+                "agent_role": row.agent_role,
+                "version": row.version,
+                "state": row.state,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            for row in rows
+        ]
 
     # ---------- 订阅 ----------
 
