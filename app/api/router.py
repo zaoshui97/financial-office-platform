@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.ai.router import router as ai_router
 from app.core.config import settings
 from app.features.auth.router import router as auth_router
 from app.features.blackboard.router import router as blackboard_router
@@ -19,3 +20,4 @@ api_router.include_router(chat_router)
 api_router.include_router(compliance_router)
 api_router.include_router(blackboard_router)
 api_router.include_router(meeting_router)
+api_router.include_router(ai_router)
