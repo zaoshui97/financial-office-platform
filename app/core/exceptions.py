@@ -52,12 +52,25 @@ async def http_exception_handler(
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """FastAPI 参数校验失败（422）→ 统一格式 + 第一条错误详情。"""
+    """FastAPI 参数校验失败（422）→ 统一格式 + 第一条错误详情。
+
+    errors 字段含 ctx（如 enum 输入错误时的 ValueError 对象）→ JSON 无法序列化，
+    这里把 ctx 转字符串并保留 loc/type/msg 三段。
+    """
     errs = exc.errors()
+    # ctx 里可能含非 JSON 序列化对象（如 ValueError），统一转 str
+    safe_errs: list[dict] = []
+    for e in errs:
+        safe = {k: v for k, v in e.items() if k != "ctx"}
+        ctx = e.get("ctx")
+        if ctx:
+            safe["ctx"] = {k: str(v) for k, v in ctx.items()}
+        safe_errs.append(safe)
+
     first_msg = ""
     if errs:
         first = errs[0]
-        loc = ".".join(str(x) for x in first.get("loc", []))
+        loc = ".".join(str(x) for x in first.get("loc", []) or [])
         first_msg = f"{loc}: {first.get('msg', '')}"
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -65,7 +78,7 @@ async def validation_exception_handler(
             "code": "validation_error",
             "detail": first_msg or "参数校验失败",
             "status": 422,
-            "errors": errs,
+            "errors": safe_errs,
         },
     )
 
