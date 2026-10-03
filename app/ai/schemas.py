@@ -32,6 +32,7 @@ class AITask(StrEnum):
     MEETING_MINUTES = "meeting_minutes"
     MEETING = "meeting"
     AGENT = "agent"
+    SINK = "sink"
 
 
 class AIComplexity(StrEnum):

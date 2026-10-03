@@ -4,6 +4,7 @@
 - exceptions: 沙箱异常类（SandboxUnavailable 等）
 - rule_engine: 关键词 + 正则的快速风险匹配
 - llm_judge: 调用 LLM Gateway 做语义风险判定
+- audit: SandboxAuditLog 模型（精简审计表：风险检查事件）
 - service: check_text 统一入口（规则 → LLM → 合并 → 审计）
 """
 
@@ -15,6 +16,7 @@ from app.sandbox.exceptions import (
 )
 from app.sandbox.kill_switch import KillSwitch, kill_switch
 from app.sandbox.llm_judge import JudgeResult, LLMJudge
+from app.sandbox.audit import SandboxAuditLog
 from app.sandbox.rule_engine import (
     Rule,
     RuleEngine,
@@ -42,6 +44,8 @@ __all__ = [
     # llm_judge
     "LLMJudge",
     "JudgeResult",
+    # audit model
+    "SandboxAuditLog",
     # service
     "check_text",
     "VALID_MODES",

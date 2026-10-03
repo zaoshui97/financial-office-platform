@@ -269,6 +269,7 @@ class ModelRouter:
             AITask.WORKFLOW_DECISION.value: ["deepseek_reasoning", "qwen_knowledge"],
             AITask.SQL_GENERATION.value: ["deepseek_reasoning", "qwen_knowledge"],
             AITask.COMPLEX_LOGIC.value: ["deepseek_reasoning", "qwen_knowledge"],
+            AITask.SINK.value: ["qwen3_max", "deepseek_v3"],
             "default": ["doubao_office", "qwen_knowledge", "deepseek_reasoning"],
         }
 
