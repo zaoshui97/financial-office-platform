@@ -32,6 +32,9 @@ from app.features.agent.blackboard import BlackboardService
 from app.features.agent.models import MeetingSession
 from app.features.auth.models import User
 
+import jwt as _jwt
+from app.core.config import settings as _settings
+
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/meetings/ws", tags=["会议 WebSocket"])
@@ -41,6 +44,25 @@ HEARTBEAT_INTERVAL_SECONDS = 30
 
 # 单连接最大排队消息数（防慢消费阻塞回调）
 QUEUE_MAX_SIZE = 256
+
+# WS token 过期检查：每 60s 检查一次，过期前 30s 主动 close
+WS_TOKEN_CHECK_INTERVAL_SECONDS = 60
+WS_TOKEN_EXPIRY_GRACE_SECONDS = 30
+
+
+def _decode_token_expiry(token: str) -> datetime | None:
+    """从 JWT 拿 exp 时间戳（不验签，只看 exp）。失败返回 None。"""
+    try:
+        # 用 jwt.decode 验签 + 拿 exp（不抛过期异常）
+        payload = _jwt.decode(
+            token,
+            _settings.SECRET_KEY,
+            algorithms=[_settings.JWT_ALGORITHM],
+            options={"verify_exp": False},
+        )
+        return datetime.fromtimestamp(int(payload["exp"]), tz=timezone.utc)
+    except Exception:
+        return None
 
 
 # ---------- 全局 BlackboardService 单例 ----------
@@ -73,8 +95,11 @@ def get_blackboard_service() -> BlackboardService:
 
 # ---------- 鉴权工具 ----------
 
-async def _authenticate(websocket: WebSocket) -> tuple[int, int] | None:
-    """从 ws header 解析 JWT，返回 (user_id, meeting_id) 或 None。"""
+async def _authenticate(websocket: WebSocket) -> tuple[int, str, datetime | None] | None:
+    """从 ws header 解析 JWT，返回 (user_id, token, expiry) 或 None。
+
+    expiry 从 JWT 的 exp 字段取；解析失败也不阻塞鉴权（让 watchdog 兜底）。
+    """
     token = websocket.headers.get("authorization", "").removeprefix("Bearer ").strip()
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="missing token")
@@ -85,8 +110,8 @@ async def _authenticate(websocket: WebSocket) -> tuple[int, int] | None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="invalid token")
         return None
 
-    # meeting_id 来自 path，由 ws_router 在 connect 后再校验（用 db session 上下文外）
-    return user_id, -1
+    expiry = _decode_token_expiry(token)
+    return user_id, token, expiry
 
 
 def _check_meeting_ownership(
@@ -119,7 +144,7 @@ async def meeting_ws(websocket: WebSocket, meeting_id: int) -> None:
     auth = await _authenticate(websocket)
     if auth is None:
         return
-    user_id, _ = auth
+    user_id, _token, token_expiry = auth
 
     # 2) 校验会议归属
     if _check_meeting_ownership(user_id, meeting_id) is None:
@@ -131,8 +156,9 @@ async def meeting_ws(websocket: WebSocket, meeting_id: int) -> None:
 
     await websocket.accept()
     logger.info(
-        "ws 连接 | user=%s meeting=%s client=%s",
+        "ws 连接 | user=%s meeting=%s client=%s token_exp=%s",
         user_id, meeting_id, websocket.client,
+        token_expiry.isoformat() if token_expiry else "unknown",
     )
 
     # 3) 准备订阅：使用进程级 BlackboardService 单例
@@ -177,10 +203,14 @@ async def meeting_ws(websocket: WebSocket, meeting_id: int) -> None:
     except Exception:
         logger.exception("ws 初始快照失败 | meeting=%s", meeting_id)
 
-    # 5) 启动心跳任务
+    # 5) 启动心跳 + token 看门狗
     heartbeat_task = asyncio.create_task(
         _heartbeat_loop(websocket, user_id, meeting_id),
         name=f"ws-heartbeat-{user_id}-{meeting_id}",
+    )
+    token_watchdog = asyncio.create_task(
+        _token_watchdog_loop(websocket, user_id, meeting_id, token_expiry),
+        name=f"ws-token-watchdog-{user_id}-{meeting_id}",
     )
 
     # 6) 收发主循环
@@ -195,7 +225,7 @@ async def meeting_ws(websocket: WebSocket, meeting_id: int) -> None:
             name=f"ws-sender-{user_id}-{meeting_id}",
         )
         done, pending = await asyncio.wait(
-            {receiver, sender, heartbeat_task},
+            {receiver, sender, heartbeat_task, token_watchdog},
             return_when=asyncio.FIRST_COMPLETED,
         )
         for task in pending:
@@ -279,5 +309,57 @@ async def _heartbeat_loop(
             except Exception:
                 # 发送失败 → 客户端已断开
                 return
+    except asyncio.CancelledError:
+        pass
+
+
+async def _token_watchdog_loop(
+    websocket: WebSocket,
+    user_id: int,
+    meeting_id: int,
+    expiry: datetime | None,
+) -> None:
+    """定期检查 token 过期；即将过期则推通知并主动 close。
+
+    - 过期前 WS_TOKEN_EXPIRY_GRACE_SECONDS 主动断开
+    - 推送 {"type": "token_expiring", "remaining_seconds": N} 给前端做"准备重登录"提示
+    - 已过期则推 {"type": "token_expired"} 后 close（code=1008）
+    """
+    if expiry is None:
+        # 拿不到 exp：保守策略是不主动断（依赖 heartbeat 探活）
+        return
+    try:
+        while True:
+            await asyncio.sleep(WS_TOKEN_CHECK_INTERVAL_SECONDS)
+            now = datetime.now(tz=timezone.utc)
+            remaining = (expiry - now).total_seconds()
+            if remaining < 0:
+                # 已过期：推通知 + 主动 close
+                try:
+                    await websocket.send_json({
+                        "type": "token_expired",
+                        "ts": now.isoformat(),
+                    })
+                except Exception:
+                    return
+                await websocket.close(
+                    code=status.WS_1008_POLICY_VIOLATION,
+                    reason="token expired",
+                )
+                logger.info(
+                    "ws token 过期，主动断 | user=%s meeting=%s",
+                    user_id, meeting_id,
+                )
+                return
+            if remaining < WS_TOKEN_EXPIRY_GRACE_SECONDS:
+                # 即将过期：推一次警告（前端可借此提示用户）
+                try:
+                    await websocket.send_json({
+                        "type": "token_expiring",
+                        "remaining_seconds": int(remaining),
+                        "ts": now.isoformat(),
+                    })
+                except Exception:
+                    return
     except asyncio.CancelledError:
         pass
