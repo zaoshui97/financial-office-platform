@@ -357,3 +357,103 @@ sink first model: qwen3.8-flash
 ```
 
 sink 任务优先走 `qwen3.8-flash`（qwen provider），fallback `deepseek_v3`（deepseek provider）。
+
+### 2026-10-03 17:50  @fans  [feat(compliance): 4 层防御 + LLM Judge + 风险分类] — \eature/sandbox-4layer\
+
+**目标**：把合规沙箱从「30 个硬匹配词」升级到「4 层防御 + 语义判断 + 风险分类」，
+让准确度从 50% 提升到 90%+，满足前端项目的合规需求。
+
+#### 1. 4 层防御架构
+
+| 层 | 名称 | 实现 | 拦截依据 |
+|----|------|------|----------|
+| L1 | Kill Switch | \guard.check_kill_switch\ | 紧急熔断开关 |
+| L2 | 风险词硬匹配 | \guard.check_risk_keywords\ | 205 个金融行业词 + 9 类分类 |
+| L3 | PII 脱敏 | \sanitizer.py\（未变）| 正则：手机/身份证/银行卡/邮箱 |
+| L4 | LLM Judge 语义判断 | \guard.llm_judge_check\ | JSON 分类 + 置信度阈值 |
+
+#### 2. 关键改动
+
+**① \pp/features/compliance/keywords.py\（新建）**
+- 9 大类别 × 平均 23 个词 = **205 个风险词**
+- 类别：money_laundering / insider_trading / tax_evasion / bribery /
+  privacy_leak / illegal_commitment / conflict_of_interest /
+  illegal_finance / regulatory_evasion
+- 提供 \get_all_risk_keywords()\ 兼容旧 \SANDBOX_RISK_KEYWORDS\ 字符串配置
+
+**② \pp/features/compliance/guard.py\ — 4 层防御**
+\\\python
+@dataclass(frozen=True)
+class GuardDecision:
+    allowed: bool
+    blocked_reason: str | None
+    risk_hits: list[str]
+    risk_category: str | None   # ← 新增：9 类分类
+    confidence: float           # ← 新增：0-1
+    judge_source: str           # ← 新增：rule / llm_judge
+\\\
+
+\\\python
+# LLM Judge prompt：让 LLM 当合规律师
+\\\
+
+**③ \pp/features/compliance/{schemas,service,audit}.py\ — 透传分类**
+- \SandboxChatResponse\ 加 \isk_category\, \confidence\, \judge_source\
+- \AuditPayload\ 加同样字段
+- service.py 写审计时同步记录
+- 拦截时 422 detail 也带分类
+
+**④ \lembic/versions/20261003_add_audit_risk_category.py\（新建）**
+\\\sql
+ALTER TABLE compliance_audit_logs
+  ADD COLUMN risk_category VARCHAR(32),
+  ADD COLUMN confidence FLOAT,
+  ADD COLUMN judge_source VARCHAR(16);
+CREATE INDEX idx_compliance_audit_category ON compliance_audit_logs(risk_category);
+\\\
+
+**⑤ \pp/core/config.py\ — 新配置**
+\\\python
+SANDBOX_LLM_JUDGE_ENABLED: bool = True
+SANDBOX_LLM_JUDGE_CONFIDENCE_THRESHOLD: float = 0.7
+SANDBOX_LLM_JUDGE_PROVIDER: str = ""
+SANDBOX_LLM_JUDGE_TIMEOUT_MS: int = 15000
+\\\
+
+**⑥ \.env\ — 降级策略**
+\\\env
+SANDBOX_DEGRADATION_POLICY=fallback  # 沙箱 Provider 不可用时降级到普通 LLM
+\\\
+
+#### 3. 测试结果
+
+测试脚本：\scripts/test_sandbox_accuracy.py\（34 个用例）
+
+| 维度 | 通过率 | 备注 |
+|------|--------|------|
+| 硬匹配拦截（18 例）| **100%** | 18/18 全部命中正确分类 |
+| 风险分类（9 类）| **7 类 100%** | 仅 regulatory_evasion / general 有偏差 |
+| LLM Judge 抓语义违规 | 50%（3/6）| 3 个 timeout 是 LLM 慢 |
+| PII 脱敏 | **超时挂掉** | 待 Provider 配置稳定后再跑 |
+
+**整体通过率：24/34 = 70.6%**
+
+#### 4. 已知问题与下一步
+
+1. **LLM Judge timeout**：deepseek-reasoner 太慢（9-15s/次），需改 \deepseek-chat\
+2. **Provider 503**：dev 环境 base_url 不是内网后缀，需用 \allback\ 策略
+3. **合规知识误拦**：「反洗钱是什么」会被拦 → 已加 LLM 复核机制（见 guard.py）
+4. **多轮上下文审计**：未做，列入 P1 backlog
+
+#### 5. 前端可消费的新字段
+
+\\\	ypescript
+// SandboxChatResponse 新增
+{
+  risk_category: 'money_laundering' | 'insider_trading' | ...,
+  confidence: 0.92,
+  judge_source: 'rule' | 'llm_judge'
+}
+\\\
+
+前端可基于 \isk_category\ 展示不同图标 / 文案 / 处置流程。
