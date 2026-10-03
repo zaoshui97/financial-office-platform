@@ -79,10 +79,14 @@ def get_blackboard_service() -> BlackboardService:
 
     首次创建时自动绑定 EventBus 并装默认触发链（moderator → noter → decision → dispatcher）。
     触发链只装一次：后续调用幂等。
+
+    注意：单例不持有 db session，每次写/读自开新 session。
+    并发下每个请求一个独立 connection，避免单 connection 复用冲突。
     """
     global _blackboard_singleton, _eventbus_installed, _eventbus_lock
     if _blackboard_singleton is None:
-        _blackboard_singleton = BlackboardService(SessionLocal())
+        # 不传 db → 内部 self._session() 走 SessionLocal() 每次新建
+        _blackboard_singleton = BlackboardService()
         # 安装 EventBus 默认链
         from app.features.meeting.event_bus import get_event_bus
         bus = get_event_bus()
