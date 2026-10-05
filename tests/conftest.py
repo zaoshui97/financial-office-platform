@@ -9,7 +9,16 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+from app.features.agent import models as agent_models  # noqa: F401
 from app.features.auth import models as auth_models  # noqa: F401
+from app.features.blackboard import models as blackboard_models  # noqa: F401
+from app.features.chat import models as chat_models  # noqa: F401
+from app.features.compliance import models as compliance_models  # noqa: F401
+from app.features.decision import models as decision_models  # noqa: F401
+from app.features.meeting import models as meeting_models  # noqa: F401
+from app.features.office import models as office_models  # noqa: F401
+from app.features.organization import models as organization_models  # noqa: F401
+from app.features.rag import models as rag_models  # noqa: F401
 from app.main import app
 
 

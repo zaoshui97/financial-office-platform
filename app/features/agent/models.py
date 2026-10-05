@@ -204,3 +204,259 @@ class AgentExecution(TimestampMixin, Base):
         Index("idx_execution_session_role", "session_id", "agent_role"),
         Index("idx_execution_status", "status"),
     )
+
+
+# ============================================================================
+# 多 Agent 协作域（亮点一：4 Agent 混合触发链 + 通用 Agent 配置）
+# ============================================================================
+
+from enum import StrEnum
+from typing import Any
+
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base, TimestampMixin
+
+
+# ---------- 枚举定义 ----------
+
+class AgentType(StrEnum):
+    """Agent 类型。"""
+    MEETING = "meeting"     # 会议 Agent
+    CHAT = "chat"         # 对话 Agent
+    WORKFLOW = "workflow"  # 工作流 Agent
+
+
+class TaskType(StrEnum):
+    """任务类型。"""
+    RETRIEVAL = "retrieval"   # 检索
+    ANALYSIS = "analysis"     # 分析
+    GENERATION = "generation" # 生成
+    REVIEW = "review"         # 审核
+
+
+class TaskStatus(StrEnum):
+    """任务状态。"""
+    PENDING = "pending"    # 待处理
+    RUNNING = "running"   # 运行中
+    SUCCESS = "success"  # 成功
+    FAILED = "failed"    # 失败
+
+
+class CollaborationStatus(StrEnum):
+    """协作状态。"""
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+class Scenario(StrEnum):
+    """协作场景。"""
+    MEETING = "meeting"
+    CHAT = "chat"
+    WORKFLOW = "workflow"
+
+
+# ---------- 表定义 ----------
+
+class AgentConfig(TimestampMixin, Base):
+    """Agent 配置表：定义每个 Agent 的系统提示词、模型和工具。"""
+
+    __tablename__ = "agent_configs"
+    __table_args__ = (
+        Index("idx_config_code", "agent_code", unique=True),
+        Index("idx_config_type", "agent_type"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Agent 标识
+    agent_code: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False,
+        comment="Agent 编码（唯一）",
+    )
+    agent_name: Mapped[str] = mapped_column(
+        String(100), nullable=False,
+        comment="Agent 显示名称",
+    )
+    agent_type: Mapped[str] = mapped_column(
+        String(50),
+        default=AgentType.CHAT.value,
+        comment="Agent 类型",
+    )
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        comment="Agent 功能描述",
+    )
+
+    # 核心配置
+    system_prompt: Mapped[str | None] = mapped_column(
+        Text().with_variant(LONGTEXT, "mysql"),
+        comment="系统提示词（BaseAgent 通用模板）",
+    )
+    model_name: Mapped[str | None] = mapped_column(
+        String(50),
+        comment="使用的模型名",
+    )
+    tools: Mapped[list[str] | None] = mapped_column(
+        JSON,
+        comment="可用工具列表 [tool_code1, tool_code2]",
+    )
+    capabilities: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON,
+        comment="能力定义 {input_types: [], output_types: [], constraints: {}}",
+    )
+
+    # 生命周期
+    is_active: Mapped[bool] = mapped_column(
+        default=True,
+        comment="是否启用",
+    )
+    version: Mapped[int] = mapped_column(
+        default=1,
+        comment="配置版本号",
+    )
+
+
+class AgentTask(TimestampMixin, Base):
+    """Agent 任务表：支持任务分解（父子关系）。"""
+
+    __tablename__ = "agent_tasks"
+    __table_args__ = (
+        Index("idx_task_session", "session_id"),
+        Index("idx_task_agent", "agent_id"),
+        Index("idx_task_status", "status"),
+        Index("idx_task_parent", "parent_task_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # 任务标识
+    task_no: Mapped[str] = mapped_column(
+        String(50), unique=True,
+        comment="任务编号",
+    )
+    session_id: Mapped[str | None] = mapped_column(
+        String(64),
+        comment="关联会话ID",
+    )
+
+    # 任务分解
+    parent_task_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        comment="父任务ID（支持任务树分解）",
+    )
+    agent_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        comment="Agent 配置ID",
+    )
+
+    # 任务内容
+    task_type: Mapped[str] = mapped_column(
+        String(50),
+        default=TaskType.ANALYSIS.value,
+        comment="任务类型",
+    )
+    input_data: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON,
+        comment="输入数据",
+    )
+    output_data: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON,
+        comment="输出数据",
+    )
+
+    # 执行状态
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=TaskStatus.PENDING.value,
+        comment="任务状态",
+    )
+    started_at: Mapped[str | None] = mapped_column(
+        String(19),
+        comment="开始时间",
+    )
+    finished_at: Mapped[str | None] = mapped_column(
+        String(19),
+        comment="结束时间",
+    )
+    duration_ms: Mapped[int | None] = mapped_column(
+        Integer,
+        comment="执行耗时（毫秒）",
+    )
+    error_message: Mapped[str | None] = mapped_column(
+        Text,
+        comment="错误信息",
+    )
+    retry_count: Mapped[int] = mapped_column(
+        default=0,
+        comment="重试次数",
+    )
+
+
+class AgentCollaboration(TimestampMixin, Base):
+    """Agent 协作链路表：记录多 Agent 间的消息流转和协作结果。"""
+
+    __tablename__ = "agent_collaborations"
+    __table_args__ = (
+        Index("idx_collab_scenario", "scenario", "scenario_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # 协作标识
+    collaboration_no: Mapped[str] = mapped_column(
+        String(50), unique=True,
+        comment="协作编号",
+    )
+
+    # 协作上下文
+    scenario: Mapped[str] = mapped_column(
+        String(50),
+        default=Scenario.MEETING.value,
+        comment="协作场景",
+    )
+    scenario_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        comment="场景ID（如会议ID）",
+    )
+
+    # 协作内容
+    participants: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON,
+        comment="参与的 Agent 列表 [{agent_code, agent_name, order}]",
+    )
+    message_flow: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON,
+        comment="Agent 间消息流 [{from_agent, to_agent, message, timestamp}]",
+    )
+    collaboration_result: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON,
+        comment="协作结果 {status, output, duration_ms}",
+    )
+
+    # 时间
+    started_at: Mapped[str | None] = mapped_column(
+        String(19),
+        comment="开始时间",
+    )
+    finished_at: Mapped[str | None] = mapped_column(
+        String(19),
+        comment="结束时间",
+    )
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=CollaborationStatus.PENDING.value,
+        comment="协作状态",
+    )

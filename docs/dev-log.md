@@ -20,12 +20,80 @@
 | Audit | `app/features/compliance/audit.py` | 合规审计入库（SHA-256 摘要 + 场景元数据） | ✅ v1 |
 | Sandbox Middleware | `app/core/middleware.py` | Kill-Switch HTTP 层最快拦截 | ✅ v1 |
 | Ops Manual | `docs/沙箱应急操作.md` | 运维应急操作手册 | ✅ v1 |
+| **行业资讯设计** | `docs/industry-news-design.md` | 一期规划 + 二期演进路径 | ✅ 设计完成 |
+| **三大亮点技术** | `docs/three-highlights-tech.md` | 亮点技术内容清单（答辩用） | ✅ 设计完成 |
 
 ---
 
 ## 每日提交快照
 
 <!-- AUTO:ENTRY-START -->
+
+### 2026-10-05 16:15  @assistant  [docs(presentation): v1.1 答辩包装 - 43 张表全部 API 化 + pytest 28 用例全绿 + 架构图/OpenAPI 导出]
+
+- **触及文件**: 17 个（+2200 / -180），新增 7 个
+
+#### 1. 数据库设计落地：43 张表 + 14 个新域端点
+
+- 修 3 处导入链：`app/models/__init__.py`、`alembic/env.py`、`app/api/router.py`
+- 合并 3 个 `domain_models.py` 到 `models.py`，删除冗余文件
+- 修 alembic 分支冲突（003 down_revision 002 合并双 head）
+- stamp + 手工补建 `user_sessions` 表（VARCHAR(19) 兼容 MySQL 5.7）
+- **alembic current = 20261003_008（head）** ✅
+
+#### 2. 三大新域 API 化
+
+- **机构域（多租户隔离，亮点包装）**：
+  - `app/features/organization/{schemas,service,router,__init__}.py` 新增
+  - 9 个端点：POST/GET /organizations、GET /{org_id}、POST/GET /departments、POST/GET /business-domains、POST/GET /customer-types
+- **智能办公域**：
+  - `app/features/office/{schemas,service,router,__init__}.py` 新增
+  - 5 个端点：POST/GET /office/templates、GET /templates/{id}、POST/GET /office/generated-contents
+- **决策智能域（亮点三核心）**：
+  - `app/features/decision/{schemas,service,router,__init__}.py` 新增
+  - 9 个端点：POST/GET /decision/{regulations,news,business-impact,decision-playbacks}、POST /decision-playbacks/{id}/verify
+  - **亮点三防篡改**：SHA-256 链式哈希 + 篡改检测（is_intact / is_tampered 自动置位）
+
+#### 3. pytest 测试套件（28 个用例全绿）
+
+- `tests/test_organization.py`（9 用例）
+- `tests/test_office.py`（7 用例）
+- `tests/test_decision.py`（10 用例，含亮点三防篡改端到端）
+- `tests/conftest.py` 增补 8 个 feature model import（让 SQLite 建库识别全表）
+- 5 个 LONGTEXT 字段改为 `Text().with_variant(LONGTEXT, "mysql")`（兼容 SQLite 测试 + MySQL 生产）
+- **运行结果**：`28 passed, 1 warning in 1.66s` ✅
+
+#### 4. 答辩包装资产生成器（`tools/generate_assets.py`）
+
+- `docs/assets/architecture.png` — 43 张表按 10 个域分组的架构图（matplotlib + Microsoft YaHei 中文字体）
+- `docs/assets/openapi.json` — 完整 OpenAPI 3.0 Schema 导出（评委可离线浏览）
+- `docs/assets/api-endpoints.md` — 62 个 API 端点按 11 个域分类的 Markdown 清单
+
+#### 5. 文档升级
+
+- `docs/database-design.md` 升 v1.1，顶部加"实施状态表"——把"设计 vs 实现"差异透明化
+- `docs/three-highlights-tech.md` 升 v2.1，顶部加"实现指针表"——**"你说亮点，我告诉代码在哪"**
+- 路由顺序 bug：`GET /organizations/{org_id}` 误吞 `GET /business-domains`，重写 router 把字面量路径放前
+
+#### 6. 答辩演示脚本
+
+- `tools/demo_presentation.py` —— 一键演示：亮点一（多租户隔离）+ 亮点三（防篡改篡改前后对比）+ 智能办公
+- 输出可截图：原始 verify is_intact=True → 模拟黑客篡改 outcome → 重新 verify is_intact=False，is_tampered 自动置位
+
+#### 7. 关键数字
+
+```
+总表数: 43
+API 端点: 62
+新增端点: 14
+pytest 用例: 28/28 全绿
+亮点三防篡改: 端到端跑通
+alembic_version: 20261003_008
+```
+
+---
+
+
 
 ### 2026-10-03 00:11  @fans  [feat(sandbox): add KillSwitch + exceptions + middleware + operational docs] — commit `36ae8ef`
 
@@ -253,6 +321,10 @@ Remove-Item .sandbox_killed
 - [ ] Kill Switch API 接入钉钉 / PagerDuty 自动化
 - [ ] 单测覆盖 `SandboxKillSwitchMiddleware` 端到端路径
 - [ ] 编写 pytest 套件（当前用 `scripts/_test_*.py` 临时验证）
+- [ ] **行业资讯一期**：预制数据 + LLM 摘要 + 归档到知识库（详见 `docs/industry-news-design.md`）
+- [ ] 法规变更 AI 对比（3.2）— **二期规划**，比赛路演时主动说明
+- [ ] 真实爬虫 / RSS 接入（证监会 / 央行）— 二期
+- [ ] 真实钉钉/企微集成 — 二期，NotifierService 接口 + Mock 包装先上
 
 ---
 
