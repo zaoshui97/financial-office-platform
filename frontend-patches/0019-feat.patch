@@ -1,0 +1,1761 @@
+From a8c255a40e2a7814cf4e2d37703da86fdc6cecde Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Thu, 17 Sep 2026 16:52:22 +0800
+Subject: [PATCH 19/21] =?UTF-8?q?feat:=20=E6=8E=A5=E5=85=A5=E4=BC=9A?=
+ =?UTF-8?q?=E8=AE=AE=E7=BA=AA=E8=A6=81=E6=8E=A5=E5=8F=A3?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ check_node.ps1                                |   8 +
+ docs/delivery/feature-list.md                 |  35 +-
+ restart_vite.bat                              |   3 +
+ src/components/Layout/Topbar.tsx              |   2 +-
+ src/components/Sandbox/SandboxRunner.tsx      |  16 +-
+ src/hooks/useGlobalSearch.ts                  |   4 +-
+ src/hooks/useKeyboardShortcuts.ts             |   2 +-
+ src/i18n/locales/en-US.json                   |  89 ++
+ src/i18n/locales/zh-CN.json                   |  89 ++
+ src/pages/AgentHub/index.tsx                  |   1 -
+ src/pages/Approval/index.tsx                  | 805 +++++++++---------
+ .../components/AIWorkbench/index.tsx          |   4 +-
+ src/pages/Dashboard/index.tsx                 |   4 +-
+ src/pages/LaunchPad/index.tsx                 |   4 +-
+ src/pages/Memory/index.tsx                    |   5 +-
+ src/store/approvalDraftStore.ts               |   4 +-
+ start_vite.ps1                                |  14 +
+ 17 files changed, 642 insertions(+), 447 deletions(-)
+ create mode 100644 check_node.ps1
+ create mode 100644 restart_vite.bat
+ create mode 100644 start_vite.ps1
+
+diff --git a/check_node.ps1 b/check_node.ps1
+new file mode 100644
+index 0000000..9c92fa6
+--- /dev/null
++++ b/check_node.ps1
+@@ -0,0 +1,8 @@
++$ErrorActionPreference = 'SilentlyContinue'
++$proc = Get-Process -Name 'node' -ErrorAction SilentlyContinue
++if ($proc) {
++    Write-Host "Node processes found:"
++    $proc | ForEach-Object { Write-Host "PID: $($_.Id) $($_.Path)" }
++} else {
++    Write-Host "No node process found"
++}
+diff --git a/docs/delivery/feature-list.md b/docs/delivery/feature-list.md
+index 1a19c48..5246507 100644
+--- a/docs/delivery/feature-list.md
++++ b/docs/delivery/feature-list.md
+@@ -20,16 +20,16 @@
+ 
+ ## 二、AI 智能中心（AgentHub · 整合入口）
+ 
+-> 旧 `/chat` `/qa` `/agent` `/memory` 已统一收敛到 `/agent-hub?tab=xxx`，侧边栏只暴露 1 个入口。路由从 19 条收敛到 12 条。
++> 亮点 3。`/chat` `/qa` `/agent` `/memory` 已统一收敛到 `/agent-hub?tab=xxx`，侧边栏只暴露 1 个入口。路由从 19 条收敛到 12 条。
+ 
+ | 功能点 | 价值说明 |
+ | --- | --- |
+-| **路由融合** | `/chat` `/qa` `/agent` `/memory` 全部重定向到 `/agent-hub?tab=xxx`；旧路径 404 自动跳转，浏览器前进/后退/分享链接都能命中具体 Tab |
+-| Chat Tab（消息中心） | 聚合即时沟通、通知、协作，对接通讯录模块；快捷操作（分析合同 / 生成纪要 / 复制模板）+ 4 个建议问题引导对话 |
+-| QA Tab（AI 智能助手） | 多会话管理 + 文件附件拖拽 + Markdown / 代码高亮渲染，已留出 DeepSeek 接入位置；⚠️ 中英混杂待清理 |
+-| Agent Tab（多 Agent 调度中心） | 可视化监控 4 个 Agent 协作（主持人 / 记录员 / 决策 / 派单）+ 任务列表 + 执行日志 + 步骤详情；后端真多 Agent 上线时只需换 WebSocket；⚠️ 5 张卡片布局待修 |
+-| Memory Tab（长会话记忆管理） | 会话压缩率统计、跨场景上下文持久化、合规归档导出；i18n 规范 |
+-| Plugin（独立 `/plugins`） | MCP / Skill 接入展示（占位实现），路由与文件名 Plugin/ 不一致待统一 |
++| **路由融合 + 统一入口** | 4 个独立路由 → 1 个 `/agent-hub?tab=xxx`；旧路径 404 自动跳转，前进/后退/分享链接均命中具体 Tab |
++| **Chat Tab（通用对话）** | 气泡式多轮对话 + 快捷操作（分析合同/生成纪要/复制模板）+ 4 个建议问题引导 + 重新生成/点赞/点踩/复制反馈机制 |
++| **QA Tab（智能问答）** | 多会话管理 + 文件附件拖拽上传 + Markdown/代码高亮渲染；合规 / 会议纪要 / 文档理解 3 类场景模板；DeepSeek 接入位已预留（换 key 即可） |
++| **Agent Tab（多 Agent 调度中心）** | 可视化监控 4 个 Agent（主持人/记录员/决策/派单）协作状态 + 任务列表 + 执行日志 + 步骤详情；后端多 Agent 上线时**前端代码 0 改动**，只需替换 WebSocket |
++| **Memory Tab（长会话记忆）** | 会话压缩率统计 + 跨场景上下文持久化 + 合规归档导出；批量置顶/归档/导出；压缩日志与审计日志支持模板插值 |
++| **Tab URL 双向同步** | `?tab=xxx` 既能从 URL 读（刷新不丢 Tab），也能从 Tab 操作写回 URL，方便分享深链 |
+ 
+ ---
+ 
+@@ -49,13 +49,16 @@
+ 
+ ## 四、智能审批助手（Approval）
+ 
++> 亮点 4。Sandbox 合规检测 → AI 预审 → 审批通过全链路，数据不过第三方。
++
+ | 功能点 | 价值说明 |
+ | --- | --- |
+-| 4 大统计卡 + 标签筛选 | 待审批 / 已通过 / 已驳回 / 进行中 + "超时"徽标 |
+-| Sandbox 草稿联动 | 在沙箱做完合规检测 → 一键"提交审批"，自动将 SandboxResult 注入审批草稿 |
+-| AI 预审结果 | 卡片内嵌"AI 预审"标签 + 风险提示 / 建议（来自 Sandbox） |
+-| 7 类审批场景 | 报销 / 合同 / 用印 / 发文 / 出差 / 采购 / 预算，图标 + 类型 Tag 区分 |
+-| 通过 / 驳回 / 催办 / 详情 | 4 类审批动作 + 时间线审批记录 |
++| **Sandbox → Approval 联动** | 在沙箱做完合规检测 → 一键"提交审批"，自动将 `SandboxResult`（评分/命中规则/改写建议）注入审批草稿，审批人直接看到 AI 预审结论 |
++| **AI 预审结论嵌入卡片** | 每张审批卡片内嵌"AI 预审"标签，显示风险等级（优秀/良好/一般/较差/不合格）+ 命中规则数 + Top 风险提示，审批人 3 秒判断要不要点开 |
++| **7 类审批场景 + 图标区分** | 报销 / 合同 / 用印 / 发文 / 出差 / 采购 / 预算，图标 + 类型 Tag 一眼区分；各场景独立颜色编码 |
++| **4 大统计卡 + 超时告警** | 待审批 / 已通过 / 已驳回 / 进行中 + 超时徽标（橙色）；标签筛选快速定位；超时自动变红 |
++| **审批时间线** | 每张审批详情展示完整审批链（提交/预审/逐级审批/结果）+ 驳回理由；可追溯 |
++| **通过 / 驳回 / 催办 / 详情** | 4 类审批动作；驳回时强制填写理由；催办触发通知推送；详情页含 AI 预审完整报告 |
+ 
+ ---
+ 
+@@ -155,10 +158,10 @@
+ 1. **开场（30s）**：金融办公痛点 + "AI + 合规"双轮驱动
+ 2. **Demo 章节**：
+    - ① 工作台（效率可视化）
+-   - ② AI 智能中心（问答 + Agent 调度）
+-   - ③ 会议协同（4 Agent 实时 + 会后报告）
+-   - ④ 合规沙箱（重头戏：47 规则 + 法规引用 + 高亮改写）
+-   - ⑤ 智能审批（Sandbox → Approval 联动）
++   - ② **亮点 3：AI 智能中心**（问答 + Agent 调度 + 记忆管理）
++   - ③ 亮点 1：会议协同（4 Agent 实时 + 会后报告）
++   - ④ 亮点 2：合规沙箱（重头戏：47 规则 + 法规引用 + 高亮改写）
++   - ⑤ **亮点 4：智能审批**（Sandbox → Approval 联动 + AI 预审）
+    - ⑥ 研报 / 知识库（AI 自动生成）
+ 3. **技术亮点章节**：AI 集成、合规引擎、可视化、国际化、快捷键
+ 4. **结尾（30s）**：上线计划 + 后续规划
+diff --git a/restart_vite.bat b/restart_vite.bat
+new file mode 100644
+index 0000000..2be8a52
+--- /dev/null
++++ b/restart_vite.bat
+@@ -0,0 +1,3 @@
++@echo off
++cd /d C:\Users\fjlyh\Desktop\数字马力\digital-horse
++npm run dev
+diff --git a/src/components/Layout/Topbar.tsx b/src/components/Layout/Topbar.tsx
+index ab30669..651ed65 100644
+--- a/src/components/Layout/Topbar.tsx
++++ b/src/components/Layout/Topbar.tsx
+@@ -132,7 +132,7 @@ const Topbar: React.FC<TopbarProps> = ({ onAiAssistantClick, onAgentPanelClick }
+         {/* AI助手快捷入口 */}
+         <Tooltip title={t('topbar.aiAssistantTip')}>
+           <div
+-            onClick={onAiAssistantClick || (() => navigate('/qa'))}
++            onClick={onAiAssistantClick || (() => navigate('/agent-hub?tab=chat'))}
+             style={{
+               display: 'flex',
+               alignItems: 'center',
+diff --git a/src/components/Sandbox/SandboxRunner.tsx b/src/components/Sandbox/SandboxRunner.tsx
+index e7c6fce..a6f716f 100644
+--- a/src/components/Sandbox/SandboxRunner.tsx
++++ b/src/components/Sandbox/SandboxRunner.tsx
+@@ -692,18 +692,18 @@ export const SandboxRunner: React.FC<SandboxRunnerProps> = ({
+           <Form.Item
+             name="approvalType"
+             label={'审批类型'}
+-            initialValue="合同"
++            initialValue="contract"
+             rules={[{ required: true }]}
+           >
+             <Select
+               options={[
+-                { value: '合同', label: '合同' },
+-                { value: '发文', label: '发文' },
+-                { value: '报销', label: '报销' },
+-                { value: '采购', label: '采购' },
+-                { value: '出差', label: '出差' },
+-                { value: '预算', label: '预算' },
+-                { value: '用印', label: '用印' },
++                { value: 'contract', label: t('approval.type.contract') },
++                { value: 'document', label: t('approval.type.document') },
++                { value: 'reimbursement', label: t('approval.type.reimbursement') },
++                { value: 'procurement', label: t('approval.type.procurement') },
++                { value: 'travel', label: t('approval.type.travel') },
++                { value: 'budget', label: t('approval.type.budget') },
++                { value: 'seal', label: t('approval.type.seal') },
+               ]}
+             />
+           </Form.Item>
+diff --git a/src/hooks/useGlobalSearch.ts b/src/hooks/useGlobalSearch.ts
+index 9e9c9cf..e9784b4 100644
+--- a/src/hooks/useGlobalSearch.ts
++++ b/src/hooks/useGlobalSearch.ts
+@@ -73,7 +73,7 @@ const mockData: SearchResult[] = [
+     title: '预算申请的流程是什么？',
+     description: 'AI 回答：预算申请需要经过部门负责人审批...',
+     timestamp: '昨天',
+-    url: '/qa',
++    url: '/agent-hub?tab=qa',
+   },
+   {
+     id: 'q2',
+@@ -81,7 +81,7 @@ const mockData: SearchResult[] = [
+     title: '如何申请年假？',
+     description: 'AI 回答：员工累计工作已满1年不满10年的...',
+     timestamp: '3天前',
+-    url: '/qa',
++    url: '/agent-hub?tab=qa',
+   },
+   {
+     id: 't1',
+diff --git a/src/hooks/useKeyboardShortcuts.ts b/src/hooks/useKeyboardShortcuts.ts
+index 87f2e2a..c64d58b 100644
+--- a/src/hooks/useKeyboardShortcuts.ts
++++ b/src/hooks/useKeyboardShortcuts.ts
+@@ -51,7 +51,7 @@ export function useKeyboardShortcuts() {
+     {
+       key: 'g q',
+       description: 'goQA',
+-      action: () => navigate('/qa'),
++      action: () => navigate('/agent-hub?tab=qa'),
+       scope: 'global',
+     },
+     {
+diff --git a/src/i18n/locales/en-US.json b/src/i18n/locales/en-US.json
+index 9459d9a..247e97f 100644
+--- a/src/i18n/locales/en-US.json
++++ b/src/i18n/locales/en-US.json
+@@ -104,6 +104,95 @@
+     "mergeTipsTitle": "💡 AI Hub Integration Notes",
+     "mergeTipsDesc": "Consolidating the four separate pages (Assistant / Q&A / Multi-Agent / Memory) into one entry point. Tab switching is instant; deep linking is supported via the tab URL parameter."
+   },
++  "approval": {
++    "title": "Approval Center",
++    "aiPrecheck": "AI Pre-check",
++    "searchPlaceholder": "Search approvals...",
++    "refresh": "Refresh",
++    "refreshed": "Refreshed",
++    "noData": "No approval records found",
++    "stats": {
++      "pending": "Pending",
++      "approved": "Approved",
++      "rejected": "Rejected",
++      "inProgress": "In Progress",
++      "overdue": "Overdue"
++    },
++    "priority": {
++      "urgent": "Urgent",
++      "high": "High",
++      "normal": "Normal",
++      "low": "Low",
++      "label": "{{level}} Priority"
++    },
++    "type": {
++      "reimbursement": "Reimbursement",
++      "contract": "Contract",
++      "seal": "Seal Use",
++      "document": "Document",
++      "travel": "Travel",
++      "procurement": "Procurement",
++      "budget": "Budget"
++    },
++    "sandbox": {
++      "passed": "Compliant",
++      "risk": "Risk Found",
++      "blocked": "Blocking Violation",
++      "score": "Compliance Score",
++      "riskCount": "{{n}} risk(s)",
++      "ruleHit": "{{n}} rule(s) triggered",
++      "blockedWarning": "⚠️ Contains blocking violations — modify before submitting",
++      "viewDetail": "View Detail",
++      "confirmSubmit": "Submit",
++      "ignore": "Ignore",
++      "confirmTitle": "Confirm Submission?",
++      "confirmContent": "Submit this compliance report as a formal approval?",
++      "confirmBlockedContent": "Blocking violations detected — confirm submission?",
++      "submitted": "Approval submitted"
++    },
++    "detail": {
++      "title": "Approval Detail",
++      "basicInfo": "Basic Info",
++      "applicant": "Applicant",
++      "department": "Department",
++      "amount": "Amount",
++      "submittedAt": "Submitted",
++      "dueDate": "Due Date",
++      "currentApprover": "Current Approver",
++      "description": "Description",
++      "aiPrecheck": "AI Smart Pre-check",
++      "riskWarning": "Risk Warning",
++      "suggestion": "Suggestion",
++      "approvalRecord": "Approval History",
++      "comment": "Comment",
++      "process": "Process",
++      "step": "Step {{current}}/{{total}}"
++    },
++    "action": {
++      "approve": "Approve",
++      "reject": "Reject",
++      "urge": "Urge",
++      "view": "Detail",
++      "cancel": "Cancel",
++      "approved": "Approved",
++      "rejected": "Rejected",
++      "urgeLoading": "Sending reminder...",
++      "urgeSuccess": "Reminder sent to approvers"
++    },
++    "rejectModal": {
++      "title": "Confirm Rejection",
++      "content": "Confirm rejection? The applicant will be notified."
++    },
++    "approveModal": {
++      "title": "Confirm Approval",
++      "commentPlaceholder": "Enter approval comment (optional)"
++    },
++    "attachments": "Attachments",
++    "aiCheckPassed": "AI pre-check passed — no compliance risks",
++    "aiCheckWarning": "AI pre-check found {{n}} risk(s)",
++    "overdueTag": "Overdue",
++    "attachmentsTitle": "Attachments:"
++  },
+   "plugin": {
+     "title": "Plugin Market",
+     "subtitle": "MCP/Skill integration to extend platform capabilities",
+diff --git a/src/i18n/locales/zh-CN.json b/src/i18n/locales/zh-CN.json
+index 98a523c..d1a9bc3 100644
+--- a/src/i18n/locales/zh-CN.json
++++ b/src/i18n/locales/zh-CN.json
+@@ -104,6 +104,95 @@
+     "mergeTipsTitle": "💡 AI 智能中心整合说明",
+     "mergeTipsDesc": "将原本分散的「智能助手」「知识问答」「多 Agent 调度」「记忆管理」4 个页面合并为一个入口。Tab 切换无刷新，深链可达（URL 包含 tab 参数）。"
+   },
++  "approval": {
++    "title": "审批助手",
++    "aiPrecheck": "智能预审",
++    "searchPlaceholder": "搜索审批单...",
++    "refresh": "刷新",
++    "refreshed": "已刷新",
++    "noData": "暂无相关审批单",
++    "stats": {
++      "pending": "待审批",
++      "approved": "已通过",
++      "rejected": "已驳回",
++      "inProgress": "进行中",
++      "overdue": "超时"
++    },
++    "priority": {
++      "urgent": "紧急",
++      "high": "高",
++      "normal": "普通",
++      "low": "低",
++      "label": "{{level}}优先级"
++    },
++    "type": {
++      "reimbursement": "报销",
++      "contract": "合同",
++      "seal": "用印",
++      "document": "发文",
++      "travel": "出差",
++      "procurement": "采购",
++      "budget": "预算"
++    },
++    "sandbox": {
++      "passed": "合规通过",
++      "risk": "存在风险",
++      "blocked": "阻断级违规",
++      "score": "合规评分",
++      "riskCount": "{{n}} 项风险",
++      "ruleHit": "命中 {{n}} 条规则",
++      "blockedWarning": "⚠️ 含阻断级违规，建议修改后再提交审批",
++      "viewDetail": "查看详情",
++      "confirmSubmit": "确认提交",
++      "ignore": "忽略",
++      "confirmTitle": "确认提交审批？",
++      "confirmContent": "确认将此合规检测报告提交为正式审批？",
++      "confirmBlockedContent": "检测到阻断级违规，确认要提交吗？",
++      "submitted": "已提交审批"
++    },
++    "detail": {
++      "title": "审批详情",
++      "basicInfo": "基本信息",
++      "applicant": "申请人",
++      "department": "部门",
++      "amount": "金额",
++      "submittedAt": "提交时间",
++      "dueDate": "截止时间",
++      "currentApprover": "当前审批人",
++      "description": "申请说明",
++      "aiPrecheck": "AI 智能预审",
++      "riskWarning": "风险提示",
++      "suggestion": "建议",
++      "approvalRecord": "审批记录",
++      "comment": "备注",
++      "process": "流程",
++      "step": "第 {{current}}/{{total}} 步"
++    },
++    "action": {
++      "approve": "通过",
++      "reject": "驳回",
++      "urge": "催办",
++      "view": "详情",
++      "cancel": "取消",
++      "approved": "审批已通过",
++      "rejected": "审批已驳回",
++      "urgeLoading": "正在发送催办通知...",
++      "urgeSuccess": "催办通知已发送至相关审批人"
++    },
++    "rejectModal": {
++      "title": "确认驳回",
++      "content": "请确认要驳回此审批，驳回后申请人将收到通知。"
++    },
++    "approveModal": {
++      "title": "确认通过",
++      "commentPlaceholder": "请输入审批意见（选填）"
++    },
++    "attachments": "附件",
++    "aiCheckPassed": "AI 预审通过，无合规风险",
++    "aiCheckWarning": "AI 预审发现 {{n}} 项风险",
++    "overdueTag": "已超时",
++    "attachmentsTitle": "附件："
++  },
+   "plugin": {
+     "title": "插件能力市场",
+     "subtitle": "MCP/Skill能力接入，扩展平台AI能力边界",
+diff --git a/src/pages/AgentHub/index.tsx b/src/pages/AgentHub/index.tsx
+index 2e04111..c9d2666 100644
+--- a/src/pages/AgentHub/index.tsx
++++ b/src/pages/AgentHub/index.tsx
+@@ -103,7 +103,6 @@ const AgentHub: React.FC = () => {
+         <Space size={6}>
+           <RobotOutlined />
+           <span>{t('agentHub.tabAgent')}</span>
+-          <Badge count={3} size="small" offset={[8, -2]} style={{ backgroundColor: '#722ED1' }} />
+         </Space>
+       ),
+       component: <AgentCenter />,
+diff --git a/src/pages/Approval/index.tsx b/src/pages/Approval/index.tsx
+index 0da0883..bf6b922 100644
+--- a/src/pages/Approval/index.tsx
++++ b/src/pages/Approval/index.tsx
+@@ -19,6 +19,7 @@ import {
+   Timeline,
+   Tooltip,
+   Alert,
++  List,
+ } from 'antd';
+ import {
+   CheckCircleOutlined,
+@@ -39,19 +40,22 @@ import {
+   RobotOutlined,
+   ReloadOutlined,
+   ThunderboltOutlined,
++  PaperClipOutlined,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
+ import { useApprovalDraftStore, type ApprovalDraft } from '@/store/approvalDraftStore';
++import { useNotificationStore } from '@/store/notificationStore';
+ 
+ const { Title, Text, Paragraph } = Typography;
+ 
+ type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'in_progress';
+ type ApprovalPriority = 'urgent' | 'high' | 'normal' | 'low';
++type ApprovalType = 'reimbursement' | 'contract' | 'seal' | 'document' | 'travel' | 'procurement' | 'budget';
+ 
+ interface ApprovalItem {
+   id: string;
+   title: string;
+-  type: '报销' | '合同' | '用印' | '发文' | '出差' | '采购' | '预算';
++  type: ApprovalType;
+   applicant: string;
+   applicantAvatar?: string;
+   department: string;
+@@ -78,10 +82,218 @@ interface ApprovalItem {
+   }>;
+ }
+ 
++// 类型枚举 → 图标映射
++const TYPE_META: Record<ApprovalType, { color: string; icon: React.ReactNode }> = {
++  reimbursement: { color: '#fa8c16', icon: <DollarOutlined style={{ color: '#fa8c16' }} /> },
++  contract: { color: '#0F2B5B', icon: <FileTextOutlined style={{ color: '#0F2B5B' }} /> },
++  seal: { color: '#22A775', icon: <SafetyCertificateOutlined style={{ color: '#22A775' }} /> },
++  document: { color: '#1890ff', icon: <AuditOutlined style={{ color: '#1890ff' }} /> },
++  travel: { color: '#C9A459', icon: <RocketOutlined style={{ color: '#C9A459' }} /> },
++  procurement: { color: '#722ED1', icon: <DollarOutlined style={{ color: '#722ED1' }} /> },
++  budget: { color: '#13C2C2', icon: <DollarOutlined style={{ color: '#13C2C2' }} /> },
++};
++
++// Mock 数据（类型改为英文枚举）
++const MOCK_APPROVALS: ApprovalItem[] = [
++  {
++    id: '1',
++    title: '2024 Q4 差旅费报销',
++    type: 'reimbursement',
++    applicant: '张三',
++    department: '技术部',
++    amount: 12580,
++    submittedAt: '2026-09-08 09:23',
++    dueDate: '2026-09-10',
++    status: 'pending',
++    priority: 'urgent',
++    description:
++      '客户拜访差旅费报销，包含北京-上海往返机票、住宿3晚、餐饮、市内交通。票据齐全，已扫描上传。',
++    attachments: ['机票.pdf', '酒店发票.pdf', '出租车票.zip'],
++    currentApprover: '我',
++    step: 2,
++    totalSteps: 3,
++    aiPrecheck: {
++      passed: false,
++      warnings: ['餐饮费用超出标准 280 元', '出租车票中有 3 张连号，需核实'],
++      suggestions: [
++        '建议扣除超标部分，最终金额 12300 元',
++        '已核对住宿标准符合差旅政策',
++      ],
++    },
++    history: [
++      { operator: '张三', action: '提交申请', time: '2026-09-08 09:23' },
++      { operator: '李四', action: '部门主管初审通过', comment: '票据齐全，情况属实', time: '2026-09-08 14:15' },
++    ],
++  },
++  {
++    id: '2',
++    title: '某某基金销售合同 V2.1',
++    type: 'contract',
++    applicant: '王五',
++    department: '合规部',
++    submittedAt: '2026-09-07 16:42',
++    dueDate: '2026-09-09',
++    status: 'pending',
++    priority: 'urgent',
++    description:
++      '与某某基金签订的销售合作协议 V2.1 版本，相比 V2.0 调整了分成比例（从 30% 提升至 35%）和结算周期（从月结改为季结）。',
++    attachments: ['销售合同V2.1.docx', '对比说明.docx'],
++    currentApprover: '我',
++    step: 3,
++    totalSteps: 4,
++    aiPrecheck: {
++      passed: false,
++      warnings: [
++        '分成比例从 30% 提升至 35%，超出同类合同平均水平',
++        '结算周期延长可能增加回款风险',
++      ],
++      suggestions: [
++        '建议法务部门对分成条款进行专项审查',
++        '建议附加回款保障条款',
++      ],
++    },
++    history: [
++      { operator: '王五', action: '提交申请', time: '2026-09-07 16:42' },
++      { operator: '李四', action: '部门主管审核', time: '2026-09-08 10:30' },
++      { operator: '赵六', action: '法务初审', comment: '合同条款已审核，技术上合规', time: '2026-09-08 15:20' },
++    ],
++  },
++  {
++    id: '3',
++    title: '2026 年第三季度预算调整',
++    type: 'budget',
++    applicant: '李四',
++    department: '财务部',
++    amount: 580000,
++    submittedAt: '2026-09-06 11:15',
++    dueDate: '2026-09-12',
++    status: 'in_progress',
++    priority: 'high',
++    description:
++      'Q3 预算调整申请：因新产品上线，市场推广费用超预算 58 万，建议从研发备用金中调拨。',
++    currentApprover: 'CFO',
++    step: 1,
++    totalSteps: 3,
++    aiPrecheck: {
++      passed: true,
++      warnings: [],
++      suggestions: [
++        '调拨金额在备用金范围内（30%）',
++        '已通过财务系统自动校验',
++      ],
++    },
++    history: [
++      { operator: '李四', action: '提交申请', time: '2026-09-06 11:15' },
++    ],
++  },
++  {
++    id: '4',
++    title: '研发设备采购申请 - 显卡服务器',
++    type: 'procurement',
++    applicant: '赵六',
++    department: '技术部',
++    amount: 230000,
++    submittedAt: '2026-09-05 14:30',
++    dueDate: '2026-09-08',
++    status: 'rejected',
++    priority: 'normal',
++    description:
++      '采购 2 台 NVIDIA A100 显卡服务器，用于大模型训练。已比价 3 家供应商，建议采购某品牌。',
++    currentApprover: 'CEO',
++    step: 1,
++    totalSteps: 3,
++    aiPrecheck: {
++      passed: false,
++      warnings: [
++        '单笔采购超过 20 万，建议拆分或走招标流程',
++        '供应商选择缺少完整评估报告',
++      ],
++      suggestions: [
++        '建议补全供应商评估报告',
++        '建议拆分采购订单以符合内控要求',
++      ],
++    },
++    history: [
++      { operator: '赵六', action: '提交申请', time: '2026-09-05 14:30' },
++      { operator: '我', action: '已驳回', comment: '请补充供应商评估报告，并拆分采购订单', time: '2026-09-07 10:15' },
++    ],
++  },
++  {
++    id: '5',
++    title: '上海客户拜访出差申请',
++    type: 'travel',
++    applicant: '钱七',
++    department: '销售部',
++    submittedAt: '2026-09-08 08:00',
++    dueDate: '2026-09-11',
++    status: 'pending',
++    priority: 'normal',
++    description:
++      '拜访上海某某基金客户，沟通 Q4 合作方案。出差时间 9 月 11 日至 9 月 13 日，共 3 天。',
++    currentApprover: '销售总监',
++    step: 1,
++    totalSteps: 2,
++    aiPrecheck: {
++      passed: true,
++      warnings: [],
++      suggestions: ['出差标准符合公司政策', '建议提前预定机票可享折扣'],
++    },
++    history: [
++      { operator: '钱七', action: '提交申请', time: '2026-09-08 08:00' },
++    ],
++  },
++  {
++    id: '6',
++    title: '新产品发布会宣传物料用印',
++    type: 'seal',
++    applicant: '孙八',
++    department: '市场部',
++    submittedAt: '2026-09-07 17:30',
++    dueDate: '2026-09-10',
++    status: 'approved',
++    priority: 'high',
++    description:
++      '新产品发布会宣传物料需加盖公司公章：海报 50 张、宣传册 200 本、邀请函 100 份。',
++    currentApprover: '已完成',
++    step: 3,
++    totalSteps: 3,
++    history: [
++      { operator: '孙八', action: '提交申请', time: '2026-09-07 17:30' },
++      { operator: '市场总监', action: '审核通过', time: '2026-09-08 09:15' },
++      { operator: '我', action: '已通过', comment: '同意', time: '2026-09-08 16:20' },
++    ],
++  },
++  {
++    id: '7',
++    title: '内部通知发文：关于 2026 国庆放假安排',
++    type: 'document',
++    applicant: '行政部',
++    department: '行政部',
++    submittedAt: '2026-09-08 10:00',
++    dueDate: '2026-09-15',
++    status: 'pending',
++    priority: 'low',
++    description:
++      '根据国家法定节假日规定，结合公司实际情况，制定 2026 年国庆放假安排。',
++    currentApprover: 'CEO',
++    step: 1,
++    totalSteps: 2,
++    aiPrecheck: {
++      passed: true,
++      warnings: [],
++      suggestions: ['内容格式符合公司发文规范', '已与去年放假安排对比一致'],
++    },
++    history: [
++      { operator: '行政部', action: '提交申请', time: '2026-09-08 10:00' },
++    ],
++  },
++];
++
+ const Approval: React.FC = () => {
+   const { t } = useTranslation();
+   const { message, modal } = App.useApp();
+   const { consumeDraft } = useApprovalDraftStore();
++  const { addNotification } = useNotificationStore();
+   const [selectedTab, setSelectedTab] = useState<string>('pending');
+   const [searchKeyword, setSearchKeyword] = useState('');
+   const [detailItem, setDetailItem] = useState<ApprovalItem | null>(null);
+@@ -125,37 +337,56 @@ const Approval: React.FC = () => {
+     return list;
+   }, [approvalList, selectedTab, searchKeyword]);
+ 
++  // 通过（带备注输入）
+   const handleApprove = (id: string) => {
+-    setApprovalList((prev) =>
+-      prev.map((item) =>
+-        item.id === id
+-          ? {
+-              ...item,
+-              status: 'approved' as ApprovalStatus,
+-              history: [
+-                ...item.history,
+-                {
+-                  operator: '我',
+-                  action: '已通过',
+-                  comment: '同意',
+-                  time: new Date().toLocaleString('zh-CN'),
+-                },
+-              ],
+-            }
+-          : item
+-      )
+-    );
+-    message.success('审批已通过');
+-    setDetailItem(null);
++    modal.confirm({
++      title: t('approval.approveModal.title'),
++      icon: <CheckCircleOutlined style={{ color: '#22A775' }} />,
++      content: (
++        <Input.TextArea
++          id="approval-comment-input"
++          placeholder={t('approval.approveModal.commentPlaceholder')}
++          rows={2}
++          style={{ marginTop: 12 }}
++        />
++      ),
++      okText: t('approval.action.approve'),
++      cancelText: t('approval.action.cancel'),
++      onOk: () => {
++        const comment = (document.getElementById('approval-comment-input') as HTMLTextAreaElement)?.value || t('approval.approveModal.commentPlaceholder');
++        setApprovalList((prev) =>
++          prev.map((item) =>
++            item.id === id
++              ? {
++                  ...item,
++                  status: 'approved' as ApprovalStatus,
++                  history: [
++                    ...item.history,
++                    {
++                      operator: t('approval.detail.applicant'),
++                      action: t('approval.action.approved') || '已通过',
++                      comment,
++                      time: new Date().toLocaleString(),
++                    },
++                  ],
++                }
++              : item
++          )
++        );
++        message.success(t('approval.action.approved'));
++        setDetailItem(null);
++      },
++    });
+   };
+ 
++  // 驳回
+   const handleReject = (id: string) => {
+     modal.confirm({
+-      title: '确认驳回',
+-      content: '请确认要驳回此审批，驳回后申请人将收到通知。',
+-      okText: '确认驳回',
++      title: t('approval.rejectModal.title'),
++      content: t('approval.rejectModal.content'),
++      okText: t('approval.action.reject'),
+       okType: 'danger',
+-      cancelText: '取消',
++      cancelText: t('approval.action.cancel'),
+       onOk: () => {
+         setApprovalList((prev) =>
+           prev.map((item) =>
+@@ -166,55 +397,61 @@ const Approval: React.FC = () => {
+                   history: [
+                     ...item.history,
+                     {
+-                      operator: '我',
+-                      action: '已驳回',
+-                      comment: '需要补充材料',
+-                      time: new Date().toLocaleString('zh-CN'),
++                      operator: t('approval.detail.applicant'),
++                      action: t('approval.action.rejected') || '已驳回',
++                      comment: '',
++                      time: new Date().toLocaleString(),
+                     },
+                   ],
+                 }
+               : item
+           )
+         );
+-        message.info('审批已驳回');
++        message.info(t('approval.action.rejected'));
+         setDetailItem(null);
+       },
+     });
+   };
+ 
++  // 催办（接入通知中心）
+   const handleUrge = (id: string) => {
+-    message.loading({ content: '正在发送催办通知...', duration: 1.5 });
++    const item = approvalList.find((i) => i.id === id);
++    message.loading({ content: t('approval.action.urgeLoading'), duration: 1.5 });
+     setTimeout(() => {
+-      message.success('催办通知已发送至相关审批人');
++      if (item) {
++        addNotification({
++          type: 'urgent',
++          title: t('approval.action.urge'),
++          content: `审批「${item.title}」催办通知已发送`,
++          timestamp: new Date().toISOString(),
++        });
++      }
++      message.success(t('approval.action.urgeSuccess'));
+     }, 1500);
+   };
+ 
+-  const getPriorityColor = (priority: ApprovalPriority) => {
+-    const map = {
+-      urgent: { color: '#D64045', text: '紧急', bg: 'rgba(214, 64, 69, 0.1)' },
+-      high: { color: '#fa8c16', text: '高', bg: 'rgba(250, 140, 22, 0.1)' },
+-      normal: { color: '#1890ff', text: '普通', bg: 'rgba(24, 144, 255, 0.1)' },
+-      low: { color: '#999', text: '低', bg: 'rgba(153, 153, 153, 0.1)' },
+-    };
+-    return map[priority];
+-  };
+-
+-  const getTypeIcon = (type: ApprovalItem['type']) => {
+-    const map: Record<ApprovalItem['type'], React.ReactNode> = {
+-      报销: <DollarOutlined style={{ color: '#fa8c16' }} />,
+-      合同: <FileTextOutlined style={{ color: '#0F2B5B' }} />,
+-      用印: <SafetyCertificateOutlined style={{ color: '#22A775' }} />,
+-      发文: <AuditOutlined style={{ color: '#1890ff' }} />,
+-      出差: <RocketOutlined style={{ color: '#C9A459' }} />,
+-      采购: <DollarOutlined style={{ color: '#722ED1' }} />,
+-      预算: <DollarOutlined style={{ color: '#13C2C2' }} />,
++  const getPriorityMeta = (priority: ApprovalPriority) => {
++    return {
++      color:
++        priority === 'urgent'
++          ? '#D64045'
++          : priority === 'high'
++          ? '#fa8c16'
++          : priority === 'normal'
++          ? '#1890ff'
++          : '#999',
++      bg:
++        priority === 'urgent'
++          ? 'rgba(214, 64, 69, 0.1)'
++          : priority === 'high'
++          ? 'rgba(250, 140, 22, 0.1)'
++          : priority === 'normal'
++          ? 'rgba(24, 144, 255, 0.1)'
++          : 'rgba(153, 153, 153, 0.1)',
+     };
+-    return map[type];
+   };
+ 
+-  const isOverdue = (dueDate: string) => {
+-    return new Date(dueDate) < new Date();
+-  };
++  const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
+ 
+   return (
+     <div style={{ padding: 24 }}>
+@@ -226,7 +463,7 @@ const Approval: React.FC = () => {
+               title={
+                 <Space>
+                   <ClockCircleOutlined style={{ color: '#fa8c16' }} />
+-                  待审批
++                  {t('approval.stats.pending')}
+                 </Space>
+               }
+               value={stats.pending}
+@@ -234,7 +471,7 @@ const Approval: React.FC = () => {
+               suffix={
+                 stats.overdue > 0 && (
+                   <Tag color="error" style={{ marginLeft: 8 }}>
+-                    {stats.overdue} 超时
++                    {stats.overdue} {t('approval.stats.overdue')}
+                   </Tag>
+                 )
+               }
+@@ -247,7 +484,7 @@ const Approval: React.FC = () => {
+               title={
+                 <Space>
+                   <CheckCircleOutlined style={{ color: '#22A775' }} />
+-                  已通过
++                  {t('approval.stats.approved')}
+                 </Space>
+               }
+               value={stats.approved}
+@@ -261,7 +498,7 @@ const Approval: React.FC = () => {
+               title={
+                 <Space>
+                   <ExclamationCircleOutlined style={{ color: '#D64045' }} />
+-                  已驳回
++                  {t('approval.stats.rejected')}
+                 </Space>
+               }
+               value={stats.rejected}
+@@ -275,7 +512,7 @@ const Approval: React.FC = () => {
+               title={
+                 <Space>
+                   <BellOutlined style={{ color: '#1890ff' }} />
+-                  进行中
++                  {t('approval.stats.inProgress')}
+                 </Space>
+               }
+               value={stats.inProgress}
+@@ -308,7 +545,7 @@ const Approval: React.FC = () => {
+                   <Text strong style={{ fontSize: 15 }}>
+                     {sandboxDraft.title}
+                   </Text>
+-                  <Tag color="blue">{sandboxDraft.approvalType}</Tag>
++                  <Tag color="blue">{t(`approval.type.${sandboxDraft.approvalType}`)}</Tag>
+                   <Tag
+                     color={
+                       sandboxDraft.sandboxResult.blocked
+@@ -320,19 +557,19 @@ const Approval: React.FC = () => {
+                     icon={<RobotOutlined />}
+                   >
+                     {sandboxDraft.sandboxResult.blocked
+-                      ? '阻断级违规'
++                      ? t('approval.sandbox.blocked')
+                       : sandboxDraft.sandboxResult.passed
+-                      ? '合规通过'
+-                      : '存在风险'}
++                      ? t('approval.sandbox.passed')
++                      : t('approval.sandbox.risk')}
+                   </Tag>
+                 </Space>
+                 <Text type="secondary" style={{ fontSize: 12 }}>
+-                  合规评分 {sandboxDraft.sandboxResult.score.toFixed(1)}/5 &nbsp;·&nbsp;
+-                  {sandboxDraft.sandboxResult.issues.length} 项风险 &nbsp;·&nbsp;
+-                  命中 {sandboxDraft.sandboxResult.totalHits} 条规则
++                  {t('approval.sandbox.score')} {sandboxDraft.sandboxResult.score.toFixed(1)}/5 &nbsp;·&nbsp;
++                  {t('approval.sandbox.riskCount', { n: sandboxDraft.sandboxResult.issues.length })} &nbsp;·&nbsp;
++                  {t('approval.sandbox.ruleHit', { n: sandboxDraft.sandboxResult.totalHits })}
+                   {sandboxDraft.sandboxResult.blocked && (
+                     <Text strong style={{ color: '#DC2626', marginLeft: 8 }}>
+-                      ⚠️ 含阻断级违规，建议修改后再提交审批
++                      {t('approval.sandbox.blockedWarning')}
+                     </Text>
+                   )}
+                 </Text>
+@@ -347,14 +584,14 @@ const Approval: React.FC = () => {
+                     id: sandboxDraft.id,
+                     title: sandboxDraft.title,
+                     type: sandboxDraft.approvalType,
+-                    applicant: '我',
+-                    department: '当前用户',
+-                    submittedAt: new Date(sandboxDraft.createdAt).toLocaleString('zh-CN'),
+-                    dueDate: new Date(Date.now() + 3 * 86400000).toLocaleDateString('zh-CN'),
++                    applicant: t('approval.detail.applicant'),
++                    department: t('approval.detail.department'),
++                    submittedAt: new Date(sandboxDraft.createdAt).toLocaleString(),
++                    dueDate: new Date(Date.now() + 3 * 86400000).toLocaleDateString(),
+                     status: 'pending',
+                     priority: r.blocked ? 'urgent' : r.passed ? 'normal' : 'high',
+                     description: sandboxDraft.text.slice(0, 200) + (sandboxDraft.text.length > 200 ? '…' : ''),
+-                    currentApprover: '待提交',
++                    currentApprover: t('approval.detail.currentApprover'),
+                     step: 1,
+                     totalSteps: 2,
+                     aiPrecheck: {
+@@ -363,44 +600,40 @@ const Approval: React.FC = () => {
+                       suggestions: r.issues.slice(0, 3).map((i) => i.suggestion),
+                     },
+                     history: [
+-                      {
+-                        operator: '系统',
+-                        action: '合规检测完成',
+-                        time: new Date(sandboxDraft.createdAt).toLocaleString('zh-CN'),
+-                      },
++                      { operator: t('approval.detail.applicant'), action: t('approval.sandbox.passed'), time: new Date(sandboxDraft.createdAt).toLocaleString() },
+                     ],
+                   });
+                   setSandboxDraft(null);
+                 }}
+               >
+-                查看详情
++                {t('approval.sandbox.viewDetail')}
+               </Button>
+               <Button
+                 size="small"
+                 style={{ marginLeft: 8 }}
+                 onClick={() => {
+                   Modal.confirm({
+-                    title: '确认提交审批？',
++                    title: t('approval.sandbox.confirmTitle'),
+                     content: sandboxDraft.sandboxResult.blocked
+-                      ? '检测到阻断级违规，确认要提交吗？'
+-                      : '确认将此合规检测报告提交为正式审批？',
+-                    okText: '确认提交',
+-                    cancelText: '取消',
++                      ? t('approval.sandbox.confirmBlockedContent')
++                      : t('approval.sandbox.confirmContent'),
++                    okText: t('approval.sandbox.confirmSubmit'),
++                    cancelText: t('approval.action.cancel'),
+                     onOk: () => {
+-                      message.success('已提交审批');
++                      message.success(t('approval.sandbox.submitted'));
+                       setSandboxDraft(null);
+                     },
+                   });
+                 }}
+               >
+-                确认提交
++                {t('approval.sandbox.confirmSubmit')}
+               </Button>
+               <Button
+                 size="small"
+                 style={{ marginLeft: 8 }}
+                 onClick={() => setSandboxDraft(null)}
+               >
+-                忽略
++                {t('approval.sandbox.ignore')}
+               </Button>
+             </Col>
+           </Row>
+@@ -412,78 +645,66 @@ const Approval: React.FC = () => {
+         title={
+           <Space>
+             <AuditOutlined style={{ color: '#0F2B5B' }} />
+-            <span>审批助手</span>
+-            <Tag color="blue">智能预审</Tag>
++            <span>{t('approval.title')}</span>
++            <Tag color="blue">{t('approval.aiPrecheck')}</Tag>
+           </Space>
+         }
+         extra={
+           <Space>
+             <Input
+-              placeholder="搜索审批单..."
++              placeholder={t('approval.searchPlaceholder')}
+               prefix={<SearchOutlined />}
+               value={searchKeyword}
+               onChange={(e) => setSearchKeyword(e.target.value)}
+               allowClear
+               style={{ width: 200 }}
+             />
+-            <Button icon={<ReloadOutlined />} onClick={() => message.success('已刷新')}>
+-              刷新
++            <Button
++              icon={<ReloadOutlined />}
++              onClick={() => message.success(t('approval.refreshed'))}
++            >
++              {t('approval.refresh')}
+             </Button>
+           </Space>
+         }
+       >
+         <Tabs
+-          selectedKey={selectedTab}
++          activeKey={selectedTab}
+           onChange={setSelectedTab}
+           items={[
+             {
+               key: 'pending',
+               label: (
+                 <span>
+-                  待审批
++                  {t('approval.stats.pending')}
+                   {stats.pending > 0 && (
+-                    <Badge
+-                      count={stats.pending}
+-                      style={{ marginLeft: 8 }}
+-                      offset={[4, -2]}
+-                    />
++                    <Badge count={stats.pending} style={{ marginLeft: 8 }} offset={[4, -2]} />
+                   )}
+                 </span>
+               ),
+             },
+-            {
+-              key: 'in_progress',
+-              label: '进行中',
+-            },
+-            {
+-              key: 'approved',
+-              label: '已通过',
+-            },
+-            {
+-              key: 'rejected',
+-              label: '已驳回',
+-            },
+-            {
+-              key: 'all',
+-              label: '全部',
+-            },
++            { key: 'in_progress', label: t('approval.stats.inProgress') },
++            { key: 'approved', label: t('approval.stats.approved') },
++            { key: 'rejected', label: t('approval.stats.rejected') },
++            { key: 'all', label: '全部' },
+           ]}
+         />
+ 
+         {filteredList.length === 0 ? (
+-          <Empty description="暂无相关审批单" style={{ padding: 40 }} />
++          <Empty description={t('approval.noData')} style={{ padding: 40 }} />
+         ) : (
+           <div>
+             {filteredList.map((item) => {
+-              const priority = getPriorityColor(item.priority);
++              const pMeta = getPriorityMeta(item.priority);
+               const overdue = isOverdue(item.dueDate);
++              const typeMeta = TYPE_META[item.type];
+               return (
+                 <Card
+                   key={item.id}
+                   size="small"
+                   style={{
+                     marginBottom: 12,
+-                    borderLeft: `4px solid ${priority.color}`,
++                    borderLeft: `4px solid ${pMeta.color}`,
+                     background: item.status === 'pending' ? '#FAFBFC' : 'white',
+                   }}
+                   hoverable
+@@ -493,11 +714,11 @@ const Approval: React.FC = () => {
+                       <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+                         {/* 标题行 */}
+                         <Space>
+-                          {getTypeIcon(item.type)}
++                          {typeMeta.icon}
+                           <Text strong style={{ fontSize: 15 }}>
+                             {item.title}
+                           </Text>
+-                          <Tag color="default">{item.type}</Tag>
++                          <Tag color="default">{t(`approval.type.${item.type}`)}</Tag>
+                           <Tag
+                             color={
+                               item.priority === 'urgent'
+@@ -507,26 +728,26 @@ const Approval: React.FC = () => {
+                                 : 'default'
+                             }
+                           >
+-                            {priority.text}优先级
++                            {t('approval.priority.label', { level: t(`approval.priority.${item.priority}`) })}
+                           </Tag>
+                           {overdue && item.status === 'pending' && (
+                             <Tag color="error" icon={<ExclamationCircleOutlined />}>
+-                              已超时
++                              {t('approval.overdueTag')}
+                             </Tag>
+                           )}
+                           {item.aiPrecheck && (
+                             <Tooltip
+                               title={
+                                 item.aiPrecheck.passed
+-                                  ? 'AI 预审通过，无合规风险'
+-                                  : `AI 预审发现 ${item.aiPrecheck.warnings.length} 项风险`
++                                  ? t('approval.aiCheckPassed')
++                                  : t('approval.aiCheckWarning', { n: item.aiPrecheck.warnings.length })
+                               }
+                             >
+                               <Tag
+                                 color={item.aiPrecheck.passed ? 'success' : 'warning'}
+                                 icon={<RobotOutlined />}
+                               >
+-                                AI 预审
++                                {t('approval.aiPrecheck')}
+                               </Tag>
+                             </Tooltip>
+                           )}
+@@ -543,7 +764,7 @@ const Approval: React.FC = () => {
+                           {item.amount && (
+                             <>
+                               <Text type="secondary">·</Text>
+-                              <Text type="secondary">金额：</Text>
++                              <Text type="secondary">{t('approval.detail.amount')}：</Text>
+                               <Text strong style={{ color: '#D64045' }}>
+                                 ¥{item.amount.toLocaleString()}
+                               </Text>
+@@ -554,16 +775,16 @@ const Approval: React.FC = () => {
+                         {/* 时间信息 */}
+                         <Space size="large">
+                           <Text type="secondary" style={{ fontSize: 12 }}>
+-                            <CalendarOutlined /> 提交于 {item.submittedAt}
++                            <CalendarOutlined /> {t('approval.detail.submittedAt')} {item.submittedAt}
+                           </Text>
+                           <Text
+                             type={overdue && item.status === 'pending' ? 'danger' : 'secondary'}
+                             style={{ fontSize: 12 }}
+                           >
+-                            <ClockCircleOutlined /> 截止 {item.dueDate}
++                            <ClockCircleOutlined /> {t('approval.detail.dueDate')} {item.dueDate}
+                           </Text>
+                           <Text type="secondary" style={{ fontSize: 12 }}>
+-                            流程：第 {item.step}/{item.totalSteps} 步
++                            {t('approval.detail.process')}：{t('approval.detail.step', { current: item.step, total: item.totalSteps })}
+                           </Text>
+                         </Space>
+                       </Space>
+@@ -579,20 +800,20 @@ const Approval: React.FC = () => {
+                               icon={<CheckCircleOutlined />}
+                               onClick={() => handleApprove(item.id)}
+                             >
+-                              通过
++                              {t('approval.action.approve')}
+                             </Button>
+                             <Button
+                               danger
+                               icon={<CloseCircleOutlined />}
+                               onClick={() => handleReject(item.id)}
+                             >
+-                              驳回
++                              {t('approval.action.reject')}
+                             </Button>
+                             <Button
+                               icon={<BellOutlined />}
+                               onClick={() => handleUrge(item.id)}
+                             >
+-                              催办
++                              {t('approval.action.urge')}
+                             </Button>
+                           </>
+                         )}
+@@ -600,7 +821,7 @@ const Approval: React.FC = () => {
+                           icon={<EyeOutlined />}
+                           onClick={() => setDetailItem(item)}
+                         >
+-                          详情
++                          {t('approval.action.view')}
+                         </Button>
+                       </Space>
+                     </Col>
+@@ -614,7 +835,7 @@ const Approval: React.FC = () => {
+ 
+       {/* 详情弹窗 */}
+       <Modal
+-        title="审批详情"
++        title={t('approval.detail.title')}
+         open={!!detailItem}
+         onCancel={() => setDetailItem(null)}
+         footer={null}
+@@ -624,7 +845,7 @@ const Approval: React.FC = () => {
+           <div>
+             <Title level={4}>{detailItem.title}</Title>
+             <Space style={{ marginBottom: 16 }}>
+-              <Tag color="default">{detailItem.type}</Tag>
++              <Tag color="default">{t(`approval.type.${detailItem.type}`)}</Tag>
+               <Tag
+                 color={
+                   detailItem.priority === 'urgent'
+@@ -634,46 +855,68 @@ const Approval: React.FC = () => {
+                     : 'default'
+                 }
+               >
+-                {getPriorityColor(detailItem.priority).text}优先级
++                {t('approval.priority.label', { level: t(`approval.priority.${detailItem.priority}`) })}
+               </Tag>
+             </Space>
+ 
+             <Divider orientation="left" style={{ fontSize: 14 }}>
+-              基本信息
++              {t('approval.detail.basicInfo')}
+             </Divider>
+             <Row gutter={[16, 12]}>
+               <Col span={12}>
+-                <Text type="secondary">申请人：</Text>
++                <Text type="secondary">{t('approval.detail.applicant')}：</Text>
+                 <Text strong>{detailItem.applicant}</Text>
+               </Col>
+               <Col span={12}>
+-                <Text type="secondary">部门：</Text>
++                <Text type="secondary">{t('approval.detail.department')}：</Text>
+                 <Text>{detailItem.department}</Text>
+               </Col>
+               {detailItem.amount && (
+                 <Col span={12}>
+-                  <Text type="secondary">金额：</Text>
++                  <Text type="secondary">{t('approval.detail.amount')}：</Text>
+                   <Text strong style={{ color: '#D64045', fontSize: 16 }}>
+                     ¥{detailItem.amount.toLocaleString()}
+                   </Text>
+                 </Col>
+               )}
+               <Col span={12}>
+-                <Text type="secondary">提交时间：</Text>
++                <Text type="secondary">{t('approval.detail.submittedAt')}：</Text>
+                 <Text>{detailItem.submittedAt}</Text>
+               </Col>
+               <Col span={12}>
+-                <Text type="secondary">截止时间：</Text>
++                <Text type="secondary">{t('approval.detail.dueDate')}：</Text>
+                 <Text>{detailItem.dueDate}</Text>
+               </Col>
+               <Col span={12}>
+-                <Text type="secondary">当前审批人：</Text>
++                <Text type="secondary">{t('approval.detail.currentApprover')}：</Text>
+                 <Text strong>{detailItem.currentApprover}</Text>
+               </Col>
+             </Row>
+ 
++            {/* 附件列表 */}
++            {detailItem.attachments && detailItem.attachments.length > 0 && (
++              <>
++                <Divider orientation="left" style={{ fontSize: 14 }}>
++                  {t('approval.attachments')}
++                </Divider>
++                <List
++                  size="small"
++                  bordered
++                  dataSource={detailItem.attachments}
++                  renderItem={(file) => (
++                    <List.Item style={{ padding: '4px 12px' }}>
++                      <Space>
++                        <PaperClipOutlined />
++                        <Text>{file}</Text>
++                      </Space>
++                    </List.Item>
++                  )}
++                />
++              </>
++            )}
++
+             <Divider orientation="left" style={{ fontSize: 14 }}>
+-              申请说明
++              {t('approval.detail.description')}
+             </Divider>
+             <Paragraph>{detailItem.description}</Paragraph>
+ 
+@@ -682,7 +925,7 @@ const Approval: React.FC = () => {
+                 <Divider orientation="left" style={{ fontSize: 14 }}>
+                   <Space>
+                     <RobotOutlined style={{ color: '#1890ff' }} />
+-                    AI 智能预审
++                    {t('approval.detail.aiPrecheck')}
+                   </Space>
+                 </Divider>
+                 <Card
+@@ -697,7 +940,7 @@ const Approval: React.FC = () => {
+                   {detailItem.aiPrecheck.warnings.length > 0 && (
+                     <div style={{ marginBottom: 12 }}>
+                       <Text strong style={{ color: '#fa8c16' }}>
+-                        <ExclamationCircleOutlined /> 风险提示：
++                        <ExclamationCircleOutlined /> {t('approval.detail.riskWarning')}：
+                       </Text>
+                       <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                         {detailItem.aiPrecheck.warnings.map((w, i) => (
+@@ -709,7 +952,7 @@ const Approval: React.FC = () => {
+                   {detailItem.aiPrecheck.suggestions.length > 0 && (
+                     <div>
+                       <Text strong style={{ color: '#22A775' }}>
+-                        <CheckCircleOutlined /> 建议：
++                        <CheckCircleOutlined /> {t('approval.detail.suggestion')}：
+                       </Text>
+                       <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                         {detailItem.aiPrecheck.suggestions.map((s, i) => (
+@@ -723,14 +966,14 @@ const Approval: React.FC = () => {
+             )}
+ 
+             <Divider orientation="left" style={{ fontSize: 14 }}>
+-              审批记录
++              {t('approval.detail.approvalRecord')}
+             </Divider>
+             <Timeline
+               items={detailItem.history.map((h) => ({
+                 color:
+-                  h.action.includes('通过') || h.action.includes('同意')
++                  h.action.includes('通过') || h.action.includes('同意') || h.action.toLowerCase().includes('approved')
+                     ? 'green'
+-                    : h.action.includes('驳回') || h.action.includes('拒绝')
++                    : h.action.includes('驳回') || h.action.includes('拒绝') || h.action.toLowerCase().includes('rejected')
+                     ? 'red'
+                     : 'blue',
+                 children: (
+@@ -741,7 +984,7 @@ const Approval: React.FC = () => {
+                     </Space>
+                     {h.comment && (
+                       <div>
+-                        <Text type="secondary">备注：{h.comment}</Text>
++                        <Text type="secondary">{t('approval.detail.comment')}：{h.comment}</Text>
+                       </div>
+                     )}
+                     <div>
+@@ -758,20 +1001,20 @@ const Approval: React.FC = () => {
+               <>
+                 <Divider />
+                 <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+-                  <Button onClick={() => setDetailItem(null)}>取消</Button>
++                  <Button onClick={() => setDetailItem(null)}>{t('approval.action.cancel')}</Button>
+                   <Button
+                     danger
+                     icon={<CloseCircleOutlined />}
+                     onClick={() => handleReject(detailItem.id)}
+                   >
+-                    驳回
++                    {t('approval.action.reject')}
+                   </Button>
+                   <Button
+                     type="primary"
+                     icon={<CheckCircleOutlined />}
+                     onClick={() => handleApprove(detailItem.id)}
+                   >
+-                    通过
++                    {t('approval.action.approve')}
+                   </Button>
+                 </Space>
+               </>
+@@ -783,256 +1026,4 @@ const Approval: React.FC = () => {
+   );
+ };
+ 
+-// Mock 数据
+-const MOCK_APPROVALS: ApprovalItem[] = [
+-  {
+-    id: '1',
+-    title: '2024 Q4 差旅费报销',
+-    type: '报销',
+-    applicant: '张三',
+-    department: '技术部',
+-    amount: 12580,
+-    submittedAt: '2026-09-08 09:23',
+-    dueDate: '2026-09-10',
+-    status: 'pending',
+-    priority: 'urgent',
+-    description:
+-      '客户拜访差旅费报销，包含北京-上海往返机票、住宿3晚、餐饮、市内交通。票据齐全，已扫描上传。',
+-    attachments: ['机票.pdf', '酒店发票.pdf', '出租车票.zip'],
+-    currentApprover: '我',
+-    step: 2,
+-    totalSteps: 3,
+-    aiPrecheck: {
+-      passed: false,
+-      warnings: ['餐饮费用超出标准 280 元', '出租车票中有 3 张连号，需核实'],
+-      suggestions: [
+-        '建议扣除超标部分，最终金额 12300 元',
+-        '已核对住宿标准符合差旅政策',
+-      ],
+-    },
+-    history: [
+-      {
+-        operator: '张三',
+-        action: '提交申请',
+-        time: '2026-09-08 09:23',
+-      },
+-      {
+-        operator: '李四',
+-        action: '部门主管初审通过',
+-        comment: '票据齐全，情况属实',
+-        time: '2026-09-08 14:15',
+-      },
+-    ],
+-  },
+-  {
+-    id: '2',
+-    title: '某某基金销售合同 V2.1',
+-    type: '合同',
+-    applicant: '王五',
+-    department: '合规部',
+-    submittedAt: '2026-09-07 16:42',
+-    dueDate: '2026-09-09',
+-    status: 'pending',
+-    priority: 'urgent',
+-    description:
+-      '与某某基金签订的销售合作协议 V2.1 版本，相比 V2.0 调整了分成比例（从 30% 提升至 35%）和结算周期（从月结改为季结）。',
+-    attachments: ['销售合同V2.1.docx', '对比说明.docx'],
+-    currentApprover: '我',
+-    step: 3,
+-    totalSteps: 4,
+-    aiPrecheck: {
+-      passed: false,
+-      warnings: [
+-        '分成比例从 30% 提升至 35%，超出同类合同平均水平',
+-        '结算周期延长可能增加回款风险',
+-      ],
+-      suggestions: [
+-        '建议法务部门对分成条款进行专项审查',
+-        '建议附加回款保障条款',
+-      ],
+-    },
+-    history: [
+-      {
+-        operator: '王五',
+-        action: '提交申请',
+-        time: '2026-09-07 16:42',
+-      },
+-      {
+-        operator: '李四',
+-        action: '部门主管审核',
+-        time: '2026-09-08 10:30',
+-      },
+-      {
+-        operator: '赵六',
+-        action: '法务初审',
+-        comment: '合同条款已审核，技术上合规',
+-        time: '2026-09-08 15:20',
+-      },
+-    ],
+-  },
+-  {
+-    id: '3',
+-    title: '2026 年第三季度预算调整',
+-    type: '预算',
+-    applicant: '李四',
+-    department: '财务部',
+-    amount: 580000,
+-    submittedAt: '2026-09-06 11:15',
+-    dueDate: '2026-09-12',
+-    status: 'in_progress',
+-    priority: 'high',
+-    description:
+-      'Q3 预算调整申请：因新产品上线，市场推广费用超预算 58 万，建议从研发备用金中调拨。',
+-    currentApprover: 'CFO',
+-    step: 1,
+-    totalSteps: 3,
+-    aiPrecheck: {
+-      passed: true,
+-      warnings: [],
+-      suggestions: [
+-        '调拨金额在备用金范围内（30%）',
+-        '已通过财务系统自动校验',
+-      ],
+-    },
+-    history: [
+-      {
+-        operator: '李四',
+-        action: '提交申请',
+-        time: '2026-09-06 11:15',
+-      },
+-    ],
+-  },
+-  {
+-    id: '4',
+-    title: '研发设备采购申请 - 显卡服务器',
+-    type: '采购',
+-    applicant: '赵六',
+-    department: '技术部',
+-    amount: 230000,
+-    submittedAt: '2026-09-05 14:30',
+-    dueDate: '2026-09-08',
+-    status: 'rejected',
+-    priority: 'normal',
+-    description:
+-      '采购 2 台 NVIDIA A100 显卡服务器，用于大模型训练。已比价 3 家供应商，建议采购某品牌。',
+-    currentApprover: 'CEO',
+-    step: 1,
+-    totalSteps: 3,
+-    aiPrecheck: {
+-      passed: false,
+-      warnings: [
+-        '单笔采购超过 20 万，建议拆分或走招标流程',
+-        '供应商选择缺少完整评估报告',
+-      ],
+-      suggestions: [
+-        '建议补全供应商评估报告',
+-        '建议拆分采购订单以符合内控要求',
+-      ],
+-    },
+-    history: [
+-      {
+-        operator: '赵六',
+-        action: '提交申请',
+-        time: '2026-09-05 14:30',
+-      },
+-      {
+-        operator: '我',
+-        action: '已驳回',
+-        comment: '请补充供应商评估报告，并拆分采购订单',
+-        time: '2026-09-07 10:15',
+-      },
+-    ],
+-  },
+-  {
+-    id: '5',
+-    title: '上海客户拜访出差申请',
+-    type: '出差',
+-    applicant: '钱七',
+-    department: '销售部',
+-    submittedAt: '2026-09-08 08:00',
+-    dueDate: '2026-09-11',
+-    status: 'pending',
+-    priority: 'normal',
+-    description:
+-      '拜访上海某某基金客户，沟通 Q4 合作方案。出差时间 9 月 11 日至 9 月 13 日，共 3 天。',
+-    currentApprover: '销售总监',
+-    step: 1,
+-    totalSteps: 2,
+-    aiPrecheck: {
+-      passed: true,
+-      warnings: [],
+-      suggestions: ['出差标准符合公司政策', '建议提前预定机票可享折扣'],
+-    },
+-    history: [
+-      {
+-        operator: '钱七',
+-        action: '提交申请',
+-        time: '2026-09-08 08:00',
+-      },
+-    ],
+-  },
+-  {
+-    id: '6',
+-    title: '新产品发布会宣传物料用印',
+-    type: '用印',
+-    applicant: '孙八',
+-    department: '市场部',
+-    submittedAt: '2026-09-07 17:30',
+-    dueDate: '2026-09-10',
+-    status: 'approved',
+-    priority: 'high',
+-    description:
+-      '新产品发布会宣传物料需加盖公司公章：海报 50 张、宣传册 200 本、邀请函 100 份。',
+-    currentApprover: '已完成',
+-    step: 3,
+-    totalSteps: 3,
+-    history: [
+-      {
+-        operator: '孙八',
+-        action: '提交申请',
+-        time: '2026-09-07 17:30',
+-      },
+-      {
+-        operator: '市场总监',
+-        action: '审核通过',
+-        time: '2026-09-08 09:15',
+-      },
+-      {
+-        operator: '我',
+-        action: '已通过',
+-        comment: '同意',
+-        time: '2026-09-08 16:20',
+-      },
+-    ],
+-  },
+-  {
+-    id: '7',
+-    title: '内部通知发文：关于 2026 国庆放假安排',
+-    type: '发文',
+-    applicant: '行政部',
+-    department: '行政部',
+-    submittedAt: '2026-09-08 10:00',
+-    dueDate: '2026-09-15',
+-    status: 'pending',
+-    priority: 'low',
+-    description:
+-      '根据国家法定节假日规定，结合公司实际情况，制定 2026 年国庆放假安排。',
+-    currentApprover: 'CEO',
+-    step: 1,
+-    totalSteps: 2,
+-    aiPrecheck: {
+-      passed: true,
+-      warnings: [],
+-      suggestions: ['内容格式符合公司发文规范', '已与去年放假安排对比一致'],
+-    },
+-    history: [
+-      {
+-        operator: '行政部',
+-        action: '提交申请',
+-        time: '2026-09-08 10:00',
+-      },
+-    ],
+-  },
+-];
+-
+ export default Approval;
+diff --git a/src/pages/Dashboard/components/AIWorkbench/index.tsx b/src/pages/Dashboard/components/AIWorkbench/index.tsx
+index f46acbe..3d9c81b 100644
+--- a/src/pages/Dashboard/components/AIWorkbench/index.tsx
++++ b/src/pages/Dashboard/components/AIWorkbench/index.tsx
+@@ -193,7 +193,7 @@ const AIWorkbench: React.FC<AIWorkbenchProps> = ({
+           <Button
+             size="small"
+             icon={<RobotOutlined />}
+-            onClick={() => navigate('/qa')}
++            onClick={() => navigate('/agent-hub?tab=qa')}
+           >
+             {t('aiWorkbench.askAI')}
+           </Button>
+@@ -208,7 +208,7 @@ const AIWorkbench: React.FC<AIWorkbenchProps> = ({
+             size="small"
+             type="link"
+             icon={<ArrowRightOutlined />}
+-            onClick={() => navigate('/agent')}
++            onClick={() => navigate('/agent-hub?tab=agent')}
+           >
+             {t('aiWorkbench.moreFeatures')}
+           </Button>
+diff --git a/src/pages/Dashboard/index.tsx b/src/pages/Dashboard/index.tsx
+index 7e75e5a..425e199 100644
+--- a/src/pages/Dashboard/index.tsx
++++ b/src/pages/Dashboard/index.tsx
+@@ -96,7 +96,7 @@ const Dashboard: React.FC = () => {
+           </Col>
+           <Col span={8} style={{ textAlign: 'right' }}>
+             <Space>
+-              <Button icon={<RobotOutlined />} onClick={() => navigate('/qa')}>
++              <Button icon={<RobotOutlined />} onClick={() => navigate('/agent-hub?tab=chat')}>
+                 {t('dashboard.aiAssistant')}
+               </Button>
+               <Button type="primary" icon={<CalendarOutlined />} onClick={() => navigate('/meeting')}>
+@@ -189,7 +189,7 @@ const Dashboard: React.FC = () => {
+           >
+             <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+               <div
+-                onClick={() => navigate('/qa')}
++                onClick={() => navigate('/agent-hub?tab=chat')}
+                 style={{
+                   padding: 16,
+                   background: 'rgba(15,43,91,0.04)',
+diff --git a/src/pages/LaunchPad/index.tsx b/src/pages/LaunchPad/index.tsx
+index 9bb3c00..e599b0a 100644
+--- a/src/pages/LaunchPad/index.tsx
++++ b/src/pages/LaunchPad/index.tsx
+@@ -52,7 +52,7 @@ const LaunchPad: React.FC = () => {
+       title: t('nav.qa'),
+       icon: <MessageOutlined />,
+       color: '#722ed1',
+-      path: '/qa',
++      path: '/agent-hub?tab=qa',
+       description: t('menu.qaDesc') || '智能问答助手',
+     },
+     {
+@@ -76,7 +76,7 @@ const LaunchPad: React.FC = () => {
+       title: t('menu.chat'),
+       icon: <TeamOutlined />,
+       color: '#13c2c2',
+-      path: '/chat',
++      path: '/agent-hub?tab=chat',
+       description: t('menu.chatDesc') || '团队协作聊天',
+     },
+     {
+diff --git a/src/pages/Memory/index.tsx b/src/pages/Memory/index.tsx
+index 38fc5f4..6a5fcda 100644
+--- a/src/pages/Memory/index.tsx
++++ b/src/pages/Memory/index.tsx
+@@ -228,8 +228,7 @@ const MemoryManage: React.FC = () => {
+       onOk: () => {
+         message.success(t('memory.continueRestored'));
+         setTimeout(() => {
+-          window.location.hash = `#/qa?session=${record.id}`;
+-          navigate('/qa');
++          navigate(`/agent-hub?tab=qa&session=${record.id}`);
+         }, 800);
+       },
+     });
+@@ -630,7 +629,7 @@ const MemoryManage: React.FC = () => {
+                 description={t('memory.empty') || '暂无 AI 会话记忆记录，前往【AI 智能助手】发起对话自动生成会话存档'}
+                 style={{ padding: '40px 0' }}
+               >
+-                <Button type="primary" onClick={() => navigate('/qa')}>
++                <Button type="primary" onClick={() => navigate('/agent-hub?tab=qa')}>
+                   {t('memory.goChat') || '立即前往 AI 智能助手'}
+                 </Button>
+               </Empty>
+diff --git a/src/store/approvalDraftStore.ts b/src/store/approvalDraftStore.ts
+index b12859f..a0420f8 100644
+--- a/src/store/approvalDraftStore.ts
++++ b/src/store/approvalDraftStore.ts
+@@ -16,8 +16,8 @@ export interface ApprovalDraft {
+   /** Sandbox 检测结果 */
+   sandboxResult: SandboxResult;
+   createdAt: string;
+-  /** 审批类型 */
+-  approvalType: '合同' | '发文' | '报销' | '采购' | '出差' | '预算' | '用印';
++  /** 审批类型（英文枚举） */
++  approvalType: 'contract' | 'document' | 'reimbursement' | 'procurement' | 'travel' | 'budget' | 'seal';
+ }
+ 
+ interface ApprovalDraftState {
+diff --git a/start_vite.ps1 b/start_vite.ps1
+new file mode 100644
+index 0000000..909c1cb
+--- /dev/null
++++ b/start_vite.ps1
+@@ -0,0 +1,14 @@
++$ErrorActionPreference = 'Continue'
++$workDir = 'C:\Users\fjlyh\Desktop\数字马力\digital-horse'
++$env:NODE_ENV = 'development'
++
++$pinfo = New-Object System.Diagnostics.ProcessStartInfo
++$pinfo.FileName = 'cmd.exe'
++$pinfo.Arguments = '/c npm run dev'
++$pinfo.WorkingDirectory = $workDir
++$pinfo.UseShellExecute = $true
++$pinfo.WindowStyle = 'Normal'
++$pinfo.EnvironmentVariables['NODE_ENV'] = 'development'
++
++$process = [System.Diagnostics.Process]::Start($pinfo)
++Write-Host "Started vite with PID: $($process.Id)"
+-- 
+2.53.0.windows.2
+

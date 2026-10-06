@@ -1,0 +1,115 @@
+From a6d8fd3fb89831d3844da8bd54da00dbfea6c983 Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Tue, 15 Sep 2026 11:39:43 +0800
+Subject: [PATCH 11/21] =?UTF-8?q?fix:=20=E4=BF=AE=E5=A4=8D=20MeetingRoom?=
+ =?UTF-8?q?=20=E6=A8=A1=E5=9D=97=E7=BA=A7=20getMockTranscripts/getMockAIMe?=
+ =?UTF-8?q?ssages=20=E5=BC=95=E7=94=A8=E6=9C=AA=E5=AE=9A=E4=B9=89=20t?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+模块顶层 mock 函数使用了 useTranslation() 返回的 t 函数，
+但 hook 只能在组件内部调用，导致 ReferenceError: t is not defined。
+
+修复：改用模块级 i18n.t 调用。
+
+复现路径：/meeting?tab=room&id=1（之前整合路由后被暴露）
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ src/pages/Meeting/MeetingRoom.tsx | 74 ++++++++++++++++---------------
+ 1 file changed, 39 insertions(+), 35 deletions(-)
+
+diff --git a/src/pages/Meeting/MeetingRoom.tsx b/src/pages/Meeting/MeetingRoom.tsx
+index a4dbb9a..31ba548 100644
+--- a/src/pages/Meeting/MeetingRoom.tsx
++++ b/src/pages/Meeting/MeetingRoom.tsx
+@@ -144,46 +144,50 @@ const buildOtherParticipantsFromContacts = (
+   }));
+ };
+ 
+-const getMockTranscripts = (isZh: boolean, hostName: string): TranscriptItem[] => [
+-  {
+-    id: 1,
+-    speaker: hostName || (t('meeting.host')),
+-    speakerId: 'current-user',
+-    content: t('auto.65'),
+-    time: '14:00:01',
+-    type: 'transcript',
+-  },
+-  {
+-    id: 2,
+-    speaker: t('auto.22'),
+-    speakerId: 'user-002',
+-    content: t('auto.64'),
+-    time: '14:00:25',
+-    type: 'transcript',
+-  },
+-  {
+-    id: 3,
+-    speaker: t('auto.21'),
+-    speakerId: 'user-003',
+-    content: t('auto.63'),
+-    time: '14:01:15',
+-    type: 'transcript',
+-  },
+-  {
+-    id: 4,
+-    speaker: hostName || (t('meeting.host')),
+-    speakerId: 'current-user',
+-    content: t('auto.62'),
+-    time: '14:01:30',
+-    type: 'transcript',
+-  },
+-];
++const getMockTranscripts = (isZh: boolean, hostName: string): TranscriptItem[] => {
++  // 模块级不能使用 hook 的 t，改用 i18n.t
++  const tKey = (key: string) => i18n.t(key);
++  return [
++    {
++      id: 1,
++      speaker: hostName || (tKey('meeting.host')),
++      speakerId: 'current-user',
++      content: tKey('auto.65'),
++      time: '14:00:01',
++      type: 'transcript',
++    },
++    {
++      id: 2,
++      speaker: tKey('auto.22'),
++      speakerId: 'user-002',
++      content: tKey('auto.64'),
++      time: '14:00:25',
++      type: 'transcript',
++    },
++    {
++      id: 3,
++      speaker: tKey('auto.21'),
++      speakerId: 'user-003',
++      content: tKey('auto.63'),
++      time: '14:01:15',
++      type: 'transcript',
++    },
++    {
++      id: 4,
++      speaker: hostName || (tKey('meeting.host')),
++      speakerId: 'current-user',
++      content: tKey('auto.62'),
++      time: '14:01:30',
++      type: 'transcript',
++    },
++  ];
++};
+ 
+ const getMockAIMessages = (isZh: boolean): AIMessage[] => [
+   {
+     id: 'ai-001',
+     role: 'assistant',
+-    content: t('auto.61'),
++    content: i18n.t('auto.61'),
+     timestamp: new Date().toISOString(),
+   },
+ ];
+-- 
+2.53.0.windows.2
+

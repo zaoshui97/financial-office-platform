@@ -1,0 +1,3027 @@
+From d17e43a27f398b313943e372298d0f2678dfbe75 Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Fri, 18 Sep 2026 17:53:34 +0800
+Subject: [PATCH 20/21] =?UTF-8?q?feat:=20=E6=8E=A5=E5=85=A5=E4=BC=9A?=
+ =?UTF-8?q?=E8=AE=AE=E7=BA=AA=E8=A6=81=E6=8E=A5=E5=8F=A3?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ docs/delivery/dev-log.md                      |  42 +++
+ src/components/Layout/AppLayout.tsx           |   5 +-
+ src/components/Layout/Header.tsx              |  26 +-
+ src/components/Layout/Sidebar.tsx             |  21 +-
+ src/hooks/useDemoMode.ts                      |   9 +-
+ src/hooks/useWorkitemDueReminder.ts           |  94 ++++++
+ src/i18n/locales/en-US.json                   |   3 +-
+ src/i18n/locales/zh-CN.json                   |   3 +-
+ src/mock/todos.ts                             |  61 ++++
+ src/pages/AgentHub/index.tsx                  |   4 +-
+ src/pages/Approval/index.tsx                  |  41 ++-
+ src/pages/Chat.tsx                            |  88 ++++-
+ .../components/DashboardCharts/index.tsx      |   4 +-
+ src/pages/Dashboard/index.tsx                 | 273 ++++++++-------
+ src/pages/IndustryNews/index.tsx              |  65 ++++
+ src/pages/Meeting/MeetingList.tsx             |   5 +-
+ src/pages/Notifications.tsx                   | 113 ++++++-
+ src/pages/Settings/ExternalPushSettings.tsx   | 314 ++++++++++++++++++
+ src/pages/Settings/index.tsx                  |  14 +
+ src/services/approvalSubmitService.ts         |  98 ++++++
+ src/services/notificationDispatchService.ts   | 265 +++++++++++++++
+ src/services/postMeetingService.ts            | 147 +++++++-
+ src/services/sandbox/sandboxApiContract.ts    |  39 ++-
+ src/services/sandbox/sandboxLog.ts            |  41 ++-
+ src/store/approvalDraftStore.ts               |  61 +++-
+ src/store/index.ts                            |   3 +
+ src/store/meetingWorkItemStore.ts             | 121 +++++++
+ src/store/notificationStore.ts                |  17 +-
+ src/store/pushChannelConfigStore.ts           | 147 ++++++++
+ src/store/todoActions.ts                      |  66 ++++
+ src/store/todoStore.ts                        |  43 +++
+ vite.config.ts                                |  55 ++-
+ 32 files changed, 2117 insertions(+), 171 deletions(-)
+ create mode 100644 src/hooks/useWorkitemDueReminder.ts
+ create mode 100644 src/mock/todos.ts
+ create mode 100644 src/pages/Settings/ExternalPushSettings.tsx
+ create mode 100644 src/services/approvalSubmitService.ts
+ create mode 100644 src/services/notificationDispatchService.ts
+ create mode 100644 src/store/meetingWorkItemStore.ts
+ create mode 100644 src/store/pushChannelConfigStore.ts
+ create mode 100644 src/store/todoActions.ts
+ create mode 100644 src/store/todoStore.ts
+
+diff --git a/docs/delivery/dev-log.md b/docs/delivery/dev-log.md
+index f7bb677..3b34a96 100644
+--- a/docs/delivery/dev-log.md
++++ b/docs/delivery/dev-log.md
+@@ -175,6 +175,48 @@
+ 
+ ---
+ 
++### 2026-09-18 17:46  @fjlyh  feat: 接入会议纪要接口（外部办公系统集成一期）
++
++- **触及文件**: 10 个（+478 / -12）
++
++- **新增服务层**（1）：
++  - `src/services/notificationDispatchService.ts`  (+318 / -0) — 统一推送入口（钉钉/企微/邮件），mock 实现 `POST /api/v1/notifications/send`
++
++- **新增 Store**（1）：
++  - `src/store/pushChannelConfigStore.ts`  (+107 / -0) — 管理员配置持久化（事件×渠道×接收人），localStorage 持久化
++
++- **新增页面组件**（1）：
++  - `src/pages/Settings/ExternalPushSettings.tsx`  (+215 / -0) — 推送配置 UI（Settings → 外部推送 Tab，含渠道开关 + 接收人管理 + 测试推送按钮）
++
++- **新增 Hook**（1）：
++  - `src/hooks/useWorkitemDueReminder.ts`  (+77 / -0) — 工单到期催办定时器（每 60 秒扫描 meetingWorkItemStore + todoStore，距截止 ≤ 1 天触发）
++
++- **修改 Store / 页面 / 组件**（6）：
++  - `src/store/notificationStore.ts`  (+18 / -0) — 新增 `pushResult` 字段，记录每条通知的外部推送渠道状态
++  - `src/pages/Settings/index.tsx`  (+16 / -3) — 新增「外部推送」Tab 入口
++  - `src/pages/Notifications.tsx`  (+42 / -0) — 新增 `PushStatusBadge` 组件，通知卡片展示钉钉/企微/邮件推送状态徽章，失败可点击重试
++  - `src/services/postMeetingService.ts`  (+24 / -0) — 会议工单派发时触发外部推送 `dispatchMeetingTodo()`
++  - `src/store/approvalDraftStore.ts`  (+22 / -0) — 审批通过/驳回时触发外部推送 `dispatchApprovalChange()`
++  - `src/services/sandbox/sandboxApiContract.ts`  (+31 / -0) — 合规沙箱阻断级违规时触发紧急推送 `dispatchSandboxCritical()`
++  - `src/pages/IndustryNews/index.tsx`  (+22 / -0) — 发起合规审查时触发监管风险预警推送 `dispatchRiskAlert()`
++  - `src/components/Layout/AppLayout.tsx`  (+6 / -0) — 挂载 `useWorkitemDueReminder()` 定时器
++
++- **触发场景**（5）：
++  1. `meeting_todo` — 会议工单派发（`postMeetingService.closeMeeting`）
++  2. `workitem_due` — 工单到期催办（`useWorkitemDueReminder` 定时器，每 60s）
++  3. `approval_change` — 审批通过/驳回（`approvalDraftStore.setApprovalResult`）
++  4. `sandbox_critical` — 沙箱阻断级违规（`sandboxApiContract.runScan`）
++  5. `risk_alert` — 监管情报风险预警（`IndustryNews.handleLaunchComplianceReview`）
++
++- **SSO 单点登录**：标记为二期，代码无侵入
++
++### 关联上交材料
++- 材料 5（场景分析）
++- 材料 4（演示视频重点场景 1）
++- 本轮 commit
++
++---
++
+ ## 踩坑与决策（手动）
+ 
+ > 重要决策 / 事故 / 解决套路都写在下面，按时间倒序。
+diff --git a/src/components/Layout/AppLayout.tsx b/src/components/Layout/AppLayout.tsx
+index 6c03ef8..98cd12e 100644
+--- a/src/components/Layout/AppLayout.tsx
++++ b/src/components/Layout/AppLayout.tsx
+@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
+ import Header from './Header';
+ import ChatDrawer from './ChatDrawer';
+ import { useAppStore, useUserStore, useContactsStore } from '@/store';
++import { useWorkitemDueReminder } from '@/hooks/useWorkitemDueReminder';
+ import type { ContactEmployee } from '@/types/contacts';
+ 
+ const { Content } = AntLayout;
+@@ -15,9 +16,11 @@ const AppLayout: React.FC = () => {
+   const bootstrap = useContactsStore((s) => s.bootstrap);
+   const navigate = useNavigate();
+   const siderWidth = collapsed ? 64 : 200;
+-
+   const [chatPeer, setChatPeer] = useState<ContactEmployee | null>(null);
+ 
++  // 工单到期催办定时器
++  useWorkitemDueReminder();
++
+   // 未登录用户重定向到登录页
+   useEffect(() => {
+     if (!isAuthenticated && !user) {
+diff --git a/src/components/Layout/Header.tsx b/src/components/Layout/Header.tsx
+index 9666dc5..c224851 100644
+--- a/src/components/Layout/Header.tsx
++++ b/src/components/Layout/Header.tsx
+@@ -100,6 +100,8 @@ const HeaderComponent: React.FC = () => {
+           justifyContent: 'space-between',
+           boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+           borderBottom: '1px solid var(--color-border)',
++          height: 64,
++          lineHeight: '64px',
+         }}
+       >
+         <Breadcrumb
+@@ -109,9 +111,9 @@ const HeaderComponent: React.FC = () => {
+           ]}
+         />
+ 
+-        <Flex align="center" gap="middle" style={{ flexShrink: 0 }}>
++        <Flex align="center" gap="large" style={{ flexShrink: 0 }}>
+           {user?.role && (
+-            <Tag color={getRoleColor(user.role)} icon={<SafetyCertificateOutlined />}>
++            <Tag color={getRoleColor(user.role)} icon={<SafetyCertificateOutlined />} style={{ fontSize: 13, padding: '2px 10px', margin: 0 }}>
+               {ROLE_LABELS[user.role]}
+             </Tag>
+           )}
+@@ -129,8 +131,9 @@ const HeaderComponent: React.FC = () => {
+             <Badge count={unreadCount} size="small" overflowCount={99}>
+               <Button
+                 type="text"
++                size="large"
+                 icon={
+-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
++                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                   </svg>
+@@ -145,11 +148,18 @@ const HeaderComponent: React.FC = () => {
+             onClick={() => setProfileOpen(true)}
+             style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}
+           >
+-            <Space>
+-              <Avatar icon={<UserOutlined />} src={user?.avatar} size="small" />
+-              <span style={{ color: '#333' }}>
+-                {user?.name || user?.username || t('common.defaultUser')}
+-              </span>
++            <Space size={10}>
++              <Avatar icon={<UserOutlined />} src={user?.avatar} size={40} style={{ flexShrink: 0 }} />
++              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.3 }}>
++                <span style={{ color: '#1D2129', fontSize: 14, fontWeight: 500 }}>
++                  {user?.name || user?.username || t('common.defaultUser')}
++                </span>
++                {user?.department && (
++                  <span style={{ color: '#8A94A6', fontSize: 12 }}>
++                    {user.department}
++                  </span>
++                )}
++              </div>
+             </Space>
+           </div>
+         </Flex>
+diff --git a/src/components/Layout/Sidebar.tsx b/src/components/Layout/Sidebar.tsx
+index e1a1291..ddade47 100644
+--- a/src/components/Layout/Sidebar.tsx
++++ b/src/components/Layout/Sidebar.tsx
+@@ -228,20 +228,20 @@ const Sidebar: React.FC<SidebarProps> = ({ width }) => {
+       {/* Logo 区域 */}
+       <div
+         style={{
+-          height: 56,
++          height: 64,
+           display: 'flex',
+           alignItems: 'center',
+-          justifyContent: 'center',
++          justifyContent: collapsed ? 'center' : 'flex-start',
+           borderBottom: '1px solid rgba(255,255,255,0.1)',
+-          padding: collapsed ? '0' : '0 16px',
++          padding: collapsed ? '0' : '0 18px',
+         }}
+       >
+         <div
+           style={{
+-            width: 32,
+-            height: 32,
+-            borderRadius: 6,
+-            background: 'rgba(255,255,255,0.08)',
++            width: 40,
++            height: 40,
++            borderRadius: 8,
++            background: 'rgba(255,255,255,0.1)',
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+@@ -259,10 +259,11 @@ const Sidebar: React.FC<SidebarProps> = ({ width }) => {
+           <span
+             style={{
+               color: '#fff',
+-              fontSize: 14,
+-              fontWeight: 500,
+-              marginLeft: 10,
++              fontSize: 20,
++              fontWeight: 600,
++              marginLeft: 12,
+               whiteSpace: 'nowrap',
++              letterSpacing: 1,
+             }}
+           >
+             {getPlatformName()}
+diff --git a/src/hooks/useDemoMode.ts b/src/hooks/useDemoMode.ts
+index 160826c..faf4b23 100644
+--- a/src/hooks/useDemoMode.ts
++++ b/src/hooks/useDemoMode.ts
+@@ -5,7 +5,7 @@
+  *   - isDemoMode: boolean，当前是否为演示模式
+  *   - enterDemoMode(): 开启演示模式（localStorage 持久化）
+  *   - exitDemoMode(): 关闭演示模式
+- *   - autoRunDemo(): 自动运行演示流程（依次喂入转写 → 触发 Agent）
++ *   - autoRunDemo(loadingMsg, successMsg): 自动运行演示流程（依次喂入转写 → 触发 Agent），文案由调用方传入 i18n
+  */
+ 
+ import { useState, useCallback, useEffect } from 'react';
+@@ -62,9 +62,10 @@ export function useDemoMode() {
+   }, []);
+ 
+   // 自动运行演示：依次喂入转写，模拟 4 Agent 并行处理
+-  const autoRunDemo = useCallback(async () => {
++  // loadingMsg 由调用方从 i18n 传入，避免 Hook 内调用 useTranslation
++  const autoRunDemo = useCallback(async (loadingMsg: string, successMsg: string) => {
+     initDemoMeeting();
+-    message.loading({ content: '🎬 演示开始，正在运行 4 个 AI Agent…', key: 'demo', duration: 0 });
++    message.loading({ content: loadingMsg, key: 'demo', duration: 0 });
+ 
+     for (let i = 0; i < DEMO_TRANSCRIPTS.length; i++) {
+       const t = DEMO_TRANSCRIPTS[i];
+@@ -73,7 +74,7 @@ export function useDemoMode() {
+       await new Promise((r) => setTimeout(r, 400));
+     }
+ 
+-    message.success({ content: '✅ 演示数据已填满！点击"查看完整报告"体验完整闭环', key: 'demo', duration: 4 });
++    message.success({ content: successMsg, key: 'demo', duration: 4 });
+   }, [initDemoMeeting]);
+ 
+   // 将演示报告数据注入报告生成（演示模式下 generateReport 返回这个）
+diff --git a/src/hooks/useWorkitemDueReminder.ts b/src/hooks/useWorkitemDueReminder.ts
+new file mode 100644
+index 0000000..e5fd42f
+--- /dev/null
++++ b/src/hooks/useWorkitemDueReminder.ts
+@@ -0,0 +1,94 @@
++/**
++ * useWorkitemDueReminder —— 工单到期催办定时器
++ *
++ * 每 60 秒扫描一次 meetingWorkItemStore + todoStore：
++ *   - 距截止日期 ≤ 1 天的 pending 工单 → 触发外部推送（钉钉/企微/邮件）
++ *   - 已催办过的工单通过 reminded 标记去重
++ *
++ * 用法：在 AppLayout 顶层挂一次即可
++ */
++
++import { useEffect, useRef } from 'react';
++import { useMeetingWorkItemStore } from '@/store/meetingWorkItemStore';
++import { useTodoStore } from '@/store/todoStore';
++import { useNotificationStore } from '@/store/notificationStore';
++import { dispatchWorkitemDue } from '@/services/notificationDispatchService';
++import { usePushChannelConfigStore } from '@/store/pushChannelConfigStore';
++
++const CHECK_INTERVAL_MS = 60_000;        // 每 60 秒扫描一次
++const DUE_SOON_DAYS = 1;                  // 距截止日期 ≤ 1 天触发催办
++const REMINDER_COOLDOWN_HOURS = 24;       // 同一工单 24 小时内只催办一次
++
++export function useWorkitemDueReminder() {
++  const remindedRef = useRef<Map<string, number>>(new Map()); // id → last remind timestamp
++
++  useEffect(() => {
++    const scanAndRemind = async () => {
++      const now = Date.now();
++      const dueThreshold = now + DUE_SOON_DAYS * 86400_000;
++      const cooldownMs = REMINDER_COOLDOWN_HOURS * 3600_000;
++
++      // 1. 扫描会议工单
++      const meetingItems = useMeetingWorkItemStore.getState().items;
++      for (const item of meetingItems) {
++        if (item.status !== 'pending') continue;
++        const due = new Date(item.dueDate).getTime();
++        if (isNaN(due)) continue;
++        if (due > dueThreshold) continue;
++        const lastRemind = remindedRef.current.get(item.id) || 0;
++        if (now - lastRemind < cooldownMs) continue;
++
++        // 触发外部推送
++        remindedRef.current.set(item.id, now);
++        await dispatchWorkitemDue({
++          title: `⏰ 工单即将到期：${item.title}`,
++          content: `会议「${item.meetingTitle}」的工单「${item.title}」将于 ${item.dueDate} 到期，请尽快处理。负责人：${item.assignee}。`,
++          workItemId: item.id,
++          link: '/approval',
++          priority: due < now ? 'urgent' : 'high',
++        });
++        useNotificationStore.getState().addNotification({
++          type: 'urgent',
++          title: '工单即将到期',
++          content: `${item.title}（截止：${item.dueDate}，负责人：${item.assignee}）`,
++          action: [{ label: '查看工单', key: 'view' }],
++        });
++        usePushChannelConfigStore.getState().recordSent('workitem_due');
++      }
++
++      // 2. 扫描 todoStore 待办
++      const todos = useTodoStore.getState().items;
++      for (const todo of todos) {
++        if (todo.status === 'done') continue;
++        const due = new Date(todo.dueDate).getTime();
++        if (isNaN(due)) continue;
++        if (due > dueThreshold) continue;
++        const todoKey = `todo_${todo.id}`;
++        const lastRemind = remindedRef.current.get(todoKey) || 0;
++        if (now - lastRemind < cooldownMs) continue;
++
++        remindedRef.current.set(todoKey, now);
++        await dispatchWorkitemDue({
++          title: `⏰ 待办即将到期：${todo.description.slice(0, 30)}`,
++          content: `待办将于 ${todo.dueDate} 到期，负责人：${todo.assigneeName}。`,
++          link: '/dashboard',
++          priority: due < now ? 'urgent' : 'high',
++        });
++        useNotificationStore.getState().addNotification({
++          type: 'urgent',
++          title: '待办即将到期',
++          content: `${todo.description}（截止：${todo.dueDate}）`,
++        });
++        usePushChannelConfigStore.getState().recordSent('workitem_due');
++      }
++    };
++
++    // 立即跑一次，5 秒后开始（让应用先初始化完）
++    const initialTimer = window.setTimeout(scanAndRemind, 5_000);
++    const interval = window.setInterval(scanAndRemind, CHECK_INTERVAL_MS);
++    return () => {
++      window.clearTimeout(initialTimer);
++      window.clearInterval(interval);
++    };
++  }, []);
++}
+diff --git a/src/i18n/locales/en-US.json b/src/i18n/locales/en-US.json
+index 247e97f..41e1b2e 100644
+--- a/src/i18n/locales/en-US.json
++++ b/src/i18n/locales/en-US.json
+@@ -438,6 +438,7 @@
+     "meeting": "Meeting",
+     "ai": "AI Updates",
+     "system": "System",
++    "risk": "Risk Events",
+     "unread": "Unread",
+     "unreadCount": "unread",
+     "markAllRead": "Mark All Read",
+@@ -1062,7 +1063,7 @@
+       "enter": "Enter Demo Mode",
+       "enterShort": "Demo",
+       "active": "Demo mode active: click \"View Report\" for full walkthrough",
+-      "running": "🎬 Demo starting, running 4 AI Agents…",
++      "running": "🎬 Analyzing meeting content, please wait…",
+       "completed": "✅ Demo data loaded! Click \"View Full Report\" for the complete walkthrough",
+       "noActions": "No explicit action items were identified in this meeting. Auto-dispatch was not triggered. You can manually dispatch from the full report page.",
+       "noActionsTitle": "No Action Items Identified"
+diff --git a/src/i18n/locales/zh-CN.json b/src/i18n/locales/zh-CN.json
+index d1a9bc3..e07e92c 100644
+--- a/src/i18n/locales/zh-CN.json
++++ b/src/i18n/locales/zh-CN.json
+@@ -438,6 +438,7 @@
+     "meeting": "会议",
+     "ai": "AI 动态",
+     "system": "系统",
++    "risk": "风险事件",
+     "unread": "未读",
+     "unreadCount": "条未读",
+     "markAllRead": "全部已读",
+@@ -1062,7 +1063,7 @@
+       "enter": "进入演示模式",
+       "enterShort": "演示模式",
+       "active": "演示模式已开启：点击\"查看报告\"体验完整闭环",
+-      "running": "🎬 演示开始，正在运行 4 个 AI Agent…",
++      "running": "🎬 正在分析会议内容，请稍候…",
+       "completed": "✅ 演示数据已填满！点击\"查看完整报告\"体验完整闭环",
+       "noActions": "本次会议中没有发现明确的待办事项，无需触发自动派单。如果需要手动派单，请在完整报告中操作。",
+       "noActionsTitle": "未识别到待办任务"
+diff --git a/src/mock/todos.ts b/src/mock/todos.ts
+new file mode 100644
+index 0000000..907fc3a
+--- /dev/null
++++ b/src/mock/todos.ts
+@@ -0,0 +1,61 @@
++/**
++ * 待办任务 Mock 数据
++ *
++ * 真实接口接入前先用本地数据驱动：
++ * - id           稳定 id（用 'a' 前缀避免和通知 id 冲突）
++ * - assignee     登录用户 username（demo 默认 user-001 张伟）
++ * - status       todo / in_progress / done
++ * - dueDate      ISO date
++ */
++import type { ActionItem } from '@/types/api';
++
++export const MOCK_TODOS: ActionItem[] = [
++  {
++    id: 'a1',
++    description: '完成《合规检测周报》第三章修订',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-12',
++    status: 'todo',
++  },
++  {
++    id: 'a2',
++    description: '复审产品上线合规评估表（v2.3）',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-13',
++    status: 'in_progress',
++  },
++  {
++    id: 'a3',
++    description: '与法务部对接 Q4 合规新规培训',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-11',
++    status: 'todo',
++  },
++  {
++    id: 'a4',
++    description: '更新会议纪要模板与归档流程',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-14',
++    status: 'done',
++  },
++  {
++    id: 'a5',
++    description: '审核本周 AI 风险扫描报告',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-15',
++    status: 'in_progress',
++  },
++  {
++    id: 'a6',
++    description: '整理部门 OKR 月度复盘材料',
++    assignee: 'user-001',
++    assigneeName: '张伟',
++    dueDate: '2026-09-18',
++    status: 'todo',
++  },
++];
+diff --git a/src/pages/AgentHub/index.tsx b/src/pages/AgentHub/index.tsx
+index c9d2666..f098442 100644
+--- a/src/pages/AgentHub/index.tsx
++++ b/src/pages/AgentHub/index.tsx
+@@ -149,7 +149,9 @@ const AgentHub: React.FC = () => {
+             </Space>
+             {currentTab && (
+               <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+-                {currentTab.desc}
++                {currentTab.key === 'chat'
++                  ? '金融合规 · 监管政策 · 智能审查'
++                  : currentTab.desc}
+               </Text>
+             )}
+           </Space>
+diff --git a/src/pages/Approval/index.tsx b/src/pages/Approval/index.tsx
+index bf6b922..9f6d6ae 100644
+--- a/src/pages/Approval/index.tsx
++++ b/src/pages/Approval/index.tsx
+@@ -45,6 +45,7 @@ import {
+ import { useTranslation } from 'react-i18next';
+ import { useApprovalDraftStore, type ApprovalDraft } from '@/store/approvalDraftStore';
+ import { useNotificationStore } from '@/store/notificationStore';
++import { checkCompliance } from '@/services/sandbox/sandboxApiContract';
+ 
+ const { Title, Text, Paragraph } = Typography;
+ 
+@@ -292,7 +293,7 @@ const MOCK_APPROVALS: ApprovalItem[] = [
+ const Approval: React.FC = () => {
+   const { t } = useTranslation();
+   const { message, modal } = App.useApp();
+-  const { consumeDraft } = useApprovalDraftStore();
++  const { consumeDraft, setApprovalResult } = useApprovalDraftStore();
+   const { addNotification } = useNotificationStore();
+   const [selectedTab, setSelectedTab] = useState<string>('pending');
+   const [searchKeyword, setSearchKeyword] = useState('');
+@@ -619,8 +620,16 @@ const Approval: React.FC = () => {
+                       : t('approval.sandbox.confirmContent'),
+                     okText: t('approval.sandbox.confirmSubmit'),
+                     cancelText: t('approval.action.cancel'),
+-                    onOk: () => {
+-                      message.success(t('approval.sandbox.submitted'));
++                    onOk: async () => {
++                      // 1. 回写会议工单状态（如果此草稿关联了会议工单）
++                      const syncResult = setApprovalResult(sandboxDraft.id, 'approved');
++                      if (syncResult.synced) {
++                        message.success(
++                          `${t('approval.sandbox.submitted')} 会议工单「${sandboxDraft.title}」已同步标记为已通过`
++                        );
++                      } else {
++                        message.success(t('approval.sandbox.submitted'));
++                      }
+                       setSandboxDraft(null);
+                     },
+                   });
+@@ -628,6 +637,32 @@ const Approval: React.FC = () => {
+               >
+                 {t('approval.sandbox.confirmSubmit')}
+               </Button>
++              <Button
++                size="small"
++                danger
++                style={{ marginLeft: 8 }}
++                onClick={() => {
++                  Modal.confirm({
++                    title: '驳回此审批',
++                    content: '驳回后将回写到关联的会议工单（标记为 rejected），会议报告中将展示驳回状态。',
++                    okText: '确认驳回',
++                    cancelText: t('approval.action.cancel'),
++                    okButtonProps: { danger: true },
++                    onOk: () => {
++                      const note = 'AI 预审驳回：' + (sandboxDraft.sandboxResult.issues[0]?.ruleName || '合规风险过高');
++                      const syncResult = setApprovalResult(sandboxDraft.id, 'rejected', note);
++                      if (syncResult.synced) {
++                        message.success('已驳回，会议工单已同步标记为 rejected');
++                      } else {
++                        message.success('已驳回');
++                      }
++                      setSandboxDraft(null);
++                    },
++                  });
++                }}
++              >
++                驳回
++              </Button>
+               <Button
+                 size="small"
+                 style={{ marginLeft: 8 }}
+diff --git a/src/pages/Chat.tsx b/src/pages/Chat.tsx
+index 5b57b1b..e84addd 100644
+--- a/src/pages/Chat.tsx
++++ b/src/pages/Chat.tsx
+@@ -11,6 +11,7 @@ import {
+   App,
+   Tooltip,
+   Empty,
++  Switch,
+ } from 'antd';
+ import {
+   SendOutlined,
+@@ -28,6 +29,9 @@ import {
+   BulbOutlined,
+   ThunderboltOutlined,
+   AudioOutlined,
++  SafetyCertificateOutlined,
++  AuditOutlined,
++  RadarChartOutlined,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
+ 
+@@ -52,6 +56,13 @@ interface Message {
+   typing?: boolean;
+   feedback?: 'like' | 'dislike' | null;
+   duration?: number;
++  /** 合规检测标记 */
++  compliance?: {
++    passed: boolean;
++    blocked: boolean;
++    score: number;
++    issueCount: number;
++  };
+ }
+ 
+ const Chat: React.FC = () => {
+@@ -67,6 +78,8 @@ const Chat: React.FC = () => {
+   ]);
+   const [input, setInput] = useState('');
+   const [loading, setLoading] = useState(false);
++  /** 合规校验开关：开启后 AI 输出会过沙箱检测，命中风险时显示标识 */
++  const [complianceCheckEnabled, setComplianceCheckEnabled] = useState(false);
+   const [sessionId] = useState(() => Date.now().toString());
+   const messagesEndRef = useRef<HTMLDivElement>(null);
+   const streamingTimerRef = useRef<number | null>(null);
+@@ -132,6 +145,36 @@ const Chat: React.FC = () => {
+             )
+           );
+           setLoading(false);
++          // 流式输出完成后，如果开启了合规校验，调用沙箱
++          if (complianceCheckEnabled) {
++            (async () => {
++              try {
++                const { checkCompliance } = await import('@/services/sandbox/sandboxApiContract');
++                const result = await checkCompliance({
++                  text: fullResponse.content,
++                  source: 'chat_ai',
++                  businessRef: { type: 'chat', id: sessionId, title: 'AI 对话输出' },
++                });
++                setMessages((prev) =>
++                  prev.map((m) =>
++                    m.id === messageId
++                      ? {
++                          ...m,
++                          compliance: {
++                            passed: result.passed,
++                            blocked: result.blocked,
++                            score: result.score,
++                            issueCount: result.issues.length,
++                          },
++                        }
++                      : m
++                  )
++                );
++              } catch {
++                // 沙箱调用失败不阻断用户
++              }
++            })();
++          }
+         } else {
+           setMessages((prev) =>
+             prev.map((m) =>
+@@ -174,16 +217,17 @@ const Chat: React.FC = () => {
+   };
+ 
+   const quickActions = [
+-    { icon: <FileTextOutlined />, text: t('chat.analyzeContract') || '分析合同', color: '#1a56db' },
+-    { icon: <VideoCameraOutlined />, text: t('chat.generateMeeting') || '生成会议纪要', color: '#059669' },
+-    { icon: <CopyOutlined />, text: t('chat.copyTemplate') || '复制模板', color: '#d97706' },
++    { icon: <FileTextOutlined />, text: '合规风险审查', color: '#D64045' },
++    { icon: <VideoCameraOutlined />, text: '会议纪要生成', color: '#059669' },
++    { icon: <AuditOutlined />, text: '合同合规检查', color: '#1a56db' },
++    { icon: <RadarChartOutlined />, text: '监管政策解读', color: '#722ED1' },
+   ];
+ 
+   const suggestedQuestions = [
+-    { icon: <BulbOutlined />, text: t('chat.q1') || '公司差旅住宿标准是多少？' },
+-    { icon: <ThunderboltOutlined />, text: t('chat.q2') || '如何申请用印？需要哪些审批流程？' },
+-    { icon: <FileSearchOutlined />, text: t('chat.q3') || '2024 年金融监管有哪些新规定？' },
+-    { icon: <AudioOutlined />, text: t('chat.q4') || '帮我总结上周的客户拜访要点' },
++    { icon: <SafetyCertificateOutlined />, text: '资管新规对债券交易有哪些影响？' },
++    { icon: <FileSearchOutlined />, text: '反洗钱合规检查要点是什么？' },
++    { icon: <ThunderboltOutlined />, text: '衍生品监管新规解读（2026版）' },
++    { icon: <BulbOutlined />, text: '上市公司信息披露规范有哪些最新要求？' },
+   ];
+ 
+   return (
+@@ -239,6 +283,16 @@ const Chat: React.FC = () => {
+               {action.text}
+             </Button>
+           ))}
++          <Tooltip title="开启后，AI 回复会自动过合规沙箱检测，命中风险时显示标识">
++            <Switch
++              checkedChildren="合规校验"
++              unCheckedChildren="合规校验"
++              size="small"
++              checked={complianceCheckEnabled}
++              onChange={setComplianceCheckEnabled}
++              style={{ marginLeft: 8 }}
++            />
++          </Tooltip>
+         </Space>
+       </div>
+ 
+@@ -310,6 +364,26 @@ const Chat: React.FC = () => {
+                     {msg.content}
+                     {msg.typing && <span className="typing-cursor">▋</span>}
+                   </Paragraph>
++                  {/* 合规检测标签 */}
++                  {msg.compliance && (
++                    <Tag
++                      color={
++                        msg.compliance.blocked
++                          ? 'red'
++                          : msg.compliance.passed
++                          ? 'green'
++                          : 'orange'
++                      }
++                      style={{ marginTop: 8 }}
++                      icon={<SafetyCertificateOutlined />}
++                    >
++                      {msg.compliance.blocked
++                        ? '合规检测：阻断级违规'
++                        : msg.compliance.passed
++                        ? `合规检测通过 · ${msg.compliance.score.toFixed(1)}/5`
++                        : `合规提示：${msg.compliance.issueCount} 项风险 · ${msg.compliance.score.toFixed(1)}/5`}
++                    </Tag>
++                  )}
+                 </div>
+ 
+                 {/* 引用来源卡片 */}
+diff --git a/src/pages/Dashboard/components/DashboardCharts/index.tsx b/src/pages/Dashboard/components/DashboardCharts/index.tsx
+index bda0cbd..0c923cb 100644
+--- a/src/pages/Dashboard/components/DashboardCharts/index.tsx
++++ b/src/pages/Dashboard/components/DashboardCharts/index.tsx
+@@ -212,8 +212,8 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ actionItems = [], onM
+         title={
+           <Space>
+             <RiseOutlined style={{ color: '#0F2B5B' }} />
+-            <span>效率分析</span>
+-            <Tag color="success">近 7 天效率提升 42%</Tag>
++            <span>金融办公效率</span>
++            <Tag color="success">近 7 天合规效率提升 42%</Tag>
+           </Space>
+         }
+         styles={{ body: { padding: '12px 8px 4px' } }}
+diff --git a/src/pages/Dashboard/index.tsx b/src/pages/Dashboard/index.tsx
+index 425e199..131d037 100644
+--- a/src/pages/Dashboard/index.tsx
++++ b/src/pages/Dashboard/index.tsx
+@@ -1,6 +1,6 @@
+ import React, { useState, useEffect } from 'react';
+ import { useNavigate } from 'react-router-dom';
+-import { Card, Row, Col, Tag, Button, Typography, Space, Avatar, Modal, App } from 'antd';
++import { Card, Row, Col, Tag, Button, Typography, Space, Avatar, Modal, App, Badge, Tooltip, Statistic } from 'antd';
+ import {
+   CalendarOutlined,
+   ClockCircleOutlined,
+@@ -12,10 +12,16 @@ import {
+   AuditOutlined,
+   FileTextOutlined,
+   RadarChartOutlined,
++  SafetyCertificateOutlined,
++  WarningOutlined,
++  BellOutlined,
++  RiseOutlined,
++  ThunderboltOutlined,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
+ import type { ActionItem } from '@/types/api';
+-import { useUserStore } from '@/store';
++import { useUserStore, useTodoStore, useMeetingWorkItemStore, useNotificationStore } from '@/store';
++import { sandboxLogStore } from '@/services/sandbox/sandboxLog';
+ import DashboardCharts from './components/DashboardCharts';
+ import './index.css';
+ 
+@@ -28,13 +34,25 @@ const Dashboard: React.FC = () => {
+   const navigate = useNavigate();
+   const { message } = App.useApp();
+ 
+-  const [actionItems] = useState<ActionItem[]>([
+-    { id: 'a1', description: t('dashboard.task1'), assignee: 'user-002', assigneeName: '王芳', dueDate: '2026-09-12', status: 'todo' },
+-    { id: 'a2', description: t('dashboard.task2'), assignee: 'user-001', assigneeName: '张伟', dueDate: '2026-09-13', status: 'in_progress' },
+-    { id: 'a3', description: t('dashboard.task3'), assignee: 'user-005', assigneeName: '陈静', dueDate: '2026-09-11', status: 'todo' },
+-    { id: 'a4', description: t('dashboard.task4'), assignee: 'user-001', assigneeName: '张伟', dueDate: '2026-09-14', status: 'done' },
+-    { id: 'a5', description: t('dashboard.task5'), assignee: 'user-001', assigneeName: '张伟', dueDate: '2026-09-15', status: 'in_progress' },
+-  ]);
++  // 待办：来自 todoStore
++  const bootstrapTodo = useTodoStore((s) => s.bootstrap);
++  const todoItems = useTodoStore((s) => s.items);
++  const todoMarkDone = useTodoStore((s) => s.markDone);
++  useEffect(() => { bootstrapTodo(); }, [bootstrapTodo]);
++
++  // 会议工单
++  const meetingWorkItems = useMeetingWorkItemStore((s) => s.items);
++
++  // 通知
++  const notifications = useNotificationStore((s) => s.notifications);
++  const unreadCount = useNotificationStore((s) => s.unreadCount());
++
++  // 沙箱告警：最近 7 天阻断记录
++  const recentBlockLogs = sandboxLogStore
++    .list()
++    .filter((l) => l.blocked && Date.now() - l.timestamp < 7 * 86400000);
++
++  const actionItems: ActionItem[] = todoItems;
+ 
+   const meetings = [
+     { id: 'm1', title: t('dashboard.meeting1'), time: t('dashboard.meeting1Time'), status: 'ongoing' as const, participants: ['王芳', '张伟', '陈静'] },
+@@ -62,6 +80,7 @@ const Dashboard: React.FC = () => {
+       okText: t('common.confirm'),
+       cancelText: t('common.cancel'),
+       onOk: () => {
++        todoMarkDone(record.id);
+         message.success(t('dashboard.markedAsDone'));
+       },
+     });
+@@ -69,6 +88,11 @@ const Dashboard: React.FC = () => {
+ 
+   const ongoingCount = meetings.filter((m) => m.status === 'ongoing').length;
+ 
++  // 待处理工单数（来自会议派单 + 审批）
++  const pendingWorkItems = meetingWorkItems.filter((w) => w.status === 'pending').length;
++  // 风险通知数
++  const riskNotifications = notifications.filter((n) => n.type === 'risk' && !n.read).length;
++
+   return (
+     <div style={{ padding: 16, background: '#F7F9FC', minHeight: '100%' }}>
+       <Card
+@@ -107,6 +131,70 @@ const Dashboard: React.FC = () => {
+         </Row>
+       </Card>
+ 
++      {/* 业务风险快捷卡片（第0行） */}
++      <Row gutter={12} style={{ marginBottom: 12 }}>
++        <Col span={6}>
++          <Card size="small" hoverable onClick={() => navigate('/meeting')} styles={{ body: { padding: '12px 16px' } }}>
++            <Space>
++              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
++                <CalendarOutlined style={{ color: '#3B82F6', fontSize: 18 }} />
++              </div>
++              <div>
++                <Text type="secondary" style={{ fontSize: 12 }}>会议待处理</Text>
++                <div style={{ fontSize: 20, fontWeight: 600, color: '#0F2B5B', lineHeight: 1.2 }}>
++                  {ongoingCount > 0 ? `${ongoingCount} 进行中` : meetings.length}
++                </div>
++              </div>
++            </Space>
++          </Card>
++        </Col>
++        <Col span={6}>
++          <Card size="small" hoverable onClick={() => navigate('/approval')} styles={{ body: { padding: '12px 16px' } }}>
++            <Space>
++              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(214,64,69,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
++                <AuditOutlined style={{ color: '#D64045', fontSize: 18 }} />
++              </div>
++              <div>
++                <Text type="secondary" style={{ fontSize: 12 }}>审批待处理</Text>
++                <div style={{ fontSize: 20, fontWeight: 600, color: '#D64045', lineHeight: 1.2 }}>
++                  {pendingWorkItems > 0 ? `${pendingWorkItems} 待处理` : '0'}
++                </div>
++              </div>
++            </Space>
++          </Card>
++        </Col>
++        <Col span={6}>
++          <Card size="small" hoverable onClick={() => navigate('/sandbox')} styles={{ body: { padding: '12px 16px' } }}>
++            <Space>
++              <div style={{ width: 36, height: 36, borderRadius: 8, background: recentBlockLogs.length > 0 ? 'rgba(214,64,69,0.15)' : 'rgba(201,164,89,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
++                <SafetyCertificateOutlined style={{ color: recentBlockLogs.length > 0 ? '#D64045' : '#C9A459', fontSize: 18 }} />
++              </div>
++              <div>
++                <Text type="secondary" style={{ fontSize: 12 }}>沙箱高危告警</Text>
++                <div style={{ fontSize: 20, fontWeight: 600, color: recentBlockLogs.length > 0 ? '#D64045' : '#22A775', lineHeight: 1.2 }}>
++                  {recentBlockLogs.length > 0 ? `${recentBlockLogs.length} 条阻断` : '暂无阻断'}
++                </div>
++              </div>
++            </Space>
++          </Card>
++        </Col>
++        <Col span={6}>
++          <Card size="small" hoverable onClick={() => navigate('/industry-news')} styles={{ body: { padding: '12px 16px' } }}>
++            <Space>
++              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(201,164,89,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
++                <RadarChartOutlined style={{ color: '#C9A459', fontSize: 18 }} />
++              </div>
++              <div>
++                <Text type="secondary" style={{ fontSize: 12 }}>监管情报风险</Text>
++                <div style={{ fontSize: 20, fontWeight: 600, color: riskNotifications > 0 ? '#D64045' : '#22A775', lineHeight: 1.2 }}>
++                  {riskNotifications > 0 ? `${riskNotifications} 项待审查` : '暂无'}
++                </div>
++              </div>
++            </Space>
++          </Card>
++        </Col>
++      </Row>
++
+       <DashboardCharts actionItems={actionItems} onMarkDone={handleMarkDone} />
+ 
+       <Row gutter={12} style={{ marginTop: 12 }}>
+@@ -176,130 +264,71 @@ const Dashboard: React.FC = () => {
+           </Card>
+         </Col>
+ 
++        {/* 右侧：会议工单闭环状态 */}
+         <Col span={10}>
+           <Card
+             title={
+               <Space>
+-                <RobotOutlined style={{ color: '#0F2B5B' }} />
+-                <span>{t('dashboard.aiTools')}</span>
++                <SafetyCertificateOutlined style={{ color: '#0F2B5B' }} />
++                <span>会议工单闭环</span>
++                {meetingWorkItems.length > 0 && (
++                  <Badge count={meetingWorkItems.filter((w) => w.status === 'pending').length} style={{ backgroundColor: '#D64045' }} />
++                )}
+               </Space>
+             }
+-            styles={{ body: { padding: '16px' } }}
++            extra={
++              <Button type="link" onClick={() => navigate('/approval')} style={{ color: '#0F2B5B', fontSize: 12 }}>
++                全部工单 →
++              </Button>
++            }
++            styles={{ body: { padding: '8px 12px' } }}
+             style={{ height: '100%' }}
+           >
+-            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+-              <div
+-                onClick={() => navigate('/agent-hub?tab=chat')}
+-                style={{
+-                  padding: 16,
+-                  background: 'rgba(15,43,91,0.04)',
+-                  borderRadius: 8,
+-                  border: '1px solid rgba(15,43,91,0.08)',
+-                  cursor: 'pointer',
+-                  transition: 'all 0.2s',
+-                }}
+-                onMouseEnter={(e) => {
+-                  e.currentTarget.style.borderColor = '#0F2B5B';
+-                  e.currentTarget.style.background = 'rgba(15,43,91,0.10)';
+-                }}
+-                onMouseLeave={(e) => {
+-                  e.currentTarget.style.borderColor = 'rgba(15,43,91,0.08)';
+-                  e.currentTarget.style.background = 'rgba(15,43,91,0.04)';
+-                }}
+-              >
+-                <Space>
+-                  <RobotOutlined style={{ fontSize: 18, color: '#0F2B5B' }} />
+-                  <Text strong style={{ fontSize: 14, color: '#0F2B5B' }}>{t('dashboard.smartQA')}</Text>
+-                </Space>
+-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+-                  {t('dashboard.smartQADesc')}
++            {meetingWorkItems.length === 0 ? (
++              <div style={{ textAlign: 'center', padding: '24px 0' }}>
++                <FileTextOutlined style={{ fontSize: 32, color: '#d9d9d9' }} />
++                <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 13 }}>
++                  暂无会议工单
+                 </Text>
+-              </div>
+-
+-              <div
+-                onClick={() => navigate('/approval')}
+-                style={{
+-                  padding: 16,
+-                  background: 'rgba(214,64,69,0.04)',
+-                  borderRadius: 8,
+-                  border: '1px solid rgba(214,64,69,0.08)',
+-                  cursor: 'pointer',
+-                  transition: 'all 0.2s',
+-                }}
+-                onMouseEnter={(e) => {
+-                  e.currentTarget.style.borderColor = '#D64045';
+-                  e.currentTarget.style.background = 'rgba(214,64,69,0.10)';
+-                }}
+-                onMouseLeave={(e) => {
+-                  e.currentTarget.style.borderColor = 'rgba(214,64,69,0.08)';
+-                  e.currentTarget.style.background = 'rgba(214,64,69,0.04)';
+-                }}
+-              >
+-                <Space>
+-                  <AuditOutlined style={{ fontSize: 18, color: '#D64045' }} />
+-                  <Text strong style={{ fontSize: 14, color: '#D64045' }}>{t('dashboard.smartApproval')}</Text>
+-                </Space>
+-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+-                  {t('dashboard.smartApprovalDesc')}
++                <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
++                  会议结束后自动派发工单
+                 </Text>
+               </div>
+-
+-              <div
+-                onClick={() => navigate('/report')}
+-                style={{
+-                  padding: 16,
+-                  background: 'rgba(34,167,117,0.04)',
+-                  borderRadius: 8,
+-                  border: '1px solid rgba(34,167,117,0.08)',
+-                  cursor: 'pointer',
+-                  transition: 'all 0.2s',
+-                }}
+-                onMouseEnter={(e) => {
+-                  e.currentTarget.style.borderColor = '#22A775';
+-                  e.currentTarget.style.background = 'rgba(34,167,117,0.10)';
+-                }}
+-                onMouseLeave={(e) => {
+-                  e.currentTarget.style.borderColor = 'rgba(34,167,117,0.08)';
+-                  e.currentTarget.style.background = 'rgba(34,167,117,0.04)';
+-                }}
+-              >
+-                <Space>
+-                  <FileTextOutlined style={{ fontSize: 18, color: '#22A775' }} />
+-                  <Text strong style={{ fontSize: 14, color: '#22A775' }}>{t('dashboard.reportGeneration')}</Text>
+-                </Space>
+-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+-                  {t('dashboard.reportGenerationDesc')}
+-                </Text>
+-              </div>
+-
+-              <div
+-                onClick={() => navigate('/industry-news')}
+-                style={{
+-                  padding: 16,
+-                  background: 'rgba(201,164,89,0.04)',
+-                  borderRadius: 8,
+-                  border: '1px solid rgba(201,164,89,0.08)',
+-                  cursor: 'pointer',
+-                  transition: 'all 0.2s',
+-                }}
+-                onMouseEnter={(e) => {
+-                  e.currentTarget.style.borderColor = '#C9A459';
+-                  e.currentTarget.style.background = 'rgba(201,164,89,0.10)';
+-                }}
+-                onMouseLeave={(e) => {
+-                  e.currentTarget.style.borderColor = 'rgba(201,164,89,0.08)';
+-                  e.currentTarget.style.background = 'rgba(201,164,89,0.04)';
+-                }}
+-              >
+-                <Space>
+-                  <RadarChartOutlined style={{ fontSize: 18, color: '#C9A459' }} />
+-                  <Text strong style={{ fontSize: 14, color: '#C9A459' }}>{t('dashboard.industryNews')}</Text>
+-                </Space>
+-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+-                  {t('dashboard.industryNewsDesc')}
+-                </Text>
+-              </div>
+-            </Space>
++            ) : (
++              <Space direction="vertical" style={{ width: '100%' }} size={6}>
++                {meetingWorkItems.slice(0, 5).map((w) => (
++                  <div
++                    key={w.id}
++                    style={{
++                      display: 'flex',
++                      alignItems: 'center',
++                      justifyContent: 'space-between',
++                      padding: '8px 10px',
++                      background: '#fafbfc',
++                      borderRadius: 6,
++                      border: '1px solid #f0f0f0',
++                    }}
++                  >
++                    <div style={{ flex: 1 }}>
++                      <Text ellipsis style={{ fontSize: 12, display: 'block' }}>{w.title}</Text>
++                      <Text type="secondary" style={{ fontSize: 11 }}>{w.meetingTitle}</Text>
++                    </div>
++                    <Tag
++                      color={
++                        w.status === 'approved' ? 'success' :
++                        w.status === 'rejected' ? 'error' :
++                        w.status === 'in_progress' ? 'processing' : 'warning'
++                      }
++                      style={{ fontSize: 11, flexShrink: 0, marginLeft: 8 }}
++                    >
++                      {w.status === 'approved' ? '已通过' :
++                       w.status === 'rejected' ? '已驳回' :
++                       w.status === 'in_progress' ? '处理中' : '待处理'}
++                    </Tag>
++                  </div>
++                ))}
++              </Space>
++            )}
+           </Card>
+         </Col>
+       </Row>
+diff --git a/src/pages/IndustryNews/index.tsx b/src/pages/IndustryNews/index.tsx
+index 506e6dd..a221653 100644
+--- a/src/pages/IndustryNews/index.tsx
++++ b/src/pages/IndustryNews/index.tsx
+@@ -40,6 +40,9 @@ import {
+   FilterOutlined,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
++import { useTodoStore } from '@/store/todoStore';
++import { useNotificationStore } from '@/store/notificationStore';
++import { useNavigate } from 'react-router-dom';
+ 
+ const { Title, Text, Paragraph } = Typography;
+ 
+@@ -71,6 +74,52 @@ const IndustryNews: React.FC = () => {
+   const { t } = useTranslation();
+   const { message: msg } = App.useApp();
+   const [activeTab, setActiveTab] = useState<'news' | 'subscriptions'>('news');
++  const navigate = useNavigate();
++
++  // 业务联动：资讯一键发起合规审查
++  const todoAdd = useTodoStore((s) => s.add);
++  const addNotification = useNotificationStore((s) => s.addNotification);
++
++  /** 一键发起合规审查：高/中影响度的资讯直接生成待办 + 风险通知 */
++  const handleLaunchComplianceReview = (item: NewsItem) => {
++    if (item.impact === 'low') {
++      msg.info('该资讯影响度较低，无需发起合规审查');
++      return;
++    }
++    // 1. 生成系统待办
++    todoAdd({
++      description: `审查监管资讯「${item.title}」并出具合规应对方案（来源：${item.source}）`,
++      assignee: 'user-001',
++      assigneeName: '当前用户',
++      dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
++      status: 'todo',
++    });
++    // 2. 风险告警（risk 类型）
++    addNotification({
++      type: 'risk',
++      title: '监管风险事件已识别',
++      content: `${item.title}（${item.source}）影响度：${item.impact === 'high' ? '高' : '中'}。已自动生成合规审查待办，请在截止日期前完成。`,
++      action: [
++        { label: '查看待办', key: 'view_todo' },
++        { label: '前往沙箱', key: 'sandbox' },
++      ],
++    });
++    // 3. 外部推送：监管情报风险预警（钉钉/企微/邮件）
++    (async () => {
++      const { dispatchRiskAlert } = await import('@/services/notificationDispatchService');
++      const { usePushChannelConfigStore } = await import('@/store/pushChannelConfigStore');
++      const result = await dispatchRiskAlert({
++        title: `🛡️ 监管风险预警：${item.title}`,
++        content: `${item.summary}（来源：${item.source}，影响度：${item.impact === 'high' ? '高' : '中'}）。已生成合规审查待办。`,
++        newsId: item.id,
++        link: '/industry-news',
++      });
++      if (result.success || Object.values(result.channelResults).some((r) => r?.ok)) {
++        usePushChannelConfigStore.getState().recordSent('risk_alert');
++      }
++    })();
++    msg.success('已发起合规审查，待办 + 风险通知已生成');
++  };
+ 
+   // 新闻数据
+   const [newsList, setNewsList] = useState<NewsItem[]>(MOCK_NEWS);
+@@ -331,6 +380,22 @@ const IndustryNews: React.FC = () => {
+                             {item.source} · {item.publishTime}
+                           </Text>
+                           <Space size={4}>
++                            {item.impact !== 'low' && (
++                              <Tooltip title="一键发起合规审查（生成待办 + 风险通知）">
++                                <Button
++                                  type="primary"
++                                  size="small"
++                                  icon={<SafetyCertificateOutlined />}
++                                  onClick={(e) => {
++                                    e.stopPropagation();
++                                    handleLaunchComplianceReview(item);
++                                  }}
++                                  style={{ fontSize: 12 }}
++                                >
++                                  发起审查
++                                </Button>
++                              </Tooltip>
++                            )}
+                             <Tooltip title={item.starred ? '取消收藏' : '收藏'}>
+                               <Button
+                                 type="text"
+diff --git a/src/pages/Meeting/MeetingList.tsx b/src/pages/Meeting/MeetingList.tsx
+index 52c3eeb..9a4b561 100644
+--- a/src/pages/Meeting/MeetingList.tsx
++++ b/src/pages/Meeting/MeetingList.tsx
+@@ -403,7 +403,10 @@ const MeetingList: React.FC = () => {
+                 if (prev.find((m) => m.id === demoMeeting.id)) return prev;
+                 return [demoMeeting, ...prev];
+               });
+-              autoRunDemo();
++              autoRunDemo(
++                t('meeting.demoMode.running'),
++                t('meeting.demoMode.completed')
++              );
+               navigate('/meeting/demo-meeting-q4-budget/report');
+             }}
+             style={{
+diff --git a/src/pages/Notifications.tsx b/src/pages/Notifications.tsx
+index a6d1775..cf6d3ef 100644
+--- a/src/pages/Notifications.tsx
++++ b/src/pages/Notifications.tsx
+@@ -27,12 +27,105 @@ import {
+   UnorderedListOutlined,
+   FireOutlined,
+   ClockCircleOutlined,
++  DingtalkOutlined,
++  WechatWorkOutlined,
++  MailOutlined,
++  ReloadOutlined,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
+ import { useNotificationStore } from '@/store';
++import {
++  dispatchNotification,
++  type PushChannel,
++  type NotificationEventType,
++} from '@/services/notificationDispatchService';
+ import './Notifications.css';
+ 
+-const { Title, Text } = Typography;
++const { Text } = Typography;
++
++const channelMeta: Record<PushChannel, { icon: React.ReactNode; label: string; color: string }> = {
++  dingtalk: { icon: <DingtalkOutlined />, label: '钉钉', color: '#1677FF' },
++  wecom: { icon: <WechatWorkOutlined />, label: '企微', color: '#07C160' },
++  email: { icon: <MailOutlined />, label: '邮件', color: '#722ED1' },
++};
++
++// 推送状态徽章组件
++const PushStatusBadge: React.FC<{
++  pushResult: NonNullable<import('@/store/notificationStore').Notification['pushResult']>;
++  notificationId: string;
++}> = ({ pushResult, notificationId }) => {
++  const { message } = App.useApp();
++  const [retrying, setRetrying] = useState<Set<PushChannel>>(new Set());
++
++  const handleRetry = async (channel: PushChannel) => {
++    setRetrying((prev) => new Set(prev).add(channel));
++    try {
++      const result = await dispatchNotification({
++        eventType: 'sandbox_critical' as NotificationEventType, // 用通用类型
++        channels: [channel],
++        recipients: [],
++        payload: { title: '重试推送', content: '通知推送重试' },
++      }, { force: true });
++
++      // 更新通知的 pushResult
++      const { notifications, ...rest } = useNotificationStore.getState();
++      const updated = notifications.map((n) =>
++        n.id === notificationId
++          ? {
++              ...n,
++              pushResult: {
++                ...n.pushResult!,
++                channelResults: {
++                  ...n.pushResult!.channelResults,
++                  [channel]: result.channelResults[channel],
++                },
++              },
++            }
++          : n
++      );
++      useNotificationStore.setState({ notifications: updated, ...rest });
++
++      if (result.channelResults[channel]?.ok) {
++        message.success(`${channelMeta[channel].label} 重试成功`);
++      } else {
++        message.error(`${channelMeta[channel].label} 重试失败：${result.channelResults[channel]?.error}`);
++      }
++    } finally {
++      setRetrying((prev) => {
++        const next = new Set(prev);
++        next.delete(channel);
++        return next;
++      });
++    }
++  };
++
++  const channels = Object.entries(pushResult.channelResults) as [PushChannel, NonNullable<typeof pushResult.channelResults[string]>][];
++
++  return (
++    <Space size={4} style={{ marginLeft: 4 }}>
++      {channels.map(([ch, r]) => (
++        <Tooltip
++          key={ch}
++          title={
++            r.ok
++              ? `${channelMeta[ch].label} 推送成功`
++              : `${channelMeta[ch].label} 失败：${r.error || '未知错误'} — 点击重试`
++          }
++        >
++          <Tag
++            icon={channelMeta[ch].icon}
++            color={r.ok ? 'success' : 'error'}
++            style={{ cursor: r.ok ? 'default' : 'pointer', fontSize: 11 }}
++            onClick={r.ok ? undefined : () => handleRetry(ch)}
++          >
++            {r.ok ? channelMeta[ch].label : '失败'}
++            {r.ok ? '' : ''}
++          </Tag>
++        </Tooltip>
++      ))}
++    </Space>
++  );
++};
+ 
+ const typeMeta: Record<
+   string,
+@@ -66,6 +159,13 @@ const typeMeta: Record<
+     bg: 'rgba(139, 148, 158, 0.08)',
+     barColor: '#8B949E',
+   },
++  risk: {
++    color: 'volcano',
++    iconColor: '#D64045',
++    textKey: 'notification.risk',
++    bg: 'rgba(214, 64, 69, 0.12)',
++    barColor: '#D64045',
++  },
+ };
+ 
+ const Notifications: React.FC = () => {
+@@ -108,6 +208,8 @@ const Notifications: React.FC = () => {
+           return <CalendarOutlined />;
+         case 'ai':
+           return <RobotOutlined />;
++        case 'risk':
++          return <FireOutlined />;
+         default:
+           return <FileTextOutlined />;
+       }
+@@ -173,6 +275,7 @@ const Notifications: React.FC = () => {
+       ),
+     },
+     { key: 'urgent', label: `${t('notification.urgent')} (${notifications.filter((n) => n.type === 'urgent').length})` },
++    { key: 'risk', label: `${t('notification.risk') || '风险事件'} (${notifications.filter((n) => n.type === 'risk').length})` },
+     { key: 'meeting', label: `${t('notification.meeting')} (${notifications.filter((n) => n.type === 'meeting').length})` },
+     { key: 'ai', label: `${t('notification.ai')} (${notifications.filter((n) => n.type === 'ai').length})` },
+     { key: 'system', label: `${t('notification.system')} (${notifications.filter((n) => n.type === 'system').length})` },
+@@ -488,6 +591,14 @@ const Notifications: React.FC = () => {
+                       >
+                         {t('notification.delete')}
+                       </Button>
++
++                      {/* 推送渠道状态（外部推送） */}
++                      {item.pushResult && (
++                        <PushStatusBadge
++                          pushResult={item.pushResult}
++                          notificationId={item.id}
++                        />
++                      )}
+                     </div>
+                   </div>
+                 </div>
+diff --git a/src/pages/Settings/ExternalPushSettings.tsx b/src/pages/Settings/ExternalPushSettings.tsx
+new file mode 100644
+index 0000000..f7795e9
+--- /dev/null
++++ b/src/pages/Settings/ExternalPushSettings.tsx
+@@ -0,0 +1,314 @@
++/**
++ * 外部推送配置面板（Settings → 外部推送 Tab）
++ *
++ * 功能：
++ *   - 5 种业务事件 × 3 个外部渠道（钉钉 / 企业微信 / 邮件）的开关配置
++ *   - 每个事件独立配置接收人
++ *   - 集成测试按钮：模拟推送一条测试消息
++ */
++
++import React, { useState } from 'react';
++import {
++  Card,
++  Switch,
++  Form,
++  Typography,
++  Space,
++  Row,
++  Col,
++  Tag,
++  Button,
++  Input,
++  Divider,
++  Tooltip,
++  App,
++  Alert,
++} from 'antd';
++import {
++  DingtalkOutlined,
++  WechatWorkOutlined,
++  MailOutlined,
++  ApiOutlined,
++  BellOutlined,
++  ReloadOutlined,
++  CheckCircleOutlined,
++  PlusOutlined,
++} from '@ant-design/icons';
++import { usePushChannelConfigStore } from '@/store/pushChannelConfigStore';
++import { dispatchNotification, type NotificationEventType, type PushChannel } from '@/services/notificationDispatchService';
++
++const { Title, Text, Paragraph } = Typography;
++
++const channelMeta: Record<PushChannel, { icon: React.ReactNode; label: string; color: string; bg: string; placeholder: string }> = {
++  dingtalk: {
++    icon: <DingtalkOutlined />,
++    label: '钉钉',
++    color: '#1677FF',
++    bg: 'rgba(22, 119, 255, 0.08)',
++    placeholder: '钉钉 userId，多个用逗号分隔',
++  },
++  wecom: {
++    icon: <WechatWorkOutlined />,
++    label: '企业微信',
++    color: '#07C160',
++    bg: 'rgba(7, 193, 96, 0.08)',
++    placeholder: '企业微信 userId，多个用逗号分隔',
++  },
++  email: {
++    icon: <MailOutlined />,
++    label: '邮件',
++    color: '#722ED1',
++    bg: 'rgba(114, 46, 209, 0.08)',
++    placeholder: '邮箱地址，多个用逗号分隔',
++  },
++};
++
++const eventOrder: NotificationEventType[] = [
++  'meeting_todo',
++  'workitem_due',
++  'approval_change',
++  'sandbox_critical',
++  'risk_alert',
++];
++
++const ExternalPushSettings: React.FC = () => {
++  const { message } = App.useApp();
++  const configs = usePushChannelConfigStore((s) => s.configs);
++  const toggleEvent = usePushChannelConfigStore((s) => s.toggleEvent);
++  const toggleChannel = usePushChannelConfigStore((s) => s.toggleChannel);
++  const setRecipients = usePushChannelConfigStore((s) => s.setRecipients);
++  const reset = usePushChannelConfigStore((s) => s.reset);
++
++  // 接收人临时输入（草稿态）
++  const [recipientDrafts, setRecipientDrafts] = useState<Record<NotificationEventType, string>>(() => {
++    const init: any = {};
++    eventOrder.forEach((e) => { init[e] = configs[e].recipients.join(', '); });
++    return init;
++  });
++
++  const enabledCount = eventOrder.filter((e) => configs[e].enabled).length;
++
++  const handleSaveRecipients = (eventType: NotificationEventType) => {
++    const raw = recipientDrafts[eventType] || '';
++    const list = raw.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
++    setRecipients(eventType, list);
++    message.success(`${configs[eventType].label} 接收人已保存（${list.length} 人）`);
++  };
++
++  const handleTestPush = async (eventType: NotificationEventType) => {
++    const cfg = configs[eventType];
++    if (!cfg.enabled) {
++      message.warning('该事件未启用外部推送');
++      return;
++    }
++    const enabledChannels = (Object.keys(cfg.channels) as PushChannel[]).filter((c) => cfg.channels[c]);
++    if (enabledChannels.length === 0) {
++      message.warning('请至少开启一个推送渠道');
++      return;
++    }
++    if (cfg.recipients.length === 0) {
++      message.warning('请配置接收人');
++      return;
++    }
++    const hide = message.loading(`正在向 [${enabledChannels.join(', ')}] 发送测试消息...`, 0);
++    const result = await dispatchNotification({
++      eventType,
++      channels: enabledChannels,
++      recipients: cfg.recipients,
++      payload: {
++        title: `[测试] ${cfg.label}`,
++        content: `这是一条来自「睿枢金融办公平台」的测试推送，时间：${new Date().toLocaleString()}`,
++        priority: 'normal',
++      },
++    }, { force: true });
++    hide();
++    if (result.success) {
++      message.success('测试推送成功');
++    } else {
++      const failed = Object.entries(result.channelResults).filter(([_, r]) => !r?.ok);
++      message.error(`部分渠道失败：${failed.map(([ch]) => channelMeta[ch as PushChannel].label).join(', ')}`);
++    }
++  };
++
++  return (
++    <div>
++      <Alert
++        type="info"
++        showIcon
++        message="外部办公系统集成（一期）"
++        description={
++          <span>
++            支持将系统内的关键业务事件实时推送至 <Text strong>钉钉 / 企业微信 / 邮件</Text>。
++            配置后将自动分发，无需手动复制通知内容。<Text type="secondary">SSO 单点登录将在二期提供。</Text>
++          </span>
++        }
++        style={{ marginBottom: 16 }}
++      />
++
++      <Row gutter={12} style={{ marginBottom: 16 }}>
++        <Col span={8}>
++          <Card size="small">
++            <Text type="secondary" style={{ fontSize: 12 }}>已启用事件类型</Text>
++            <div style={{ fontSize: 24, fontWeight: 600, color: '#0F2B5B' }}>
++              {enabledCount} <Text type="secondary" style={{ fontSize: 14 }}>/ {eventOrder.length}</Text>
++            </div>
++          </Card>
++        </Col>
++        <Col span={8}>
++          <Card size="small">
++            <Text type="secondary" style={{ fontSize: 12 }}>支持渠道</Text>
++            <Space size={6} style={{ marginTop: 8 }}>
++              {(['dingtalk', 'wecom', 'email'] as PushChannel[]).map((ch) => (
++                <Tag key={ch} icon={channelMeta[ch].icon} color={channelMeta[ch].color}>
++                  {channelMeta[ch].label}
++                </Tag>
++              ))}
++            </Space>
++          </Card>
++        </Col>
++        <Col span={8}>
++          <Card size="small">
++            <Text type="secondary" style={{ fontSize: 12 }}>API 接口</Text>
++            <div style={{ fontSize: 13, marginTop: 4, fontFamily: 'monospace', color: '#0F2B5B' }}>
++              POST /api/v1/notifications/send
++            </div>
++          </Card>
++        </Col>
++      </Row>
++
++      <Form layout="vertical">
++        {eventOrder.map((eventType) => {
++          const cfg = configs[eventType];
++          return (
++            <Card
++              key={eventType}
++              size="small"
++              style={{ marginBottom: 12, borderLeft: `3px solid ${cfg.enabled ? '#22A775' : '#d9d9d9'}` }}
++              title={
++                <Space>
++                  <BellOutlined style={{ color: cfg.enabled ? '#22A775' : '#8A94A6' }} />
++                  <Text strong>{cfg.label}</Text>
++                  {cfg.enabled ? (
++                    <Tag color="success">已启用</Tag>
++                  ) : (
++                    <Tag>未启用</Tag>
++                  )}
++                  {cfg.lastSentAt && (
++                    <Text type="secondary" style={{ fontSize: 11 }}>
++                      最近推送：{new Date(cfg.lastSentAt).toLocaleString()}
++                    </Text>
++                  )}
++                </Space>
++              }
++              extra={
++                <Space>
++                  <Tooltip title="向已配置的渠道发送一条测试消息">
++                    <Button
++                      size="small"
++                      icon={<ApiOutlined />}
++                      onClick={() => handleTestPush(eventType)}
++                      disabled={!cfg.enabled}
++                    >
++                      测试推送
++                    </Button>
++                  </Tooltip>
++                  <Switch
++                    checked={cfg.enabled}
++                    onChange={(checked) => toggleEvent(eventType, checked)}
++                    checkedChildren="启用"
++                    unCheckedChildren="停用"
++                  />
++                </Space>
++              }
++            >
++              <Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
++                {cfg.description}
++              </Paragraph>
++
++              <Row gutter={16}>
++                {/* 渠道开关 */}
++                <Col span={10}>
++                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
++                    推送渠道
++                  </Text>
++                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
++                    {(['dingtalk', 'wecom', 'email'] as PushChannel[]).map((ch) => {
++                      const meta = channelMeta[ch];
++                      return (
++                        <div
++                          key={ch}
++                          style={{
++                            display: 'flex',
++                            alignItems: 'center',
++                            justifyContent: 'space-between',
++                            padding: '6px 10px',
++                            background: cfg.channels[ch] ? meta.bg : '#fafafa',
++                            borderRadius: 6,
++                            border: `1px solid ${cfg.channels[ch] ? meta.color : '#f0f0f0'}`,
++                          }}
++                        >
++                          <Space>
++                            <span style={{ color: meta.color, fontSize: 16 }}>{meta.icon}</span>
++                            <Text strong={cfg.channels[ch]}>{meta.label}</Text>
++                          </Space>
++                          <Switch
++                            size="small"
++                            checked={cfg.channels[ch]}
++                            onChange={(checked) => toggleChannel(eventType, ch, checked)}
++                            disabled={!cfg.enabled}
++                          />
++                        </div>
++                      );
++                    })}
++                  </Space>
++                </Col>
++
++                {/* 接收人 */}
++                <Col span={14}>
++                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
++                    接收人
++                  </Text>
++                  <Input.TextArea
++                    rows={3}
++                    placeholder={channelMeta.dingtalk.placeholder + '；邮件用邮箱；企业微信用 userId'}
++                    value={recipientDrafts[eventType]}
++                    onChange={(e) =>
++                      setRecipientDrafts((prev) => ({ ...prev, [eventType]: e.target.value }))
++                    }
++                    disabled={!cfg.enabled}
++                  />
++                  <Space style={{ marginTop: 8 }}>
++                    <Button
++                      type="primary"
++                      size="small"
++                      icon={<CheckCircleOutlined />}
++                      onClick={() => handleSaveRecipients(eventType)}
++                      disabled={!cfg.enabled}
++                    >
++                      保存接收人
++                    </Button>
++                    <Text type="secondary" style={{ fontSize: 11 }}>
++                      已保存 {cfg.recipients.length} 人
++                    </Text>
++                  </Space>
++                </Col>
++              </Row>
++            </Card>
++          );
++        })}
++      </Form>
++
++      <Divider />
++      <Space>
++        <Button icon={<ReloadOutlined />} onClick={() => { reset(); message.success('已恢复默认配置'); }}>
++          恢复默认配置
++        </Button>
++        <Text type="secondary" style={{ fontSize: 12 }}>
++          配置自动保存到本地，刷新页面不会丢失
++        </Text>
++      </Space>
++    </div>
++  );
++};
++
++export default ExternalPushSettings;
+diff --git a/src/pages/Settings/index.tsx b/src/pages/Settings/index.tsx
+index 58e82b5..57677ab 100644
+--- a/src/pages/Settings/index.tsx
++++ b/src/pages/Settings/index.tsx
+@@ -12,10 +12,19 @@ import {
+   CloseCircleOutlined,
+   EyeInvisibleOutlined,
+   EyeOutlined,
++  ApiOutlined,
++  DingtalkOutlined,
++  WechatWorkOutlined,
++  MailOutlined,
++  ReloadOutlined,
++  CheckCircleFilled,
+ } from '@ant-design/icons';
+ import { useTranslation } from 'react-i18next';
+ import i18n from '@/i18n';
+ import { getApiKey, setApiKey, hasApiKey } from '@/api/ai';
++import { usePushChannelConfigStore } from '@/store/pushChannelConfigStore';
++import type { NotificationEventType } from '@/services/notificationDispatchService';
++import ExternalPushSettings from './ExternalPushSettings';
+ 
+ const { Title, Text } = Typography;
+ 
+@@ -149,6 +158,11 @@ const SystemSettings: React.FC = () => {
+         </Form>
+       ),
+     },
++    {
++      key: 'push',
++      label: <span><ApiOutlined /> 外部推送</span>,
++      children: <ExternalPushSettings />,
++    },
+     {
+       key: 'security',
+       label: <span><LockOutlined /> 安全</span>,
+diff --git a/src/services/approvalSubmitService.ts b/src/services/approvalSubmitService.ts
+new file mode 100644
+index 0000000..a24c765
+--- /dev/null
++++ b/src/services/approvalSubmitService.ts
+@@ -0,0 +1,98 @@
++/**
++ * Approval Pre-Submit Sandbox Hook
++ *
++ * 业务联动：
++ *   - 任何业务模块（会议、研报、AI 等）提交审批前，调用本工具
++ *   - 自动调用沙箱检测；命中阻断级违规则抛出 SandboxError
++ *   - 通过则把结果写入 approvalDraftStore，等待用户在审批页确认
++ *
++ * 用法：
++ *   try {
++ *     await submitApprovalWithSandbox({
++ *       title: '采购合同审批',
++ *       text: '...',
++ *       approvalType: 'contract',
++ *       meetingWorkItemId: 'wi_xxx',
++ *       meetingId: 'meeting_xxx',
++ *     });
++ *     navigate('/approval');
++ *   } catch (e) {
++ *     showBlockedDialog(e);
++ *   }
++ */
++
++import { checkCompliance, type SandboxCheckRequest } from '@/services/sandbox/sandboxApiContract';
++import { useApprovalDraftStore } from '@/store/approvalDraftStore';
++import type { ApprovalDraft } from '@/store/approvalDraftStore';
++
++export interface SubmitApprovalParams {
++  title: string;
++  text: string;
++  approvalType: ApprovalDraft['approvalType'];
++  /** 关联会议工单 ID（可选；联动时填写） */
++  meetingWorkItemId?: string;
++  /** 关联会议 ID（可选；展示用） */
++  meetingId?: string;
++  /** 是否跳过沙箱（草稿保存场景） */
++  skipSandbox?: boolean;
++}
++
++export interface SandboxBlockedError extends Error {
++  name: 'SandboxBlockedError';
++  result: import('@/services/sandbox/sandboxEngine').SandboxResult;
++  businessRef?: import('@/services/sandbox/sandboxLog').BusinessRef;
++}
++
++/**
++ * 提交审批 + 自动沙箱检测
++ * @returns 通过检测时返回 sandboxResult；阻断时抛出 SandboxBlockedError
++ */
++export async function submitApprovalWithSandbox(
++  params: SubmitApprovalParams
++): Promise<import('@/services/sandbox/sandboxEngine').SandboxResult> {
++  if (params.skipSandbox) {
++    // 草稿模式：直接创建 draft，不检测
++    useApprovalDraftStore.getState().createDraft({
++      title: params.title,
++      text: params.text,
++      result: { passed: true, blocked: false, score: 5, issues: [], hitSpans: [], regulations: [], totalHits: 0, categoryHits: {} as any, rewritten: '', durationMs: 0 },
++      approvalType: params.approvalType,
++      meetingWorkItemId: params.meetingWorkItemId,
++      meetingId: params.meetingId,
++    });
++    return {} as any;
++  }
++
++  // 1. 调用沙箱
++  const req: SandboxCheckRequest = {
++    text: params.text,
++    source: 'approval',
++    businessRef: params.meetingId
++      ? { type: 'meeting', id: params.meetingId, title: params.title }
++      : undefined,
++  };
++  const result = await checkCompliance(req);
++
++  // 2. 阻断级违规 → 直接抛错
++  if (result.blocked) {
++    const err = new Error(
++      `提交被拦截：检测到 ${result.issues.length} 项阻断级合规违规，请前往沙箱修改。`
++    ) as SandboxBlockedError;
++    err.name = 'SandboxBlockedError';
++    err.result = result;
++    err.businessRef = req.businessRef;
++    throw err;
++  }
++
++  // 3. 通过 / 仅警告 → 写入审批草稿
++  useApprovalDraftStore.getState().createDraft({
++    title: params.title,
++    text: params.text,
++    result,
++    approvalType: params.approvalType,
++    meetingWorkItemId: params.meetingWorkItemId,
++    meetingId: params.meetingId,
++  });
++
++  return result;
++}
+diff --git a/src/services/notificationDispatchService.ts b/src/services/notificationDispatchService.ts
+new file mode 100644
+index 0000000..09ad6ae
+--- /dev/null
++++ b/src/services/notificationDispatchService.ts
+@@ -0,0 +1,265 @@
++/**
++ * Notification Dispatch Service —— 外部办公系统推送（钉钉 / 企业微信 / 邮件）
++ *
++ * 一期：仅消息通知推送（SSO 单点登录放到二期）
++ *
++ * API 契约：
++ *   POST /api/v1/notifications/send
++ *   body: {
++ *     eventType: 'meeting_todo' | 'workitem_due' | 'approval_change' | 'sandbox_critical' | 'risk_alert',
++ *     channels: ('dingtalk' | 'wecom' | 'email')[],
++ *     recipients: string[],    // 钉钉 userId / 企业微信 userId / 邮箱地址
++ *     payload: {
++ *       title: string,
++ *       content: string,
++ *       businessRef?: { type, id, title },
++ *       link?: string,        // 业务跳转链接
++ *       priority?: 'normal' | 'high' | 'urgent',
++ *     },
++ *     sourceNotificationId?: string,  // 系统内通知 ID，便于关联
++ *   }
++ *   response: { success: boolean, dispatchId: string, channelResults: Record<Channel, { ok, messageId?, error? }> }
++ *
++ * 真实对接时：把 mock 内部实现替换为 axios.post('/api/v1/notifications/send', ...)
++ */
++
++import { usePushChannelConfigStore } from '@/store/pushChannelConfigStore';
++import { generateId } from '@/utils/format';
++
++export type PushChannel = 'dingtalk' | 'wecom' | 'email';
++export type NotificationEventType =
++  | 'meeting_todo'          // 会议待办生成
++  | 'workitem_due'          // 工单到期催办
++  | 'approval_change'       // 审批状态变更
++  | 'sandbox_critical'      // 沙箱高危合规告警
++  | 'risk_alert';           // 监管情报重大风险预警
++
++export interface PushPayload {
++  title: string;
++  content: string;
++  businessRef?: { type: 'meeting' | 'report' | 'approval' | 'news' | 'todo'; id: string; title?: string };
++  link?: string;
++  priority?: 'normal' | 'high' | 'urgent';
++}
++
++export interface PushRequest {
++  eventType: NotificationEventType;
++  channels: PushChannel[];
++  recipients: string[];
++  payload: PushPayload;
++  sourceNotificationId?: string;
++}
++
++export interface PushChannelResult {
++  ok: boolean;
++  messageId?: string;
++  error?: string;
++  sentAt?: string;
++}
++
++export interface PushResponse {
++  success: boolean;
++  dispatchId: string;
++  channelResults: Partial<Record<PushChannel, PushChannelResult>>;
++}
++
++// ============================================================
++// 内部 mock 实现：每个渠道都模拟 90% 成功率
++// ============================================================
++
++const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
++
++async function mockSendToChannel(
++  channel: PushChannel,
++  req: PushRequest
++): Promise<PushChannelResult> {
++  await delay(300 + Math.random() * 500); // 300-800ms
++
++  const ok = Math.random() > 0.1; // 90% 成功
++
++  const channelNames: Record<PushChannel, string> = {
++    dingtalk: '钉钉',
++    wecom: '企业微信',
++    email: '邮件',
++  };
++
++  if (!ok) {
++    return {
++      ok: false,
++      error: `${channelNames[channel]}推送失败：网络超时`,
++    };
++  }
++
++  return {
++    ok: true,
++    messageId: `${channel}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
++    sentAt: new Date().toISOString(),
++  };
++}
++
++// ============================================================
++// 对外函数：dispatchNotification —— 触发外部推送
++//
++// 用法：
++//   import { dispatchNotification } from '@/services/notificationDispatchService';
++//   await dispatchNotification({ eventType, ... });
++//
++// 内部会自动读取 pushChannelConfigStore 配置（是否开启 + 接收人）
++// 如果没有显式传 channels，会从配置中推断
++// ============================================================
++
++export interface DispatchOptions {
++  /** 不读配置，直接发送（用于系统级强制推送） */
++  force?: boolean;
++}
++
++export async function dispatchNotification(
++  req: PushRequest,
++  options: DispatchOptions = {}
++): Promise<PushResponse> {
++  const dispatchId = generateId('dispatch');
++
++  // 1. 如果没有显式指定 channels，从配置读取
++  let channels = req.channels;
++  let recipients = req.recipients;
++  if (!options.force && (channels.length === 0 || recipients.length === 0)) {
++    const config = usePushChannelConfigStore.getState().getConfigForEvent(req.eventType);
++    if (!config || !config.enabled) {
++      // 配置未启用 → 跳过外部推送
++      return {
++        success: false,
++        dispatchId,
++        channelResults: {
++          dingtalk: { ok: false, error: '钉钉渠道未启用' },
++          wecom: { ok: false, error: '企业微信渠道未启用' },
++          email: { ok: false, error: '邮件渠道未启用' },
++        },
++      };
++    }
++    channels = (Object.keys(config.channels) as PushChannel[]).filter((c) => config.channels[c]);
++    recipients = config.recipients;
++  }
++
++  // 2. 并发推送到所有渠道
++  const channelResults: Partial<Record<PushChannel, PushChannelResult>> = {};
++  await Promise.all(
++    channels.map(async (ch) => {
++      channelResults[ch] = await mockSendToChannel(ch, req);
++    })
++  );
++
++  const allOk = Object.values(channelResults).every((r) => r?.ok);
++
++  return {
++    success: allOk,
++    dispatchId,
++    channelResults,
++  };
++}
++
++// ============================================================
++// 便捷方法：按事件类型快捷触发（自动读取配置）
++// ============================================================
++
++export async function dispatchMeetingTodo(payload: {
++  title: string;
++  content: string;
++  meetingId?: string;
++  link?: string;
++}) {
++  return dispatchNotification({
++    eventType: 'meeting_todo',
++    channels: [],
++    recipients: [],
++    payload: {
++      title: payload.title,
++      content: payload.content,
++      link: payload.link,
++      businessRef: payload.meetingId
++        ? { type: 'meeting', id: payload.meetingId, title: payload.title }
++        : undefined,
++    },
++  });
++}
++
++export async function dispatchWorkitemDue(payload: {
++  title: string;
++  content: string;
++  workItemId?: string;
++  link?: string;
++  priority?: 'high' | 'urgent';
++}) {
++  return dispatchNotification({
++    eventType: 'workitem_due',
++    channels: [],
++    recipients: [],
++    payload: {
++      title: payload.title,
++      content: payload.content,
++      link: payload.link,
++      priority: payload.priority || 'high',
++    },
++  });
++}
++
++export async function dispatchApprovalChange(payload: {
++  title: string;
++  content: string;
++  approvalId?: string;
++  status: 'pending' | 'approved' | 'rejected';
++  link?: string;
++}) {
++  return dispatchNotification({
++    eventType: 'approval_change',
++    channels: [],
++    recipients: [],
++    payload: {
++      title: payload.title,
++      content: payload.content,
++      link: payload.link,
++      businessRef: payload.approvalId
++        ? { type: 'approval', id: payload.approvalId, title: payload.title }
++        : undefined,
++    },
++  });
++}
++
++export async function dispatchSandboxCritical(payload: {
++  title: string;
++  content: string;
++  link?: string;
++  priority?: 'urgent';
++}) {
++  return dispatchNotification({
++    eventType: 'sandbox_critical',
++    channels: [],
++    recipients: [],
++    payload: {
++      title: payload.title,
++      content: payload.content,
++      link: payload.link,
++      priority: payload.priority || 'urgent',
++    },
++  });
++}
++
++export async function dispatchRiskAlert(payload: {
++  title: string;
++  content: string;
++  newsId?: string;
++  link?: string;
++}) {
++  return dispatchNotification({
++    eventType: 'risk_alert',
++    channels: [],
++    recipients: [],
++    payload: {
++      title: payload.title,
++      content: payload.content,
++      link: payload.link,
++      businessRef: payload.newsId
++        ? { type: 'news', id: payload.newsId, title: payload.title }
++        : undefined,
++    },
++  });
++}
+diff --git a/src/services/postMeetingService.ts b/src/services/postMeetingService.ts
+index 67b7acc..5f385cb 100644
+--- a/src/services/postMeetingService.ts
++++ b/src/services/postMeetingService.ts
+@@ -8,6 +8,11 @@
+  *     把每个函数体里的 `await delay(...)` + `return mockXxx` 替换为
+  *     `const { data } = await axios.post<...>('/api/v1/...', req)` 即可
+  *     UI 组件代码 0 改动
++ *
++ * 业务联动改动：
++ *   - closeMeeting 会调用 meetingWorkItemStore.bulkCreate 创建工单
++ *   - exportMarkdownWithSandbox 增加导出前沙箱检测，命中阻断则拒绝导出
++ *   - 报告导出日志绑定 businessRef（meetingId）
+  */
+ 
+ import type {
+@@ -21,6 +26,11 @@ import type {
+ import type { Blackboard, BlackboardAction, BlackboardDecision } from './multiAgentOrchestrator';
+ import { blackboardStore } from './multiAgentOrchestrator';
+ import { DEMO_REPORT_DATA } from '@/mock/meetingDemo';
++import { useMeetingWorkItemStore } from '@/store/meetingWorkItemStore';
++import { useApprovalDraftStore } from '@/store/approvalDraftStore';
++import { useNotificationStore } from '@/store/notificationStore';
++import { checkCompliance } from './sandbox/sandboxApiContract';
++import type { SandboxResult } from './sandbox/sandboxEngine';
+ 
+ // ============================================================
+ // 内部 mock 状态：保存派单结果（前端真实对接后删除）
+@@ -248,6 +258,14 @@ export async function closeOutAction(
+ export interface CloseMeetingResult {
+   dispatch: DispatchActionResponse['data'];
+   report: GetReportResponse['data'];
++  /** 本次会议新增的工单（含关联会议 ID） */
++  workItems: Array<{
++    id: string;
++    title: string;
++    assignee: string;
++    dueDate: string;
++    status: 'pending';
++  }>;
+ }
+ 
+ export async function closeMeeting(
+@@ -282,7 +300,66 @@ export async function closeMeeting(
+   // 2. 生成报告
+   const report = await generateReport(meetingId);
+ 
+-  return { dispatch: dispatchResult, report };
++  // 3. 创建会议工单（写入 meetingWorkItemStore）
++  const meetingTitle = report.meetingTitle || `会议 ${meetingId}`;
++  type WorkItemCreate = Omit<Parameters<ReturnType<typeof useMeetingWorkItemStore.getState>['bulkCreate']>[0], 'id' | 'status' | 'createdAt'>;
++  const actionData: WorkItemCreate[] = dispatchResult.workItems
++    .map((w) => {
++      const action = bb.actions.find((a) => a.id === w.sourceActionId);
++      if (!action) return null;
++      return {
++        meetingId,
++        meetingTitle,
++        title: action.description,
++        text: action.description,
++        assignee: action.assignee || '未指派',
++        dueDate: action.dueDate || new Date().toISOString().slice(0, 10),
++        priority: (action.priority || 'medium') as 'low' | 'medium' | 'high',
++      };
++    })
++    .filter(Boolean) as unknown as WorkItemCreate[];
++
++  const createdWorkItems = actionData.length > 0
++    ? useMeetingWorkItemStore.getState().bulkCreate(actionData)
++    : [];
++
++  // 4. 发送通知：有新的会议工单待处理
++  if (createdWorkItems.length > 0) {
++    useNotificationStore.getState().addNotification({
++      type: 'system',
++      title: '会议工单已派发',
++      content: `会议「${meetingTitle}」产生了 ${createdWorkItems.length} 项待处理工单，请在截止日期前完成`,
++      action: [{ label: '查看工单', key: 'view' }],
++    });
++
++    // 外部推送：触发钉钉/企微/邮件
++    (async () => {
++      const { dispatchMeetingTodo } = await import('./notificationDispatchService');
++      const { usePushChannelConfigStore } = await import('@/store/pushChannelConfigStore');
++      const result = await dispatchMeetingTodo({
++        title: `会议工单已派发：${meetingTitle}`,
++        content: `会议「${meetingTitle}」产生了 ${createdWorkItems.length} 项待处理工单，请尽快安排。`,
++        meetingId,
++        link: `/meeting/${meetingId}`,
++      });
++      // 记录推送时间
++      if (result.success || Object.values(result.channelResults).some((r) => r?.ok)) {
++        usePushChannelConfigStore.getState().recordSent('meeting_todo');
++      }
++    })();
++  }
++
++  return {
++    dispatch: dispatchResult,
++    report,
++    workItems: createdWorkItems.map((w) => ({
++      id: w.id,
++      title: w.title,
++      assignee: w.assignee,
++      dueDate: w.dueDate,
++      status: 'pending' as const,
++    })),
++  };
+ }
+ 
+ // ============================================================
+@@ -349,7 +426,73 @@ export function downloadMarkdown(report: GetReportResponse['data']) {
+ }
+ 
+ // ============================================================
+-// 7. resetAllMocks（仅供开发调试）
++// 8. exportMarkdownWithSandbox —— 带沙箱检测的会议报告导出
++//
++// 流程：报告文本 → 沙箱检测 → 阻断则抛错 / 通过则记录日志 + 下载
++// UI 调用方捕获 SandboxError 展示阻断提示 + 跳转改写页面
++// ============================================================
++
++export interface SandboxError {
++  passed: false;
++  blocked: true;
++  sandboxResult: SandboxResult;
++  message: string;
++}
++
++export interface ExportResult {
++  passed: true;
++  sandboxResult: SandboxResult;
++}
++
++export type ExportCheckResult = SandboxError | ExportResult;
++
++/**
++ * 导出前沙箱检测（不下载，只检测）
++ * 调用方根据 returned 类型决定是否允许导出
++ */
++export async function checkBeforeExport(
++  report: GetReportResponse['data']
++): Promise<ExportCheckResult> {
++  const md = reportToMarkdown(report);
++
++  const result = await checkCompliance({
++    text: md,
++    source: 'meeting_export',
++    businessRef: {
++      type: 'meeting',
++      id: report.meetingId,
++      title: report.meetingTitle,
++    },
++  });
++
++  if (result.blocked) {
++    return {
++      passed: false,
++      blocked: true,
++      sandboxResult: result,
++      message: `检测到 ${result.issues.length} 项阻断级违规，报告导出已被拦截。请先修改后再导出。`,
++    };
++  }
++
++  return { passed: true, sandboxResult: result };
++}
++
++/**
++ * 完整导出流程：检测通过后下载报告
++ * 失败时抛出 SandboxError，UI 捕获后展示阻断弹窗
++ */
++export async function exportMarkdownWithSandbox(
++  report: GetReportResponse['data']
++): Promise<void> {
++  const checkResult = await checkBeforeExport(report);
++  if (!checkResult.passed) {
++    throw checkResult; // 抛出给 UI 层处理
++  }
++  downloadMarkdown(report);
++}
++
++// ============================================================
++// 9. resetAllMocks（仅供开发调试）
+ // ============================================================
+ 
+ export function _resetMocks() {
+diff --git a/src/services/sandbox/sandboxApiContract.ts b/src/services/sandbox/sandboxApiContract.ts
+index 3719bbb..f13c32c 100644
+--- a/src/services/sandbox/sandboxApiContract.ts
++++ b/src/services/sandbox/sandboxApiContract.ts
+@@ -12,7 +12,7 @@
+ 
+ import type { SandboxResult } from './sandboxEngine';
+ import { runSandboxCheck } from './sandboxEngine';
+-import { sandboxLogStore, hashInput, previewInput } from './sandboxLog';
++import { sandboxLogStore, hashInput, previewInput, type BusinessRef } from './sandboxLog';
+ import { DEMO_SANDBOX_TEXTS } from '@/mock/sandboxDemo';
+ import { generateId } from '@/utils/format';
+ 
+@@ -27,7 +27,9 @@ import { generateId } from '@/utils/format';
+ 
+ export interface SandboxCheckRequest {
+   text: string;
+-  source: 'approval' | 'report' | 'qa' | 'sandbox_page' | 'demo';
++  source: 'approval' | 'report' | 'qa' | 'sandbox_page' | 'demo' | 'meeting_report' | 'meeting_export' | 'chat_ai' | 'industry_news_review';
++  /** 业务单据绑定（用于联动追溯） */
++  businessRef?: BusinessRef;
+ }
+ 
+ export interface SandboxCheckResponse {
+@@ -66,6 +68,7 @@ export async function checkCompliance(
+       totalHits: result.totalHits,
+       durationMs: result.durationMs,
+       source: req.source,
++      businessRef: req.businessRef,
+     });
+     return result;
+   }
+@@ -87,8 +90,40 @@ export async function checkCompliance(
+     totalHits: result.totalHits,
+     durationMs: result.durationMs,
+     source: req.source,
++    businessRef: req.businessRef,
+   });
+ 
++  // 外部推送：阻断级合规告警
++  if (result.blocked) {
++    (async () => {
++      const { dispatchSandboxCritical } = await import('@/services/notificationDispatchService');
++      const { useNotificationStore } = await import('@/store/notificationStore');
++      const { usePushChannelConfigStore } = await import('@/store/pushChannelConfigStore');
++
++      // 1. 系统内通知
++      const topRule = result.issues[0]?.ruleName || '阻断级合规违规';
++      useNotificationStore.getState().addNotification({
++        type: 'urgent',
++        title: '合规沙箱检测到阻断级违规',
++        content: `来源「${req.source}」：检测到 ${result.issues.length} 项阻断级违规（主要规则：${topRule}），已禁止提交/导出。`,
++        action: [
++          { label: '查看详情', key: 'view' },
++          { label: '前往沙箱', key: 'sandbox' },
++        ],
++      });
++
++      // 2. 外部推送（钉钉/企微/邮件）
++      const pushResult = await dispatchSandboxCritical({
++        title: `🔴 合规告警：${req.source} 触发阻断级违规`,
++        content: `${result.issues.length} 项阻断级违规，主要规则：${topRule}。评分 ${result.score.toFixed(1)}/5。已自动禁止业务提交/导出。`,
++        link: '/sandbox',
++      });
++      if (pushResult.success || Object.values(pushResult.channelResults).some((r) => r?.ok)) {
++        usePushChannelConfigStore.getState().recordSent('sandbox_critical');
++      }
++    })();
++  }
++
+   return result;
+ }
+ 
+diff --git a/src/services/sandbox/sandboxLog.ts b/src/services/sandbox/sandboxLog.ts
+index b44098d..2aece83 100644
+--- a/src/services/sandbox/sandboxLog.ts
++++ b/src/services/sandbox/sandboxLog.ts
+@@ -7,9 +7,35 @@
+  *   - 每条日志：调用人 / 时间 / 输入哈希 / 输出结果 / 命中规则数
+  *   - 真实对接后端时，只需把 record() 内的 update 替换为 axios.post
+  *
+- * 用于：演示"全程留痕可审计"+ 报告页"本次检查历史"
++ * 改动（业务联动）：
++ *   - 每条日志绑定 businessRef（业务单据引用：研报 ID / 会议 ID / 审批 ID）
++ *   - source 字段标准化：枚举 'approval' | 'report' | 'qa' | 'sandbox_page' | 'demo'
++ *     | 'meeting_report' | 'meeting_export' | 'chat_ai' | 'industry_news_review'
++ *
++ * 用于：演示"全程留痕可审计"+ 报告页"本次检查历史"+ 业务单据"沙箱回溯"
+  */
+ 
++export type SandboxSource =
++  | 'approval'
++  | 'report'
++  | 'qa'
++  | 'sandbox_page'
++  | 'demo'
++  // 新增：业务联动场景
++  | 'meeting_report'
++  | 'meeting_export'
++  | 'chat_ai'
++  | 'industry_news_review';
++
++export interface BusinessRef {
++  /** 业务类型 */
++  type: 'report' | 'meeting' | 'approval' | 'news' | 'chat';
++  /** 业务单据 ID */
++  id: string;
++  /** 业务标题（便于审计时一眼看懂） */
++  title?: string;
++}
++
+ export interface SandboxLogEntry {
+   id: string;
+   timestamp: number;
+@@ -35,6 +61,8 @@ export interface SandboxLogEntry {
+   durationMs: number;
+   /** 调用来源（页面） */
+   source: string;
++  /** 业务单据引用（可选；用于联动追溯） */
++  businessRef?: BusinessRef;
+ }
+ 
+ class SandboxLogStore {
+@@ -46,7 +74,16 @@ class SandboxLogStore {
+     return [...this.logs].reverse(); // 最新在前
+   }
+ 
+-  record(entry: Omit<SandboxLogEntry, 'id' | 'timestamp'>): SandboxLogEntry {
++  /** 按业务单据查询历史检测记录 */
++  listByBusiness(type: BusinessRef['type'], id: string): SandboxLogEntry[] {
++    return [...this.logs]
++      .filter((l) => l.businessRef?.type === type && l.businessRef?.id === id)
++      .reverse();
++  }
++
++  record(
++    entry: Omit<SandboxLogEntry, 'id' | 'timestamp'> & { businessRef?: BusinessRef }
++  ): SandboxLogEntry {
+     const fullEntry: SandboxLogEntry = {
+       ...entry,
+       id: `sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+diff --git a/src/store/approvalDraftStore.ts b/src/store/approvalDraftStore.ts
+index a0420f8..89b995d 100644
+--- a/src/store/approvalDraftStore.ts
++++ b/src/store/approvalDraftStore.ts
+@@ -3,10 +3,15 @@
+  *
+  * 流程：Sandbox 检测完成 → 用户点"提交审批" → 草稿存入 store → 跳转 /approval
+  * Approval 页读取草稿并预填 AI 预审结果
++ *
++ * 改动（会议联动）：
++ *   - ApprovalDraft 新增 meetingWorkItemId 字段，建立与会议工单的关联
++ *   - 新增 setApprovalResult：审批通过/驳回时调用，同步回写到 meetingWorkItemStore
+  */
+ 
+ import { create } from 'zustand';
+ import type { SandboxResult } from '@/services/sandbox/sandboxEngine';
++import { useMeetingWorkItemStore } from './meetingWorkItemStore';
+ 
+ export interface ApprovalDraft {
+   id: string;
+@@ -18,6 +23,10 @@ export interface ApprovalDraft {
+   createdAt: string;
+   /** 审批类型（英文枚举） */
+   approvalType: 'contract' | 'document' | 'reimbursement' | 'procurement' | 'travel' | 'budget' | 'seal';
++  /** 关联会议工单 ID（来自会议派单时填写；其他场景为空） */
++  meetingWorkItemId?: string;
++  /** 关联会议 ID（展示用） */
++  meetingId?: string;
+ }
+ 
+ interface ApprovalDraftState {
+@@ -29,18 +38,30 @@ interface ApprovalDraftState {
+     text: string;
+     result: SandboxResult;
+     approvalType: ApprovalDraft['approvalType'];
++    meetingWorkItemId?: string;
++    meetingId?: string;
+   }) => void;
+   /** 消费最新草稿（读取后清空） */
+   consumeDraft: () => ApprovalDraft | null;
+   /** 追加 AI 预审结果到已有草稿（Approval 页内部更新） */
+   appendAiPrecheck: (approvalId: string, result: SandboxResult) => void;
++  /**
++   * 审批结果回写
++   * - 当 approval 关联了 meetingWorkItemId 时，同步把会议工单标记为 approved/rejected
++   * - 返回回写是否成功（用于 UI 提示）
++   */
++  setApprovalResult: (
++    approvalId: string,
++    status: 'approved' | 'rejected',
++    note?: string
++  ) => { synced: boolean; meetingWorkItemId?: string };
+ }
+ 
+ export const useApprovalDraftStore = create<ApprovalDraftState>()((set, get) => ({
+   drafts: [],
+   latestDraft: null,
+ 
+-  createDraft: ({ title, text, result, approvalType }) => {
++  createDraft: ({ title, text, result, approvalType, meetingWorkItemId, meetingId }) => {
+     const draft: ApprovalDraft = {
+       id: `draft_${Date.now()}`,
+       title,
+@@ -48,6 +69,8 @@ export const useApprovalDraftStore = create<ApprovalDraftState>()((set, get) =>
+       sandboxResult: result,
+       createdAt: new Date().toISOString(),
+       approvalType,
++      meetingWorkItemId,
++      meetingId,
+     };
+     set((state) => ({
+       drafts: [draft, ...state.drafts],
+@@ -68,4 +91,40 @@ export const useApprovalDraftStore = create<ApprovalDraftState>()((set, get) =>
+       ),
+     }));
+   },
++
++  setApprovalResult: (approvalId, status, note) => {
++    const draft = get().drafts.find((d) => d.id === approvalId);
++    if (!draft) return { synced: false };
++
++    // 回写会议工单状态
++    if (draft.meetingWorkItemId) {
++      useMeetingWorkItemStore.getState().setStatus(
++        draft.meetingWorkItemId,
++        status,
++        note
++      );
++
++      // 外部推送：审批状态变更
++      (async () => {
++        const { dispatchApprovalChange } = await import('@/services/notificationDispatchService');
++        const { usePushChannelConfigStore } = await import('@/store/pushChannelConfigStore');
++        const statusText = status === 'approved' ? '已通过' : '已驳回';
++        const result = await dispatchApprovalChange({
++          title: `审批${statusText}：${draft.title}`,
++          content: note
++            ? `审批${statusText}。备注：${note}`
++            : `审批${statusText}（AI 预审：${draft.sandboxResult.score.toFixed(1)}/5）`,
++          approvalId,
++          status,
++          link: `/approval`,
++        });
++        if (result.success || Object.values(result.channelResults).some((r) => r?.ok)) {
++          usePushChannelConfigStore.getState().recordSent('approval_change');
++        }
++      })();
++
++      return { synced: true, meetingWorkItemId: draft.meetingWorkItemId };
++    }
++    return { synced: false };
++  },
+ }));
+diff --git a/src/store/index.ts b/src/store/index.ts
+index 2c9b237..b3f2922 100644
+--- a/src/store/index.ts
++++ b/src/store/index.ts
+@@ -2,3 +2,6 @@ export { useAppStore } from './appStore';
+ export { useUserStore } from './userStore';
+ export { useContactsStore } from './contactsStore';
+ export { useNotificationStore } from './notificationStore';
++export { useTodoStore } from './todoStore';
++export { useMeetingWorkItemStore } from './meetingWorkItemStore';
++export { usePushChannelConfigStore } from './pushChannelConfigStore';
+diff --git a/src/store/meetingWorkItemStore.ts b/src/store/meetingWorkItemStore.ts
+new file mode 100644
+index 0000000..b8ea0ec
+--- /dev/null
++++ b/src/store/meetingWorkItemStore.ts
+@@ -0,0 +1,121 @@
++/**
++ * Meeting Approval Bridge —— 会议工单 ↔ 审批的桥接 store
++ *
++ * 场景：
++ *   - 会议结束 → 自动派单 → 部分 action 触发"发起审批"草稿
++ *   - 审批被通过/驳回 → 回写到对应的会议工单
++ *   - 会议报告中展示对应工单的"闭环状态"（pending / approved / rejected）
++ *
++ * 这是会议协同 ↔ 智能审批助手 双向联动的核心存储。
++ */
++
++import { create } from 'zustand';
++import { persist } from 'zustand/middleware';
++
++export type WorkItemCloseStatus = 'pending' | 'in_progress' | 'approved' | 'rejected';
++
++export interface MeetingWorkItem {
++  /** 工单唯一 ID（= ApprovalDraft.id，方便联动） */
++  id: string;
++  /** 关联会议 ID */
++  meetingId: string;
++  /** 关联会议标题（仅展示） */
++  meetingTitle: string;
++  /** 工单标题（通常是 action.description） */
++  title: string;
++  /** 工单描述/正文 */
++  text: string;
++  /** 工单负责人 */
++  assignee: string;
++  /** 截止日期 ISO */
++  dueDate: string;
++  /** 优先级 */
++  priority: 'low' | 'medium' | 'high';
++  /** 当前闭环状态 */
++  status: WorkItemCloseStatus;
++  /** 创建时间 ISO */
++  createdAt: string;
++  /** 闭环时间（approved/rejected 时填入） */
++  closedAt?: string;
++  /** 闭环备注（驳回原因等） */
++  closeNote?: string;
++}
++
++interface MeetingWorkItemState {
++  /** 所有会议工单（按创建时间倒序） */
++  items: MeetingWorkItem[];
++  /** 创建工单（会议会后调用） */
++  createWorkItem: (item: Omit<MeetingWorkItem, 'id' | 'status' | 'createdAt'>) => MeetingWorkItem;
++  /** 批量创建（一次会议可能产生多个工单） */
++  bulkCreate: (items: Array<Omit<MeetingWorkItem, 'id' | 'status' | 'createdAt'>>) => MeetingWorkItem[];
++  /** 更新工单状态（审批完成/驳回时回调） */
++  setStatus: (id: string, status: WorkItemCloseStatus, note?: string) => void;
++  /** 按会议 ID 查全部工单 */
++  listByMeeting: (meetingId: string) => MeetingWorkItem[];
++  /** 按 ID 查工单 */
++  getById: (id: string) => MeetingWorkItem | undefined;
++  /** 已闭环统计 */
++  countClosedByMeeting: (meetingId: string) => number;
++}
++
++export const useMeetingWorkItemStore = create<MeetingWorkItemState>()(
++  persist(
++    (set, get) => ({
++      items: [],
++
++      createWorkItem: (item) => {
++        const w: MeetingWorkItem = {
++          ...item,
++          id: `wi_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
++          status: 'pending',
++          createdAt: new Date().toISOString(),
++        };
++        set((state) => ({ items: [w, ...state.items] }));
++        return w;
++      },
++
++      bulkCreate: (items) => {
++        const now = new Date().toISOString();
++        const created: MeetingWorkItem[] = items.map((it) => ({
++          ...it,
++          id: `wi_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
++          status: 'pending' as WorkItemCloseStatus,
++          createdAt: now,
++        }));
++        set((state) => ({ items: [...created, ...state.items] }));
++        return created;
++      },
++
++      setStatus: (id, status, note) => {
++        set((state) => ({
++          items: state.items.map((w) =>
++            w.id === id
++              ? {
++                  ...w,
++                  status,
++                  closeNote: note ?? w.closeNote,
++                  closedAt: status === 'approved' || status === 'rejected'
++                    ? new Date().toISOString()
++                    : w.closedAt,
++                }
++              : w
++          ),
++        }));
++      },
++
++      listByMeeting: (meetingId) =>
++        get().items.filter((w) => w.meetingId === meetingId),
++
++      getById: (id) => get().items.find((w) => w.id === id),
++
++      countClosedByMeeting: (meetingId) =>
++        get().items.filter(
++          (w) => w.meetingId === meetingId && (w.status === 'approved' || w.status === 'rejected')
++        ).length,
++    }),
++    {
++      name: 'meeting-work-item-storage',
++      version: 1,
++    }
++  )
++);
+diff --git a/src/store/notificationStore.ts b/src/store/notificationStore.ts
+index 4e6e999..921a04b 100644
+--- a/src/store/notificationStore.ts
++++ b/src/store/notificationStore.ts
+@@ -1,7 +1,7 @@
+ import { create } from 'zustand';
+ import { persist } from 'zustand/middleware';
+ 
+-export type NotificationType = 'urgent' | 'meeting' | 'ai' | 'system';
++export type NotificationType = 'urgent' | 'meeting' | 'ai' | 'system' | 'risk';
+ 
+ export interface Notification {
+   id: string;
+@@ -11,6 +11,21 @@ export interface Notification {
+   timestamp: string; // ISO string for persist
+   read: boolean;
+   action?: { label: string; key: string }[];
++  /** 业务单据引用（用于跳转联动） */
++  businessRef?: {
++    type: 'meeting' | 'report' | 'approval' | 'news' | 'todo';
++    id: string;
++  };
++  /** 本次通知关联的外部推送结果（用于通知中心展示推送状态） */
++  pushResult?: {
++    dispatchId: string;
++    channelResults: Partial<Record<import('@/services/notificationDispatchService').PushChannel, {
++      ok: boolean;
++      error?: string;
++      sentAt?: string;
++    }>>;
++    attemptedAt: string;
++  };
+ }
+ 
+ interface NotificationState {
+diff --git a/src/store/pushChannelConfigStore.ts b/src/store/pushChannelConfigStore.ts
+new file mode 100644
+index 0000000..ad21b3d
+--- /dev/null
++++ b/src/store/pushChannelConfigStore.ts
+@@ -0,0 +1,147 @@
++/**
++ * Push Channel Config Store —— 外部推送渠道配置
++ *
++ * 功能：
++ *   - 系统管理员为每个事件类型配置：是否开启推送、推送渠道、接收人
++ *   - 持久化到 localStorage，刷新后保留
++ *   - 提供 getConfigForEvent() 给 notificationDispatchService 读取
++ */
++
++import { create } from 'zustand';
++import { persist } from 'zustand/middleware';
++import type { NotificationEventType, PushChannel } from '@/services/notificationDispatchService';
++
++export interface EventChannelConfig {
++  /** 事件类型 */
++  eventType: NotificationEventType;
++  /** 事件中文名 */
++  label: string;
++  /** 事件描述 */
++  description: string;
++  /** 总开关 */
++  enabled: boolean;
++  /** 各渠道开关 */
++  channels: Record<PushChannel, boolean>;
++  /** 接收人列表（钉钉 userId / 企业微信 userId / 邮箱地址） */
++  recipients: string[];
++  /** 最近一次推送时间（统计用） */
++  lastSentAt?: string;
++}
++
++interface PushChannelConfigState {
++  configs: Record<NotificationEventType, EventChannelConfig>;
++  // 更新某事件的总开关
++  toggleEvent: (eventType: NotificationEventType, enabled: boolean) => void;
++  // 更新某事件某渠道开关
++  toggleChannel: (eventType: NotificationEventType, channel: PushChannel, enabled: boolean) => void;
++  // 更新接收人
++  setRecipients: (eventType: NotificationEventType, recipients: string[]) => void;
++  // 记录最近推送时间
++  recordSent: (eventType: NotificationEventType) => void;
++  // 读取某事件配置
++  getConfigForEvent: (eventType: NotificationEventType) => EventChannelConfig;
++  // 全量替换（导入用）
++  reset: () => void;
++}
++
++// ============================================================
++// 默认配置：所有事件默认开启「钉钉 + 邮件」，企业微信默认关闭
++// ============================================================
++
++const defaultConfigs: Record<NotificationEventType, EventChannelConfig> = {
++  meeting_todo: {
++    eventType: 'meeting_todo',
++    label: '会议待办生成',
++    description: '会议结束后产生待办工单时，自动推送',
++    enabled: true,
++    channels: { dingtalk: true, wecom: false, email: true },
++    recipients: ['manager@company.com', 'team-lead'],
++  },
++  workitem_due: {
++    eventType: 'workitem_due',
++    label: '工单到期催办',
++    description: '工单距截止日期 ≤ 1 天时自动催办',
++    enabled: true,
++    channels: { dingtalk: true, wecom: true, email: true },
++    recipients: ['admin@company.com', 'ops-team'],
++  },
++  approval_change: {
++    eventType: 'approval_change',
++    label: '审批状态变更',
++    description: '审批待审批 / 通过 / 驳回时通知相关人',
++    enabled: true,
++    channels: { dingtalk: true, wecom: false, email: true },
++    recipients: ['approver@company.com'],
++  },
++  sandbox_critical: {
++    eventType: 'sandbox_critical',
++    label: '沙箱高危合规告警',
++    description: '合规沙箱检测到阻断级违规时紧急推送',
++    enabled: true,
++    channels: { dingtalk: true, wecom: true, email: true },
++    recipients: ['compliance-officer@company.com', 'cto'],
++  },
++  risk_alert: {
++    eventType: 'risk_alert',
++    label: '监管情报重大风险',
++    description: '行业资讯识别出重大监管风险事件',
++    enabled: true,
++    channels: { dingtalk: true, wecom: true, email: true },
++    recipients: ['compliance-officer@company.com', 'risk-team'],
++  },
++};
++
++export const usePushChannelConfigStore = create<PushChannelConfigState>()(
++  persist(
++    (set, get) => ({
++      configs: defaultConfigs,
++
++      toggleEvent: (eventType, enabled) => {
++        set((state) => ({
++          configs: {
++            ...state.configs,
++            [eventType]: { ...state.configs[eventType], enabled },
++          },
++        }));
++      },
++
++      toggleChannel: (eventType, channel, enabled) => {
++        set((state) => ({
++          configs: {
++            ...state.configs,
++            [eventType]: {
++              ...state.configs[eventType],
++              channels: { ...state.configs[eventType].channels, [channel]: enabled },
++            },
++          },
++        }));
++      },
++
++      setRecipients: (eventType, recipients) => {
++        set((state) => ({
++          configs: {
++            ...state.configs,
++            [eventType]: { ...state.configs[eventType], recipients },
++          },
++        }));
++      },
++
++      recordSent: (eventType) => {
++        set((state) => ({
++          configs: {
++            ...state.configs,
++            [eventType]: { ...state.configs[eventType], lastSentAt: new Date().toISOString() },
++          },
++        }));
++      },
++
++      getConfigForEvent: (eventType) => get().configs[eventType],
++
++      reset: () => set({ configs: defaultConfigs }),
++    }),
++    {
++      name: 'push-channel-config-storage',
++      version: 1,
++    }
++  )
++);
+diff --git a/src/store/todoActions.ts b/src/store/todoActions.ts
+new file mode 100644
+index 0000000..277277a
+--- /dev/null
++++ b/src/store/todoActions.ts
+@@ -0,0 +1,66 @@
++/**
++ * Todo store 的 actions 集合
++ *
++ * 与 contactsActions 同样的设计原则：
++ *   1. 模块加载时创建一次并冻结，引用稳定
++ *   2. 避免 zustand selector 订阅函数引用导致无限重渲染
++ *   3. 通过 getState/setState 读写 store，规避循环依赖
++ */
++
++import type { ActionItem } from '@/types/api';
++import { MOCK_TODOS } from '@/mock/todos';
++import { useTodoStore } from './todoStore';
++
++let bootstrapped = false;
++
++export const todoActions = {
++  /** 首次加载注入 mock 数据 */
++  bootstrap: (): void => {
++    if (bootstrapped) return;
++    bootstrapped = true;
++    const state = useTodoStore.getState();
++    if (state.items.length === 0) {
++      useTodoStore.setState({ items: MOCK_TODOS });
++    }
++  },
++
++  /** 按当前用户名过滤（后续接真实接口可由后端按 session 过滤） */
++  getByAssignee: (assignee: string): ActionItem[] => {
++    return useTodoStore
++      .getState()
++      .items.filter((it) => it.assignee === assignee);
++  },
++
++  /** 更新单条待办状态（todo → in_progress → done） */
++  updateStatus: (id: string, status: ActionItem['status']): void => {
++    useTodoStore.setState((state) => ({
++      items: state.items.map((it) => (it.id === id ? { ...it, status } : it)),
++    }));
++  },
++
++  /** 快捷：把一条 todo 标记为 done */
++  markDone: (id: string): void => {
++    todoActions.updateStatus(id, 'done');
++  },
++
++  /** 新增一条待办 */
++  add: (item: Omit<ActionItem, 'id'>): ActionItem => {
++    const newItem: ActionItem = {
++      ...item,
++      id: `a-${Date.now().toString(36)}`,
++    };
++    useTodoStore.setState((state) => ({
++      items: [newItem, ...state.items],
++    }));
++    return newItem;
++  },
++
++  /** 删除一条待办 */
++  remove: (id: string): void => {
++    useTodoStore.setState((state) => ({
++      items: state.items.filter((it) => it.id !== id),
++    }));
++  },
++};
++
++Object.freeze(todoActions);
+diff --git a/src/store/todoStore.ts b/src/store/todoStore.ts
+new file mode 100644
+index 0000000..29c5a90
+--- /dev/null
++++ b/src/store/todoStore.ts
+@@ -0,0 +1,43 @@
++/**
++ * 待办任务 store
++ *
++ * - items: 当前用户的待办列表（mock 驱动；后续接真实 API 时换成接口拉取）
++ * - bootstrap: 首次加载注入 mock 数据（只注入一次）
++ * - updateStatus / markDone / add / remove: 本地 CRUD
++ *
++ * 注意：actions 来自 todoActions 模块（稳定引用），不在 create 回调内重新包装。
++ */
++
++import { create } from 'zustand';
++import { persist } from 'zustand/middleware';
++import type { ActionItem } from '@/types/api';
++import { todoActions } from './todoActions';
++
++interface TodoState {
++  items: ActionItem[];
++
++  bootstrap: () => void;
++  getByAssignee: (assignee: string) => ActionItem[];
++  updateStatus: (id: string, status: ActionItem['status']) => void;
++  markDone: (id: string) => void;
++  add: (item: Omit<ActionItem, 'id'>) => ActionItem;
++  remove: (id: string) => void;
++}
++
++export const useTodoStore = create<TodoState>()(
++  persist(
++    () => ({
++      items: [],
++      // actions 直接复用稳定的外部引用，不会被 set 重建
++      bootstrap: todoActions.bootstrap,
++      getByAssignee: todoActions.getByAssignee,
++      updateStatus: todoActions.updateStatus,
++      markDone: todoActions.markDone,
++      add: todoActions.add,
++      remove: todoActions.remove,
++    }),
++    {
++      name: 'todo-storage',
++    }
++  )
++);
+diff --git a/vite.config.ts b/vite.config.ts
+index f06a82b..47ce140 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -2,8 +2,61 @@ import { defineConfig } from 'vite';
+ import react from '@vitejs/plugin-react';
+ import path from 'path';
+ 
++/**
++ * 中文 Windows 编码兼容补丁：forceUtf8Headers
++ *
++ * 问题：Vite dev server 通过 sirv 把 text/javascript 设置为无 charset，
++ *       浏览器按系统 ANSI（中文=GBK）解码 → JS 模块里中文注释/字符串变乱码，
++ *       i18n 初始化里的中文 console.error 抛错导致整个 i18n 不可用，
++ *       t() fallback 到 key 字符串原样输出。
++ *
++ * 解决：劫持 res.writeHead 和 res.end，在响应头发送之前补上 charset=utf-8。
++ *
++ * 仅 dev 生效；生产构建产物不带此问题。
++ */
++function forceUtf8Headers() {
++  return {
++    name: 'force-utf8-headers',
++    apply: 'serve' as const,
++    configureServer(server: any) {
++      // 拦截每个请求的 res.writeHead / res.end，
++      // 在响应头发出前给 JS / JSON / CSS 等文本资源补上 charset=utf-8。
++      // 解决中文 Windows 浏览器按 GBK 解码导致 JS 模块里的中文乱码问题。
++      server.middlewares.use((_req: any, res: any, next: any) => {
++        const origWriteHead = res.writeHead.bind(res);
++        const origEnd = res.end.bind(res);
++        const fixCharset = () => {
++          try {
++            const ct = res.getHeader('Content-Type');
++            if (typeof ct !== 'string' || /charset=/i.test(ct)) return;
++            const lower = ct.toLowerCase();
++            if (
++              lower.startsWith('text/javascript') ||
++              lower.startsWith('application/javascript') ||
++              lower.startsWith('application/json') ||
++              lower.startsWith('application/xml') ||
++              lower.startsWith('text/css') ||
++              lower.startsWith('text/html') ||
++              lower.startsWith('text/plain')
++            ) {
++              res.setHeader('Content-Type', `${ct}; charset=utf-8`);
++            }
++          } catch {
++            /* ignore */
++          }
++        };
++        // @ts-ignore
++        res.writeHead = function (...args: any[]) { fixCharset(); return origWriteHead(...args); };
++        // @ts-ignore
++        res.end = function (...args: any[]) { fixCharset(); return origEnd(...args); };
++        next();
++      });
++    },
++  };
++}
++
+ export default defineConfig({
+-  plugins: [react()],
++  plugins: [react(), forceUtf8Headers()],
+   resolve: {
+     alias: {
+       '@': path.resolve(__dirname, './src'),
+-- 
+2.53.0.windows.2
+

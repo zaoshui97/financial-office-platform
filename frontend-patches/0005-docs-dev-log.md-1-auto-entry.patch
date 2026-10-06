@@ -1,0 +1,78 @@
+From dd688e3ce29a53679688e97bdb3bbbfe112981e6 Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Mon, 14 Sep 2026 10:56:36 +0800
+Subject: [PATCH 05/21] =?UTF-8?q?docs:=20dev-log.md=20=E8=A1=A5=E5=85=85?=
+ =?UTF-8?q?=E6=9C=AC=E6=AC=A1=E4=BA=AE=E7=82=B9=201=20=E5=8D=87=E7=BA=A7?=
+ =?UTF-8?q?=20auto=20entry?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ docs/delivery/dev-log.md | 49 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/docs/delivery/dev-log.md b/docs/delivery/dev-log.md
+index d1f80bb..dca0505 100644
+--- a/docs/delivery/dev-log.md
++++ b/docs/delivery/dev-log.md
+@@ -9,6 +9,55 @@
+ 
+ <!-- AUTO:ENTRY-START -->
+ 
++### 2026-09-14 10:50  @fjlyh  [亮点 1 升级：会后自动派单 + 报告导出 PDF/Markdown]
++
++- **触及文件**: 23 个（+2577 / -19）
++
++- **新增服务层**（3）：
++  - `src/services/meetingApiContract.ts`  (+198 / -0) — 前后端契约类型定义（纯类型）
++  - `src/services/postMeetingService.ts`  (+308 / -0) — 会后业务 mock 层（dispatchActions / generateReport / listMeetingActions / closeOutAction / closeMeeting）
++  - `src/services/pdfExportService.ts`  (+219 / -0) — jsPDF 封装（含品牌标识 + 分页 + 页脚）
++
++- **新增 PostMeeting 组件**（5）：
++  - `src/components/Meeting/PostMeeting/ReportSummary.tsx`  (+145 / -0) — 5 段报告渲染（摘要/决策/风险/议题）
++  - `src/components/Meeting/PostMeeting/ActionCard.tsx`  (+132 / -0) — 单工单卡片（含状态机 + 关闭操作）
++  - `src/components/Meeting/PostMeeting/ActionDispatchPanel.tsx`  (+178 / -0) — 派单面板（含 4 项统计 + 失败告警）
++  - `src/components/Meeting/PostMeeting/ExportToolbar.tsx`  (+119 / -0) — PDF/MD/分享工具栏
++  - `src/components/Meeting/PostMeeting/PostMeetingDrawer.tsx`  (+198 / -0) — Drawer 总容器（3 Tab：报告/派单/导出）
++
++- **新增页面**（1）：
++  - `src/pages/Meeting/PostMeetingReport.tsx`  (+212 / -0) — 独立报告页 `/meeting/:id/report`
++
++- **修改**（7）：
++  - `src/services/multiAgentOrchestrator.ts`  (+22 / -4) — `runClosingSummary` 联动 `postMeetingService.closeMeeting()` 自动派单
++  - `src/router.tsx`  (+8 / -0) — 注册 `/meeting/:id/report` 路由
++  - `src/pages/Meeting/MeetingRoom.tsx`  (+18 / -4) — `handleEndMeeting` 改为先 `runClosingSummary` → 弹 PostMeetingDrawer
++  - `src/pages/Meeting/MeetingList.tsx`  (+8 / -2) — 已结束会议卡片加"查看报告"按钮
++  - `src/i18n/locales/zh-CN.json`  (+89 / -0) — `postMeeting.*` 26 个 key
++  - `src/i18n/locales/en-US.json`  (+89 / -0) — `postMeeting.*` 26 个 key
++  - `package.json`  (+1 / -0) — 加 `jspdf` 依赖
++
++- **文档同步**（6）：
++  - `docs/api-contract-frontend.md`  (+148 / -0) — 附录 B：5 个新增接口契约
++  - `docs/delivery/README.md`  (+18 / -0) — 亮点 1 进度看板
++  - `docs/delivery/api-gap-tracker.md`  (+9 / -0) — 5 个接口补齐记录
++  - `docs/delivery/metrics.md`  (+22 / -0) — 亮点 1 专项指标 +10 个
++  - `docs/delivery/scenario-analysis.md`  (+52 / -0) — 场景 2 升级为端到端闭环
++  - `docs/delivery/dev-log.md`  (+72 / -9) — 决策段"亮点 1 升级"
++
++**核心实现思路：**
++
++- **前后端严格分离**：UI 组件只调 `xxxService.xxx()`，不写 setTimeout/axios。`meetingApiContract.ts` 是契约类型，`postMeetingService.ts` 是 mock 业务层。后端上线后只换 service 内部实现，UI 0 改动。
++- **5 个 service 函数体内都标了"真实对接时应该写什么 axios 代码"**，方便后端同学上手。
++- **Drawer + 独立报告页 双入口**：Drawer 适合"会后立刻看一眼"，独立报告页适合"评委演示时全屏展示"。
++- **派单 5% 失败率**：模拟真实场景"个别指派人不在组织架构中"的情况，让评委看到失败处理逻辑。
++- **Blackboard 单例复用**：PostMeetingReport 页面打开时直接从 `blackboardStore.get()` 拿数据，0 网络请求，500ms 加载完。
++- **jsPDF 而不是 html2canvas**：PDF 是结构化报告（标题/表格/列表），不需要复杂排版；jsPDF 文本 API 足够；体积小（19 个包）。
++
++**关联上交材料**：材料 2（系统设计 - 多 Agent 架构 + 前后端解耦）/ 材料 4（演示视频重点场景 1）/ 材料 5（API 契约附录 B · 5 个新增接口）/ 材料 8（开发记录）
++
++---
++
+ ### 2026-09-14 00:46  @fjlyh  [亮点 1：4 Agent 协作会议 + 会前预演]
+ 
+ - **触及文件**: 12 个（+3901 / -0）
+-- 
+2.53.0.windows.2
+

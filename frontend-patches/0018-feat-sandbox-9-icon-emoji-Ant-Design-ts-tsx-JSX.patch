@@ -1,0 +1,128 @@
+From d23230d44f0472ec421e36f9fbc992223bbfc5fa Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Thu, 17 Sep 2026 14:40:25 +0800
+Subject: [PATCH 18/21] =?UTF-8?q?feat(sandbox):=20=E5=90=88=E8=A7=849?=
+ =?UTF-8?q?=E7=B1=BBicon=E4=BB=8Eemoji=E6=94=B9=E4=B8=BAAnt=20Design?=
+ =?UTF-8?q?=E7=BA=BF=E6=80=A7=E5=9B=BE=E6=A0=87=EF=BC=8Cts=E6=96=87?=
+ =?UTF-8?q?=E4=BB=B6=E9=87=8D=E5=91=BD=E5=90=8D=E4=B8=BAtsx=E6=94=AF?=
+ =?UTF-8?q?=E6=8C=81JSX=E8=AF=AD=E6=B3=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ ...complianceRules.ts => complianceRules.tsx} | 33 +++++++++++++------
+ 1 file changed, 23 insertions(+), 10 deletions(-)
+ rename src/services/sandbox/{complianceRules.ts => complianceRules.tsx} (95%)
+
+diff --git a/src/services/sandbox/complianceRules.ts b/src/services/sandbox/complianceRules.tsx
+similarity index 95%
+rename from src/services/sandbox/complianceRules.ts
+rename to src/services/sandbox/complianceRules.tsx
+index 440b1e7..20d6ea9 100644
+--- a/src/services/sandbox/complianceRules.ts
++++ b/src/services/sandbox/complianceRules.tsx
+@@ -7,6 +7,19 @@
+  *   - 规则命中后输出结构化 issue 供沙箱报告渲染
+  */
+ 
++import React from 'react';
++import {
++  StopOutlined,
++  DollarCircleOutlined,
++  LockOutlined,
++  AlertOutlined,
++  SwitcherOutlined,
++  TeamOutlined,
++  SwapOutlined,
++  LinkOutlined,
++  InfoCircleOutlined,
++} from '@ant-design/icons';
++
+ export type RuleSeverity = 'block' | 'high' | 'medium' | 'low';
+ 
+ export type RuleCategory =
+@@ -393,70 +406,70 @@ export const CATEGORY_META: Record<RuleCategory, {
+   name: string;
+   nameEn: string;
+   color: string;
+-  icon: string;
++  icon: React.ReactNode;
+   description: string;
+ }> = {
+   sensitive_word: {
+     name: '敏感词',
+     nameEn: 'Sensitive Words',
+     color: '#dc2626',
+-    icon: '🔴',
++    icon: <StopOutlined style={{ color: '#dc2626' }} />,
+     description: '违规政治 / 色情 / 诈骗话术',
+   },
+   investment_promise: {
+     name: '投资收益承诺',
+     nameEn: 'Investment Promise',
+     color: '#ef4444',
+-    icon: '💰',
++    icon: <DollarCircleOutlined style={{ color: '#ef4444' }} />,
+     description: '保本承诺 / 误导性收益数字',
+   },
+   data_privacy: {
+     name: '数据隐私',
+     nameEn: 'Data Privacy',
+     color: '#f97316',
+-    icon: '🔒',
++    icon: <LockOutlined style={{ color: '#f97316' }} />,
+     description: '身份证 / 银行卡 / 手机号明文',
+   },
+   anti_money_laundry: {
+     name: '反洗钱',
+     nameEn: 'Anti-Money Laundry',
+     color: '#a855f7',
+-    icon: '🚨',
++    icon: <AlertOutlined style={{ color: '#a855f7' }} />,
+     description: '可疑大额交易 / 拆分 / 高风险地区',
+   },
+   unfair_competition: {
+     name: '反不正当竞争',
+     nameEn: 'Unfair Competition',
+     color: '#ec4899',
+-    icon: '⚔️',
++    icon: <SwitcherOutlined style={{ color: '#ec4899' }} />,
+     description: '贬损对手 / 极限词 / 商业贿赂',
+   },
+   customer_suitability: {
+     name: '客户适当性',
+     nameEn: 'Customer Suitability',
+     color: '#3b82f6',
+-    icon: '👥',
++    icon: <TeamOutlined style={{ color: '#3b82f6' }} />,
+     description: '风险评估缺失 / 错配 / 老年人保护',
+   },
+   conflict_interest: {
+     name: '利益冲突',
+     nameEn: 'Conflict of Interest',
+     color: '#06b6d4',
+-    icon: '⚖️',
++    icon: <SwapOutlined style={{ color: '#06b6d4' }} />,
+     description: '自营冲突 / 代客理财 / 亲属账户',
+   },
+   related_transaction: {
+     name: '关联交易',
+     nameEn: 'Related Party Transaction',
+     color: '#14b8a6',
+-    icon: '🔗',
++    icon: <LinkOutlined style={{ color: '#14b8a6' }} />,
+     description: '未披露 / 利益输送嫌疑',
+   },
+   disclosure_violation: {
+     name: '信息披露',
+     nameEn: 'Disclosure Violation',
+     color: '#84cc16',
+-    icon: '📢',
++    icon: <InfoCircleOutlined style={{ color: '#84cc16' }} />,
+     description: '重大信息延迟 / 选择性披露',
+   },
+ };
+-- 
+2.53.0.windows.2
+

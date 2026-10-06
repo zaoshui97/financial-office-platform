@@ -1,0 +1,115 @@
+From a35f3c28aa0caf03f681cb45e98569a3ddac1bba Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Mon, 14 Sep 2026 00:51:55 +0800
+Subject: [PATCH 03/21] =?UTF-8?q?docs:=20=E6=9B=B4=E6=96=B0=20dev-log.md?=
+ =?UTF-8?q?=EF=BC=88=E8=A1=A5=209-14=20=E4=BA=AE=E7=82=B9=201=20+=20gitign?=
+ =?UTF-8?q?ore=20=E8=A1=A5=E5=85=85=20entry=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ docs/delivery/dev-log.md | 79 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 78 insertions(+), 1 deletion(-)
+
+diff --git a/docs/delivery/dev-log.md b/docs/delivery/dev-log.md
+index 780e45d..8bcc001 100644
+--- a/docs/delivery/dev-log.md
++++ b/docs/delivery/dev-log.md
+@@ -9,6 +9,50 @@
+ 
+ <!-- AUTO:ENTRY-START -->
+ 
++### 2026-09-14 00:46  @fjlyh  [亮点 1：4 Agent 协作会议 + 会前预演]
++
++- **触及文件**: 12 个（+3901 / -0）
++
++- **新增服务层**（3）：
++  - `src/services/multiAgentBus.ts`  (+129 / -0) — Agent EventBus（订阅/发布 + 200 条历史快照）
++  - `src/services/multiAgentOrchestrator.ts`  (+509 / -0) — 4 Agent 编排器 + Blackboard 共享黑板
++  - `src/services/useMultiAgent.ts`  (+63 / -0) — React Hooks 适配层（`useBlackboard` / `useAgentRunState` / `useAllAgentRunStates`）
++
++- **新增 Meeting 组件**（4）：
++  - `src/components/Meeting/AgentCard.tsx`  (+177 / -0) — 单 Agent 卡片（打字机光标 + 进度条 + shimmer）
++  - `src/components/Meeting/AgentPanel.css`  (+96 / -0) — blink / flow-line / shimmer 动画
++  - `src/components/Meeting/AgentPanel.tsx`  (+239 / -0) — 多 Agent 协作主面板（输入/模拟/关闭会议）
++  - `src/components/Meeting/Blackboard.tsx`  (+235 / -0) — 共享黑板（决策/待办/风险/事实）
++
++- **新增页面**（1）：
++  - `src/pages/Meeting/MeetingRehearsal.tsx`  (+232 / -0) — 会前预演页面（4 Agent 模拟 + 就绪度圆环）
++
++- **修改**（4）：
++  - `src/router.tsx`  (+10 / -0) — 注册 `/meeting-rehearsal/:id` 路由
++  - `src/pages/Meeting/MeetingList.tsx`  (+10 / -0) — 未开始会议卡片增加"会前预演"按钮
++  - `src/pages/Meeting/MeetingRoom.tsx`  (+40 / -0) — 默认渲染多 Agent 面板；发送消息自动 fanout 4 Agent
++  - `src/pages/Profile.tsx`  (+3 / -0) — 顺手修复原有 `t is not defined` bug（`getMockUserData` 在 hook 外用 t）
++
++**核心实现思路：**
++
++- 4 个 Agent 角色定义在 `multiAgentBus.ts`：`moderator` / `notetaker` / `decision` / `action`，各自负责节奏控制/转写/决策点/待办派发
++- 共享 Blackboard（黑板模式）替代链式调用，符合真实多 Agent 系统设计
++- 打字机流式输出 + EventBus 解耦：后端真多 Agent 上线后只需替换 `dispatch()` 内部为 WebSocket，**前端组件代码 0 改动**
++- `useSyncExternalStore` 替代 zustand，照样高性能响应式
++
++**关联上交材料**：材料 2（系统设计 - 多 Agent 架构）/ 材料 4（演示视频重点场景 1 - 会前预演 + 会中 4 Agent 协作）/ 材料 8（开发记录）
++
++---
++
++### 2026-09-14 00:50  @fjlyh  [chore: gitignore 补充]
++
++- **触及文件**: 1 个（+6 / -0）
++  - `.gitignore`  — 新增 `*.bak` / `*.bak.rewrite` / `*.bak.gbk` / `*.gbk.bak` 4 条 ignore 规则
++
++**决策理由**：发现工作区残留 12 个 `scripts/rewrite-iszh.cjs` 与备份脚本产生的 `.bak.rewrite` / `.gbk.bak` 文件，原始 commit 不应混入历史备份。补 gitignore 防止后续 commit 误带。
++
++**关联上交材料**：材料 8（开发记录 - 工程规范）
++
+ ### 2026-09-10 22:59  @fans  [回填]
+ 
+ - **触及文件**: 19 个（+3929 / -0）
+@@ -86,7 +130,40 @@
+ 
+ > 重要决策 / 事故 / 解决套路都写在下面，按时间倒序。
+ 
+-### 2026-09-10  Sprint 0 · 工程基础与 i18n 三大事故清理
++### 2026-09-14  Sprint 1 · 亮点 1 实现：4 Agent 协作会议
++
++#### 改动概览
++- 新建：`src/services/multiAgentBus.ts`（EventBus + AGENT_META 元信息）
++- 新建：`src/services/multiAgentOrchestrator.ts`（Blackboard 单例 + 4 Agent 编排脚本 + 会后汇总）
++- 新建：`src/services/useMultiAgent.ts`（`useSyncExternalStore` 适配层）
++- 新建：`src/components/Meeting/AgentCard.tsx` / `AgentPanel.tsx` / `Blackboard.tsx` + CSS
++- 新建：`src/pages/Meeting/MeetingRehearsal.tsx`（会前预演页面）
++- 修改：`src/router.tsx` / `MeetingList.tsx` / `MeetingRoom.tsx` / `Profile.tsx`
++
++#### 设计决策
++1. **Blackboard 模式而非链式调用**：4 个 Agent 共享一份 Blackboard（事实/决策/待办/风险/话题/摘要），每个 Agent 既可读又可写。这比 A→B→C→D 流水线更接近真实多 Agent 系统设计，对应 Material 2 中的"去中心化协作"架构图。
++2. **前端 EventBus 模拟，零侵入式预留后端对接**：`multiAgentBus.dispatch()` 目前是前端事件总线，后端多 Agent WebSocket 服务上线后只需替换该方法内部为 `ws.send()`，所有组件代码 0 改动。这是关键的"前后端解耦"决策。
++3. **`useSyncExternalStore` 而非 zustand**：避免引入新依赖，符合团队"轻量级状态管理"原则；性能也完全够用（Blackboard 更新频率 < 1Hz）。
++4. **打字机流式输出而非一次性渲染**：跟现有 `Chat.tsx` UX 一致，4 Agent 同时"打字"的视觉冲击也是亮点 1 的关键演示点。
++5. **会前预演独立页面 `/meeting-rehearsal/:id`**：作为独立入口而不是 MeetingRoom 的子页面，方便演示和截图（评委一眼看出"这是预演 vs 正式会议"的差异化设计）。
++
++#### 现象 / 决策记录
++- **Profile.tsx 原有 bug**：发现 `getMockUserData` 在 hook 外部用 `t`，访问 `/profile` 会白屏。**顺手修复**（不算亮点 1 范畴，但阻塞路由），改成接收 `t` 参数。
++- **PowerShell 中文路径下 `&&` 不识别**：第一次启动 dev server 报错，原因是 `数字马力` 中文目录名 + `&&` 分隔符在 pwsh 中解析异常。改成 `;` 解决。
++- **commit 时机选择**：本次 commit 时机过早（root-commit + 一上来就混入 dev-log.md 等历史文件），后续 dev-log 自动追加机制 `auto-log.cjs` 在 root-commit 场景无法工作（因为没有"上一次 commit"做 diff 基准），**只能手动补 entry**。后续 commit 走常规路径后会自动化。
++- **`*.bak.*` 工作区残留**：12 个历史备份文件被 `git add .` 带入，已 unstage + 加 `.gitignore`。
++
++#### 工程护栏
++- `multiAgentBus` 保留 200 条历史快照，方便后续做"会议回放"
++- Blackboard 数据通过 `useSyncExternalStore` 自动响应，符合 React 18 concurrent 模式
++- 4 Agent 的"行为剧本"集中在 `multiAgentOrchestrator.ts`，后端对接时一个文件搞定
++
++#### 关联上交材料
++- 材料 2（系统设计 - 多 Agent 架构）
++- 材料 4（演示视频重点场景 1）
++- 材料 8（开发记录）
++
++---
+ 
+ #### 改动概览
+ - 新增/修改：`src/i18n/index.ts`（启动期静态校验 + 严格类型 + `appText()` helper）
+-- 
+2.53.0.windows.2
+

@@ -1,0 +1,31 @@
+From 5add2a9423e6b09e9fa86e78c5366280fce6e49c Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Mon, 14 Sep 2026 00:48:53 +0800
+Subject: [PATCH 02/21] chore: ignore script-generated backup files (.bak,
+ .bak.rewrite, .gbk.bak)
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ .gitignore | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index a547bf3..1435eb2 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -12,6 +12,12 @@ dist
+ dist-ssr
+ *.local
+ 
++# Backup files (script-generated rewrites / gb backups)
++*.bak
++*.bak.rewrite
++*.bak.gbk
++*.gbk.bak
++
+ # Editor directories and files
+ .vscode/*
+ !.vscode/extensions.json
+-- 
+2.53.0.windows.2
+

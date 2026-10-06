@@ -1,0 +1,230 @@
+From 2d181d94e3d10f3fe31032e056888c92821fb03a Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Tue, 15 Sep 2026 11:59:18 +0800
+Subject: [PATCH 13/21] =?UTF-8?q?refactor:=20=E5=85=A8=E9=9D=A2=E4=BF=AE?=
+ =?UTF-8?q?=E5=A4=8D=20zustand=20actions=20=E5=BC=95=E7=94=A8=E7=A8=B3?=
+ =?UTF-8?q?=E5=AE=9A=E6=80=A7=EF=BC=88=E6=A0=B9=E6=B2=BB=E6=AD=BB=E5=BE=AA?=
+ =?UTF-8?q?=E7=8E=AF=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+之前 fix 43184ff 只是治标：
+  只把 MeetingRoom 的 bootstrap selector 换成 getState()
+
+根因：
+  zustand + persist 的 set() 会重建 state 对象
+  → store state 中 actions 字段会被包装新的闭包
+  → 引用变化
+  → 任何订阅了 actions 的 selector（useStore((s) => s.xxx)）都会触发重渲染
+  → useEffect 依赖 actions → 无限循环
+
+扫描发现 4 文件 9 处订阅：
+  - MeetingRoom.tsx: bootstrap
+  - ChatDrawer.tsx: sendMessage, markRead
+  - Contacts/index.tsx: bootstrap, getMessages, getUnread
+  - AppLayout.tsx: bootstrap
+
+根治方案：
+  1. 把所有 actions 抽到 contactsActions.ts 模块
+  2. actions 用 useContactsStore.getState()/setState() 调用，不在 create 闭包内
+  3. actions 模块加载时创建一次，Object.freeze 冻结，引用永远稳定
+  4. contactsStore.ts create 回调直接复用这些引用
+
+现在不管 set() 多少次，actions 引用都不变，所有 selector 都不会触发不必要的重渲染。
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ src/store/contactsActions.ts | 77 ++++++++++++++++++++++++++++++++++++
+ src/store/contactsStore.ts   | 76 ++++++-----------------------------
+ 2 files changed, 90 insertions(+), 63 deletions(-)
+ create mode 100644 src/store/contactsActions.ts
+
+diff --git a/src/store/contactsActions.ts b/src/store/contactsActions.ts
+new file mode 100644
+index 0000000..815355a
+--- /dev/null
++++ b/src/store/contactsActions.ts
+@@ -0,0 +1,77 @@
++/**
++ * Contacts store 的 actions 集合
++ *
++ * 为什么 actions 要独立成文件？
++ *   1. 引用稳定性：actions 在模块加载时创建一次，永远冻结，引用不变
++ *   2. 避免 zustand selector 订阅函数引用导致的无限重渲染
++ *   3. 避免循环依赖：actions 调用 useContactsStore.getState()/setState()，必须先 import store
++ *
++ * 用法：store 中直接复用这些 actions 的引用，不在 create 回调内重新包装
++ */
++
++import type { ChatMessage } from '@/types/contacts';
++import { MOCK_EMPLOYEES } from '@/mock/employees';
++import { generateId } from '@/utils/format';
++import { useContactsStore } from './contactsStore';
++
++export const contactsActions = {
++  bootstrap: (): void => {
++    if (useContactsStore.getState().employees.length === 0) {
++      useContactsStore.setState({ employees: MOCK_EMPLOYEES });
++    }
++  },
++
++  findByUsername: (username: string) => {
++    return useContactsStore.getState().employees.find((e) => e.username === username);
++  },
++
++  getMessages: (userId: string, peerId: string): ChatMessage[] => {
++    return useContactsStore.getState().messagesByUser[userId]?.[peerId] ?? [];
++  },
++
++  sendMessage: (userId: string, peerId: string, content: string): ChatMessage | null => {
++    const text = content.trim();
++    if (!text) return null;
++    const msg: ChatMessage = {
++      id: generateId('msg'),
++      fromId: userId,
++      toId: peerId,
++      content: text,
++      timestamp: new Date().toISOString(),
++      type: 'text',
++    };
++    useContactsStore.setState((state) => {
++      const userBucket = state.messagesByUser[userId] ?? {};
++      const peerBucket = userBucket[peerId] ?? [];
++      return {
++        messagesByUser: {
++          ...state.messagesByUser,
++          [userId]: {
++            ...userBucket,
++            [peerId]: [...peerBucket, msg],
++          },
++        },
++      };
++    });
++    return msg;
++  },
++
++  markRead: (userId: string, peerId: string): void => {
++    useContactsStore.setState((state) => {
++      const userUnread = { ...(state.unread[userId] ?? {}) };
++      if (userUnread[peerId]) {
++        delete userUnread[peerId];
++      }
++      return {
++        unread: { ...state.unread, [userId]: userUnread },
++      };
++    });
++  },
++
++  getUnread: (userId: string, peerId: string): number => {
++    return useContactsStore.getState().unread[userId]?.[peerId] ?? 0;
++  },
++};
++
++// 冻结 actions 对象，防止意外修改引用
++Object.freeze(contactsActions);
+diff --git a/src/store/contactsStore.ts b/src/store/contactsStore.ts
+index 3a6a4f4..089f5f0 100644
+--- a/src/store/contactsStore.ts
++++ b/src/store/contactsStore.ts
+@@ -7,13 +7,16 @@
+  *
+  * 注意：会话 key 是 user.id（来自 userStore），不是员工 id。
+  *      因为登录后 userStore 中 user.id 形如 "user-zhangsan"，是稳定标识。
++ *
++ * actions 引用稳定性：
++ *   所有 actions 来自 contactsActions 模块（稳定引用），不在 create 回调内重新包装。
++ *   这样 zustand selector 订阅 action 引用时不会触发无限重渲染。
+  */
+ 
+ import { create } from 'zustand';
+ import { persist } from 'zustand/middleware';
+ import type { ChatMessage, ContactEmployee } from '@/types/contacts';
+-import { MOCK_EMPLOYEES } from '@/mock/employees';
+-import { generateId } from '@/utils/format';
++import { contactsActions } from './contactsActions';
+ 
+ type MessageMap = Record<string, Record<string, ChatMessage[]>>;
+ type UnreadMap = Record<string, Record<string, number>>;
+@@ -44,70 +47,17 @@ interface ContactsState {
+ 
+ export const useContactsStore = create<ContactsState>()(
+   persist(
+-    (set, get) => ({
++    () => ({
+       employees: [],
+       messagesByUser: {},
+       unread: {},
+-
+-      bootstrap: () => {
+-        if (get().employees.length === 0) {
+-          set({ employees: MOCK_EMPLOYEES });
+-        }
+-      },
+-
+-      findByUsername: (username: string) => {
+-        return get().employees.find((e) => e.username === username);
+-      },
+-
+-      getMessages: (userId: string, peerId: string) => {
+-        return get().messagesByUser[userId]?.[peerId] ?? [];
+-      },
+-
+-      sendMessage: (userId: string, peerId: string, content: string) => {
+-        const text = content.trim();
+-        if (!text) return null;
+-
+-        const msg: ChatMessage = {
+-          id: generateId('msg'),
+-          fromId: userId,
+-          toId: peerId,
+-          content: text,
+-          timestamp: new Date().toISOString(),
+-          type: 'text',
+-        };
+-
+-        set((state) => {
+-          const userBucket = state.messagesByUser[userId] ?? {};
+-          const peerBucket = userBucket[peerId] ?? [];
+-          return {
+-            messagesByUser: {
+-              ...state.messagesByUser,
+-              [userId]: {
+-                ...userBucket,
+-                [peerId]: [...peerBucket, msg],
+-              },
+-            },
+-          };
+-        });
+-
+-        return msg;
+-      },
+-
+-      markRead: (userId: string, peerId: string) => {
+-        set((state) => {
+-          const userUnread = { ...(state.unread[userId] ?? {}) };
+-          if (userUnread[peerId]) {
+-            delete userUnread[peerId];
+-          }
+-          return {
+-            unread: { ...state.unread, [userId]: userUnread },
+-          };
+-        });
+-      },
+-
+-      getUnread: (userId: string, peerId: string) => {
+-        return get().unread[userId]?.[peerId] ?? 0;
+-      },
++      // actions 直接复用稳定的外部引用，不会被 set 重建
++      bootstrap: contactsActions.bootstrap,
++      findByUsername: contactsActions.findByUsername,
++      getMessages: contactsActions.getMessages,
++      sendMessage: contactsActions.sendMessage,
++      markRead: contactsActions.markRead,
++      getUnread: contactsActions.getUnread,
+     }),
+     {
+       name: 'contacts-storage',
+-- 
+2.53.0.windows.2
+

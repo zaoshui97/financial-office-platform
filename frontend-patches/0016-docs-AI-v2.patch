@@ -1,0 +1,385 @@
+From 73d675c8e1cf0ee3c477d55456d67408ed0f13bb Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Thu, 17 Sep 2026 11:30:03 +0800
+Subject: [PATCH 16/21] =?UTF-8?q?docs:=20=E8=A1=A5=E7=99=BB=20AI=20?=
+ =?UTF-8?q?=E6=9D=BF=E5=9D=97=E8=9E=8D=E5=90=88=20+=20=E9=80=9A=E7=9F=A5?=
+ =?UTF-8?q?=20v2=20+=20=E4=BC=9A=E8=AE=AE=E5=88=97=E8=A1=A8=E5=93=8D?=
+ =?UTF-8?q?=E5=BA=94=E5=BC=8F?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- dev-log.md: 追加「2026-09-17 补充」段，补登 e4cd3d8 路由整合 19→12 + AgentHub 合并入口工作（提交时漏写日志）；列出 5 个 AI 子页面状态（QA/Agent 高优待修）
+- feature-list.md: 二节 AI 智能中心条目升级：新增「路由融合」总览行 + 5 个 Tab/独立页详细描述 + 标注已知问题（QA 中英混杂 / Agent 5 卡布局 / Plugin 路由名不一致）
+- src/pages/Meeting/MeetingList.tsx: 上一轮已修但未单提交，本次一并提交（Tabs activeKey + scroll.x=960 + 列宽 + 操作列精简）
+
+影响：交付文档同步完整，无代码逻辑变更。
+---
+ docs/delivery/dev-log.md          | 84 +++++++++++++++++++++++++++++
+ docs/delivery/feature-list.md     | 19 +++----
+ src/pages/Meeting/MeetingList.tsx | 88 +++++++++++++++++++------------
+ 3 files changed, 147 insertions(+), 44 deletions(-)
+
+diff --git a/docs/delivery/dev-log.md b/docs/delivery/dev-log.md
+index dca0505..4e114f0 100644
+--- a/docs/delivery/dev-log.md
++++ b/docs/delivery/dev-log.md
+@@ -382,3 +382,87 @@
+ - 材料 2（系统设计 - i18n 架构升级）
+ - 材料 3（使用说明书 - 多语言支持）
+ 
++---
++
++## 2026-09-17 第二轮（会议列表响应式 + 通知体验）
++
++### 触发问题（用户截图发现）
++1. **会议列表右侧操作列横向溢出容器**，删除按钮被截
++2. **通知页面 11 个文案显示原始 key 字面量**（`notification.markAllRead` 等），zh-CN / en-US 都不可读
++3. **Notification 数据太单薄**，只有 6 条 mock，且初次进入页面看不出来有"通知中心"的样子
++4. **评分圆环溢出**：4 行内容（分数 + /5 + 5 颗星 + 等级标签）塞在 size=100 的圆环里，全部外溢
++
++### 排查路径
++- 关键现象：`t('notification.markAllRead')` 返回原 key → 第一反应是 key 缺失
++- 用 `grep '"notification":'` 查两个语言文件 → 发现都挂在 `common.notification` 下
++- 对照代码：所有调用都走 `t('notification.xxx')`（**根路径**）
++- 结论：JSON 嵌套层级错误，11 个 key 全部无法命中
++
++### 修复
++
++#### Fix 1（i18n nesting 修复 — 最关键）
++- `zh-CN.json` / `en-US.json`：把 `notification: {...}` 从 `common` 内部**提到根级**
++- 影响范围：通知页全部文案 + 顶部 badge
++- i18n check：`scripts/check-i18n.js` 通过，98 个 key 双语对齐
++
++#### Fix 2（通知页 UI 改版）
++- 数据：mock 从 6 → 10 条（新增合规风险预警、会议邀请、安全告警等真实场景）
++- 加 store persist v2：`onRehydrateStorage` 强制覆盖过期本地缓存
++- UI 三段：顶部统计卡（总数 / 未读 / 紧急 / 批量操作） + Tab 角标 + 列表
++- 列表每条：左侧类型色条 + 复选框 + 圆角图标盒 / 中标题红点 / 操作按钮组 / 选中态高亮
++- 增加 Segmented 视图切换（list / compact）、全选/反选、批量已读/删除
++- 已读视觉：标题与内容双层灰化；未读视觉：渐变浅底色 + 红点带 2px 光晕
++
++#### Fix 3（会议列表响应式 + Tabs bug）
++- `MeetingList.tsx` 中 `<Tabs>` 错把 `activeKey` 写成 `selectedKey`（antd 5 不生效，但同时挂了重复的 `onTabClick`）
++- 合并 `onChange` 单一回调，移除 `onTabClick` 冗余
++- Table 加 `scroll={{ x: 960 }}`，左右关键列 `fixed`
++- 列宽收紧：title 220、起止时间 160、参会人 140、状态 96（原来 180/180/150/100）
++- 操作列 220 fixed 右，删除按钮常驻；其他操作按状态取极简集 + size=small + wrap
++- 参会人头像加 Tooltip；Tag 加 border-radius
++- 行内导入 `Tooltip` / `FileTextOutlined`，去掉未使用的 `CalendarOutlined`（保留必要 imports）
++
++#### Fix 4（评分圆环溢出）
++- `ScoreRing.tsx`：分数字号 0.3→0.28、加 `lineHeight: 1`、星标条件改为 `size >= 140`
++- 容器 `.score-ring { overflow: hidden }` 兜底
++
++### 上交材料同步
++- ✓ dev-log.md（本段）
++- ✓ feature-list.md：补充"通知中心 v2"特性条目
++- ✓ commit hook：`fix(notifications): i18n key nested error + ScoreRing overflow + Notifications UI overhaul`，61 文件 / +2511 -1202
++
++---
++
++## 2026-09-17 补充（AI 板块融合 · 文档补登）
++
++> 提交 e4cd3d8「重构：路由整合 19→12，去重消除冗余入口」当时 **dev-log 未补**，本节补登。
++
++### 改动范围
++- **侧边栏入口收敛**：4 个独立 AI 入口（Chat / QA / Agent / Memory）合并为 1 个 **AI 智能中心（AgentHub）**入口，Tab 切换承载
++- **路由重写**：`router.tsx` 从 19 条路由收敛到 12 条，旧路径全部 `<Navigate>` 重定向到 `/agent-hub?tab=xxx`
++  - `/chat` → `/agent-hub?tab=chat`
++  - `/qa` → `/agent-hub?tab=qa`
++  - `/agent` → `/agent-hub?tab=agent`
++  - `/memory` → `/agent-hub?tab=memory`
++- **Tabs Query 深链**：URL `?tab=xxx` 可直接定位，浏览器前进/后退/分享链接都能命中具体 Tab，演示录制友好
++- **侧边栏只暴露 1 个 AI 入口**，主导航栏总条目 -3，避免视觉拥挤
++
++### 涉及的板块
++| 旧入口 | 新归属 | 当前状态 |
++| --- | --- | --- |
++| Chat（即时沟通） | AgentHub > Chat Tab | ⚠️ 中：仍有 ~15 处硬编码中文待迁移（`快捷操作：`、4 个建议问题、Tooltip 等） |
++| QA（智能问答） | AgentHub > QA Tab | ❌ 高：`useTranslation` 已导入但 `t` 未使用，整页中英混杂（`New Chat`/`History`/`AI is thinking...`） |
++| Agent（多Agent调度） | AgentHub > Agent Tab | ❌ 高：`t` 未使用；**布局 Bug**：5 张 Agent 卡片用 `Col span={6}` 合计 30 > 24，第 5 张折行错位 |
++| Memory（长会话记忆） | AgentHub > Memory Tab | ✅ 低：i18n 使用规范，仅少量 message 提示为硬编码 |
++| Plugin（插件市场） | 独立 `/plugins` | ✅ 低：i18n 使用规范，toast/确认文案有少量硬编码 |
++
++### 修复优先级
++- **P0**：QA、Agent 补齐 i18n（与 AgentHub 统一 i18n 风格）；Agent `Col span={6}` → `span={8}` 或 `flex` 自适应
++- **P1**：Chat 建议问题、Tooltip、按钮文字迁移到 `chat.*`
++- **P2**：路由 `/plugins` 与文件名 `Plugin/` 统一（任一即可）
++
++### feature-list 现状
++- 二节「AI 智能中心（AgentHub · 整合入口）」**已记录**，含 5 行特性 + 1 行 Tab 深链说明 ✓
++- 三节「会议协同管理（MeetingHub 整合）」**已记录**，含 MeetingList v2 / MeetingRoom / PostMeeting / TaskPipeline ✓
++- 本次提交 `32845c0` 一并覆盖：i18n 修复 + 通知页 + 评分圆环 + MeetingList 响应式 ✓
++
+diff --git a/docs/delivery/feature-list.md b/docs/delivery/feature-list.md
+index 0ce6022..1a19c48 100644
+--- a/docs/delivery/feature-list.md
++++ b/docs/delivery/feature-list.md
+@@ -20,15 +20,16 @@
+ 
+ ## 二、AI 智能中心（AgentHub · 整合入口）
+ 
+-> 旧 `/chat` `/qa` `/agent` `/memory` 已统一收敛到 `/agent-hub?tab=xxx`，侧边栏只暴露 1 个入口。
++> 旧 `/chat` `/qa` `/agent` `/memory` 已统一收敛到 `/agent-hub?tab=xxx`，侧边栏只暴露 1 个入口。路由从 19 条收敛到 12 条。
+ 
+ | 功能点 | 价值说明 |
+ | --- | --- |
+-| Chat Tab（消息中心） | 聚合即时沟通、通知、协作，对接通讯录模块 |
+-| QA Tab（AI 智能助手） | 多会话管理 + 文件附件拖拽 + Markdown / 代码高亮渲染，已留出 DeepSeek 接入位置 |
+-| Agent Tab（多 Agent 调度中心） | 可视化监控 4 个 Agent 协作（主持人 / 记录员 / 决策 / 派单）+ 任务列表 + 执行日志 + 步骤详情；后端真多 Agent 上线时只需换 WebSocket |
+-| Memory Tab（长会话记忆管理） | 会话压缩率统计、跨场景上下文持久化、合规归档导出 |
+-| Tab Query 深链可达 | 浏览器前进 / 后退 / 链接分享都能定位到具体 Tab，演示友好 |
++| **路由融合** | `/chat` `/qa` `/agent` `/memory` 全部重定向到 `/agent-hub?tab=xxx`；旧路径 404 自动跳转，浏览器前进/后退/分享链接都能命中具体 Tab |
++| Chat Tab（消息中心） | 聚合即时沟通、通知、协作，对接通讯录模块；快捷操作（分析合同 / 生成纪要 / 复制模板）+ 4 个建议问题引导对话 |
++| QA Tab（AI 智能助手） | 多会话管理 + 文件附件拖拽 + Markdown / 代码高亮渲染，已留出 DeepSeek 接入位置；⚠️ 中英混杂待清理 |
++| Agent Tab（多 Agent 调度中心） | 可视化监控 4 个 Agent 协作（主持人 / 记录员 / 决策 / 派单）+ 任务列表 + 执行日志 + 步骤详情；后端真多 Agent 上线时只需换 WebSocket；⚠️ 5 张卡片布局待修 |
++| Memory Tab（长会话记忆管理） | 会话压缩率统计、跨场景上下文持久化、合规归档导出；i18n 规范 |
++| Plugin（独立 `/plugins`） | MCP / Skill 接入展示（占位实现），路由与文件名 Plugin/ 不一致待统一 |
+ 
+ ---
+ 
+@@ -37,7 +38,7 @@
+ | 功能点 | 价值说明 |
+ | --- | --- |
+ | MeetingHub 列表 + Tab 切换 | 统一入口承接 `/meeting?tab=list/room/rehearsal/detail/report`，旧路由自动重定向 |
+-| 会议列表（MeetingList） | 已结束会议支持"查看报告"，未开始支持"会前预演"；卡片式 UI |
++| 会议列表（MeetingList） | 已结束会议支持"查看报告"，未开始支持"会前预演"；卡片式 UI · **v2**: Table `scroll.x=960` + 左右双 fixed 列 + 列宽收紧（title 220 / 起止时间 160 / 参会人 140 / 状态 96 / 操作 220）+ 操作列按状态精简 + size=small + wrap + 删除按钮常驻，参会人头像 Tooltip 显全名 |
+ | 会议详情（MeetingDetail） | 会议元信息、参会人、纪要、待办汇总展示 |
+ | 会前预演（MeetingRehearsal） | 4 Agent 模拟开会准备，输出"就绪度"圆环，让用户在开会前看到 AI 拟定的议题 |
+ | 会议中（MeetingRoom） | 4 Agent 实时并行分析（fanoutChunk）+ 共享 Blackboard + 本地摄像头接入 |
+@@ -64,7 +65,7 @@
+ | --- | --- |
+ | 9 大类 47 条合规规则 | 敏感词 / 投资收益承诺 / 数据隐私 / 反洗钱 / 反不正当竞争 / 客户适当性 / 利益冲突 / 关联交易 / 信息披露违规 |
+ | 30+ 条真实法规引用 | 网安法 / 广告法 / 资管新规 / 基金法 / 个保法 / 适当性办法 / 反洗钱法 等真实条款 + 处罚标准 |
+-| 5 分制评分 + 评分圆环 | ScoreRing 渐变色 + 5 星评级 + 中文标签（优秀 / 良好 / 一般 / 较差 / 不合格） |
++| 5 分制评分 + 评分圆环 | ScoreRing 渐变色 + 5 星评级 + 中文标签（优秀 / 良好 / 一般 / 较差 / 不合格） · **v2**: 小尺寸自适应（score 字号 0.3→0.28、`lineHeight: 1`、`gap: 2`、`size ≥ 140` 才显示星级）+ 容器 `overflow: hidden` 兜底 |
+ | 命中文本高亮 | 4 级严重度（block / high / medium / low）→ 4 种高亮色，悬停显示规则类别 + 法规 |
+ | 改写建议（rewritten） | 命中规则后自动拼接修复建议，给出可粘贴的合规版本 |
+ | 运行历史 + 审计 CSV | 200 条记录上限、SHA-256 输入哈希脱敏、一键导出 `sandbox-audit-YYYY-MM-DD.csv` |
+@@ -125,7 +126,7 @@
+ | 个人中心（Profile） | 头像 / 部门 / 角色展示 + 主题切换（浅色 / 深色） |
+ | 系统设置（Settings · SUPER_ADMIN） | API Key 配置（DeepSeek）、语言切换（zh-CN / en-US） |
+ | 权限安全中心（Security · SUPER_ADMIN） | 角色管理 / 菜单权限配置 |
+-| 消息通知（Notifications） | 4 类通知（紧急 / 会议 / AI / 系统）+ 已读未读 + 全部已读 / 清空 |
++| 消息通知（Notifications · v2） | **顶部 4 卡统计**（总数 / 未读 / 紧急未读 / 批量操作）+ **Tab 计数**（类型 + 括号数字）+ **每条**: 类型色条 + 圆角图标盒 + 标题红点光晕 + 类型 Tag + 相对时间 + 内容 + 状态化操作（进行中→加入/会议中→已开始→查看+报告/已结束→查看+报告/紧急→立即查看）+ **批量**: 全选/反选/批量已读/批量删除 + **视图切换**: 列表 / 紧凑单行；持久化 v2 + 强制覆盖 localStorage |
+ | 插件能力市场（PluginMarket · DEPT_ADMIN+） | MCP / Skill 接入展示（占位实现） |
+ 
+ ---
+diff --git a/src/pages/Meeting/MeetingList.tsx b/src/pages/Meeting/MeetingList.tsx
+index db6d990..52c3eeb 100644
+--- a/src/pages/Meeting/MeetingList.tsx
++++ b/src/pages/Meeting/MeetingList.tsx
+@@ -18,6 +18,7 @@ import {
+   Tabs,
+   Typography,
+   Badge,
++  Tooltip,
+ } from 'antd';
+ import {
+   PlusOutlined,
+@@ -30,6 +31,7 @@ import {
+   SoundOutlined,
+   TeamOutlined,
+   ExperimentOutlined,
++  FileTextOutlined,
+ } from '@ant-design/icons';
+ import type { ColumnsType } from 'antd/es/table';
+ import dayjs from 'dayjs';
+@@ -226,35 +228,42 @@ const MeetingList: React.FC = () => {
+       dataIndex: 'title',
+       key: 'title',
+       ellipsis: true,
++      width: 220,
++      fixed: 'left',
+       render: (title: string) => <b>{title}</b>,
+     },
+     {
+       title: t('meeting.startTime'),
+       dataIndex: 'startTime',
+       key: 'startTime',
+-      width: 180,
++      width: 160,
++      ellipsis: true,
+       render: (time: string) => formatDate(time, 'YYYY-MM-DD HH:mm'),
+     },
+     {
+       title: t('meeting.endTime'),
+       dataIndex: 'endTime',
+       key: 'endTime',
+-      width: 180,
++      width: 160,
++      ellipsis: true,
+       render: (time: string) => formatDate(time, 'YYYY-MM-DD HH:mm'),
+     },
+     {
+       title: t('meeting.participants'),
+       dataIndex: 'participants',
+       key: 'participants',
+-      width: 150,
++      width: 140,
++      ellipsis: true,
+       render: (participants: string[]) => (
+         <Avatar.Group size="small" max={{ count: 3 }}>
+           {participants.map((userId) => {
+             const user = mockUsers.find((u) => u.id === userId);
+             return (
+-              <Avatar key={userId} style={{ backgroundColor: user?.avatar || '#1890ff' }}>
+-                {user?.name.charAt(0) || 'U'}
+-              </Avatar>
++              <Tooltip key={userId} title={user?.name}>
++                <Avatar style={{ backgroundColor: user?.avatar || '#1890ff' }}>
++                  {user?.name.charAt(0) || 'U'}
++                </Avatar>
++              </Tooltip>
+             );
+           })}
+         </Avatar.Group>
+@@ -264,29 +273,33 @@ const MeetingList: React.FC = () => {
+       title: t('meeting.status'),
+       dataIndex: 'status',
+       key: 'status',
+-      width: 100,
++      width: 96,
+       render: (status: MeetingStatus) => {
+         const { color, text } = getStatusTag(status);
+-        return <Tag color={color}>{text}</Tag>;
++        return <Tag color={color} style={{ borderRadius: 4, margin: 0 }}>{text}</Tag>;
+       },
+     },
+     {
+       title: t('common.action'),
+       key: 'action',
+-      width: 180,
++      width: 220,
++      fixed: 'right',
+       render: (_, record) => (
+-        <Space>
+-          {record.status === 'ongoing' ? (
++        <Space size={4} wrap>
++          {record.status === 'ongoing' && (
+             <Button
++              size="small"
+               type="primary"
+               icon={<EnterOutlined />}
+               onClick={() => navigate(`/meeting-room/${record.id}`)}
+             >
+               {t('meeting.joinMeeting')}
+             </Button>
+-          ) : record.status === 'pending' ? (
+-            <Space>
++          )}
++          {record.status === 'pending' && (
++            <>
+               <Button
++                size="small"
+                 type="primary"
+                 icon={<VideoCameraOutlined />}
+                 onClick={() => handleStartMeeting(record.id)}
+@@ -294,29 +307,34 @@ const MeetingList: React.FC = () => {
+                 {t('meeting.start')}
+               </Button>
+               <Button
++                size="small"
+                 icon={<ExperimentOutlined />}
+                 onClick={() => navigate(`/meeting-rehearsal/${record.id}`)}
+               >
+-                {'会前预演'}
++                {'预演'}
+               </Button>
+-            </Space>
+-          ) : (
+-            <Space>
++            </>
++          )}
++          {record.status === 'ended' && (
++            <>
+               <Button
++                size="small"
+                 type="link"
++                size="small"
+                 icon={<EyeOutlined />}
+-                onClick={() => navigate(`/meeting/${record.id}/report`)}
++                onClick={() => navigate(`/meeting/${record.id}`)}
+               >
+-                {'查看报告'}
++                {t('common.view')}
+               </Button>
+               <Button
++                size="small"
+                 type="link"
+-                icon={<EyeOutlined />}
+-                onClick={() => navigate(`/meeting/${record.id}`)}
++                icon={<FileTextOutlined />}
++                onClick={() => navigate(`/meeting/${record.id}/report`)}
+               >
+-                {t('common.view')}
++                {'报告'}
+               </Button>
+-            </Space>
++            </>
+           )}
+           <Popconfirm
+             title={t('common.confirm')}
+@@ -325,7 +343,7 @@ const MeetingList: React.FC = () => {
+             okText={t('common.confirm')}
+             cancelText={t('common.cancel')}
+           >
+-            <Button type="link" danger icon={<DeleteOutlined />}>
++            <Button size="small" type="text" danger icon={<DeleteOutlined />}>
+               {t('common.delete')}
+             </Button>
+           </Popconfirm>
+@@ -343,7 +361,7 @@ const MeetingList: React.FC = () => {
+     }));
+ 
+   return (
+-    <div style={{ padding: 24 }}>
++    <div style={{ padding: '20px 16px' }}>
+       {/* 快捷入口卡片 */}
+       <div style={{ marginBottom: 24 }}>
+         <Space size="middle" wrap>
+@@ -471,8 +489,15 @@ const MeetingList: React.FC = () => {
+         }
+       >
+         <Tabs
+-selectedKey={activeTab}
+-onChange={setActiveTab}
++          activeKey={activeTab}
++          onChange={(key) => {
++            setActiveTab(key);
++            if (key === 'all') {
++              setStatusFilter('');
++            } else {
++              setStatusFilter(key as MeetingStatus);
++            }
++          }}
+           items={[
+             {
+               key: 'all',
+@@ -496,14 +521,6 @@ onChange={setActiveTab}
+               label: t('meeting.ended'),
+             },
+           ]}
+-          onTabClick={(key) => {
+-            setActiveTab(key);
+-            if (key === 'all') {
+-              setStatusFilter('');
+-            } else {
+-              setStatusFilter(key as MeetingStatus);
+-            }
+-          }}
+         />
+ 
+         <div style={{ marginBottom: 16 }}>
+@@ -535,6 +552,7 @@ onChange={setActiveTab}
+           columns={columns}
+           dataSource={filteredMeetings}
+           rowKey="id"
++          scroll={{ x: 960 }}
+           pagination={{
+             pageSize: 10,
+             showSizeChanger: true,
+-- 
+2.53.0.windows.2
+

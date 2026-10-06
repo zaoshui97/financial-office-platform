@@ -1,0 +1,61 @@
+From 43184ffd9e1db298776116a09a409ed5cd3de693 Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Tue, 15 Sep 2026 11:49:47 +0800
+Subject: [PATCH 12/21] =?UTF-8?q?fix:=20MeetingRoom=20bootstrap=20?=
+ =?UTF-8?q?=E6=AD=BB=E5=BE=AA=E7=8E=AF=EF=BC=88zustand=20selector=20?=
+ =?UTF-8?q?=E5=87=BD=E6=95=B0=E5=BC=95=E7=94=A8=E9=99=B7=E9=98=B1=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+问题：
+  useContactsStore((s) => s.bootstrap) 订阅了 bootstrap 函数引用
+  bootstrap() 内部 set({employees: MOCK_EMPLOYEES}) 触发 state 重建
+  → bootstrap 闭包引用变化
+  → useEffect 依赖 [bootstrap] 触发
+  → 再次 bootstrap() → 无限循环 / Maximum update depth
+
+修复：
+  1. bootstrap 改用 useContactsStore.getState().bootstrap 拿，不订阅引用变化
+  2. 加 bootstrappedRef 锁，确保整个组件生命周期只 bootstrap 一次
+
+复现路径：/meeting?tab=room&id=1（实时会议室 Tab）
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ src/pages/Meeting/MeetingRoom.tsx | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/src/pages/Meeting/MeetingRoom.tsx b/src/pages/Meeting/MeetingRoom.tsx
+index 31ba548..e55bde4 100644
+--- a/src/pages/Meeting/MeetingRoom.tsx
++++ b/src/pages/Meeting/MeetingRoom.tsx
+@@ -204,7 +204,9 @@ const MeetingRoom: React.FC = () => {
+ 
+   const { user } = useUserStore();
+   const employees = useContactsStore((s) => s.employees);
+-  const bootstrap = useContactsStore((s) => s.bootstrap);
++  // 用 getState() 拿 bootstrap 函数引用，避免 selector 订阅函数引用导致无限循环
++  const bootstrap = useContactsStore.getState().bootstrap;
++  const bootstrappedRef = useRef(false);
+ 
+   // 真实身份 → 通讯录 employee
+   const currentEmployee = useMemo(
+@@ -275,9 +277,12 @@ const MeetingRoom: React.FC = () => {
+     }
+   }, [camera.error]);
+ 
+-  // 初始化 mock 数据
++  // 初始化 mock 数据（只跑一次，避免 bootstrap 引用变化导致无限循环）
+   useEffect(() => {
+-    bootstrap();
++    if (!bootstrappedRef.current) {
++      bootstrappedRef.current = true;
++      bootstrap();
++    }
+   }, [bootstrap]);
+ 
+   // 切换 meeting 时重置多 Agent 状态
+-- 
+2.53.0.windows.2
+

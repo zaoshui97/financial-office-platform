@@ -1,0 +1,43 @@
+From 97b0ce19b79fd426b27fb0d5bff11814aa859dd5 Mon Sep 17 00:00:00 2001
+From: fans <3338683757@qq.com>
+Date: Tue, 15 Sep 2026 11:37:41 +0800
+Subject: [PATCH 10/21] =?UTF-8?q?fix:=20=E4=BF=AE=20MeetingRoom=20?=
+ =?UTF-8?q?=E5=AD=90=E7=BB=84=E4=BB=B6=E6=9C=AA=E5=AE=9A=E4=B9=89=20t=20?=
+ =?UTF-8?q?=E5=BC=95=E5=8F=91=E7=9A=84=E7=A9=BA=E7=99=BD=E5=BC=82=E5=B8=B8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+原 MeetingRoom.tsx 中 ParticipantItem / VideoTile 子组件直接调用了 t()
+但没在内部 useTranslation()，导致子组件空白崩溃。
+
+整合路由后暴露了这个潜在的运行时 bug，统一修复。
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ src/pages/Meeting/MeetingRoom.tsx | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/pages/Meeting/MeetingRoom.tsx b/src/pages/Meeting/MeetingRoom.tsx
+index 16f9753..a4dbb9a 100644
+--- a/src/pages/Meeting/MeetingRoom.tsx
++++ b/src/pages/Meeting/MeetingRoom.tsx
+@@ -1076,6 +1076,7 @@ interface ParticipantItemProps {
+ }
+ 
+ const ParticipantItem: React.FC<ParticipantItemProps> = ({ participant, isZh }) => {
++  const { t } = useTranslation();
+   return (
+     <div className={`participant-item ${participant.status}`}>
+       <Avatar
+@@ -1119,6 +1120,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
+   small,
+   cameraStream,
+ }) => {
++  const { t } = useTranslation();
+   const showCamera = isCurrentUser && !participant.isVideoOff && cameraStream;
+   const videoRef = useRef<HTMLVideoElement | null>(null);
+ 
+-- 
+2.53.0.windows.2
+
