@@ -1,0 +1,176 @@
+/**
+ * 打印友好样式
+ *
+ * @media print 规则：
+ *   - 隐藏：顶部导航、侧边栏、操作按钮、Drawer 框架
+ *   - 显示：报告内容区、页眉（数字马力 logo）、页脚（页码）
+ *   - 字体：黑色文字、14px 正文
+ *   - 分页：避免卡片内容截断
+ */
+
+@media print {
+  /* 隐藏所有非报告区域 */
+  .ant-layout-header,
+  .ant-layout-sider,
+  .ant-layout-footer,
+  .ant-btn,
+  .ant-tabs-nav,
+  .ant-drawer-header,
+  .ant-drawer-footer,
+  .ant-drawer-close,
+  [data-print-hide],
+  .export-toolbar,
+  .action-dispatch-actions,
+  .post-meeting-footer {
+    display: none !important;
+  }
+
+  /* 重置布局 */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 14px !important;
+  }
+
+  /* 报告容器全宽 */
+  .report-page {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* 卡片打印样式 */
+  .ant-card {
+    box-shadow: none !important;
+    border: 1px solid #e0e0e0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 渐变色块在打印时显示为实线色条 */
+  .report-summary [style*="linear-gradient"] {
+    background: #0F2B5B !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* 打印页眉 */
+  .print-header {
+    display: block !important;
+    border-bottom: 2px solid #0F2B5B;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  /* 打印页脚 */
+  .print-footer {
+    display: block !important;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 8px;
+    margin-top: 24px;
+    font-size: 11px;
+    color: #888;
+    text-align: right;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  /* 防止表格截断 */
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 统计数字颜色（打印时保持对比度） */
+  .ant-statistic-content-value {
+    color: #0F2B5B !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 标签打印保留颜色 */
+  .ant-tag {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    border: 1px solid currentColor;
+  }
+
+  /* 分页控制 */
+  .report-summary > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 两栏打印为单栏 */
+  .report-layout-row {
+    display: block !important;
+  }
+
+  .ant-row > .ant-col {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+}
+
+/* 显示打印辅助元素 */
+.print-header,
+.print-footer {
+  display: none;
+}
+
+/* 打印友好报告页 */
+.report-page-print {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+}
+
+/* 关键决策打印色条 */
+.section-bar-decisions {
+  background: #10B981 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.section-bar-risks {
+  background: #EF4444 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.section-bar-topics {
+  background: #6366F1 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* 品牌水印 */
+.report-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #0F2B5B;
+}
+
+.report-brand-header::before {
+  content: 'DH';
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.confidential-mark {
+  font-size: 10px;
+  color: #c00;
+  border: 1px solid #c00;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}

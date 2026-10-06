@@ -1,0 +1,25 @@
+#!/bin/sh
+# husky pre-commit hook
+# 顺序：auto-log（先记，再 lint）→ i18n 检查
+
+cd "$(git rev-parse --show-toplevel)"
+
+echo "📝 自动记录开发日志..."
+node scripts/auto-log.cjs
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ auto-log 失败！"
+    echo ""
+    exit 1
+fi
+
+echo "🔍 运行 i18n 检查..."
+node scripts/check-i18n.js
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ i18n 检查失败！请修复上述问题后再提交。"
+    echo ""
+    exit 1
+fi
+
+echo "✅ pre-commit 通过！"

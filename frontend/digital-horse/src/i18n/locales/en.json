@@ -1,0 +1,97 @@
+{
+  "common": {
+    "appName": "Digital Horse",
+    "home": "Home",
+    "workspace": "Workspace",
+    "knowledge": "Knowledge Base",
+    "meeting": "Meeting",
+    "document": "Documents",
+    "insight": "Industry Insights",
+    "search": "Search",
+    "settings": "Settings",
+    "language": "Language",
+    "logout": "Logout",
+    "welcome": "Welcome",
+    "loading": "Loading..."
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "knowledgeBase": "Knowledge Base",
+    "meetingManagement": "Meeting Management",
+    "documentCenter": "Document Center",
+    "industryInsights": "Industry Insights"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome Back",
+    "quickAccess": "Quick Access",
+    "recentDocuments": "Recent Documents",
+    "upcomingMeetings": "Upcoming Meetings",
+    "statistics": "Statistics",
+    "totalDocuments": "Total Documents",
+    "totalMeetings": "Total Meetings",
+    "totalKnowledge": "Knowledge Items",
+    "activeUsers": "Active Users"
+  },
+  "knowledge": {
+    "title": "Knowledge Base",
+    "search": "Search knowledge...",
+    "newKnowledge": "New Knowledge",
+    "category": "Category",
+    "tag": "Tag",
+    "author": "Author",
+    "createTime": "Created At",
+    "updateTime": "Updated At",
+    "content": "Content",
+    "description": "Description",
+    "allCategory": "All Categories"
+  },
+  "meeting": {
+    "title": "Meeting Management",
+    "newMeeting": "New Meeting",
+    "joinMeeting": "Join Meeting",
+    "schedule": "Schedule",
+    "pastMeetings": "Past Meetings",
+    "host": "Host",
+    "participants": "Participants",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "status": "Status",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "ended": "Ended",
+    "cancelled": "Cancelled"
+  },
+  "document": {
+    "title": "Document Center",
+    "upload": "Upload",
+    "download": "Download",
+    "preview": "Preview",
+    "share": "Share",
+    "delete": "Delete",
+    "rename": "Rename",
+    "fileName": "File Name",
+    "fileSize": "Size",
+    "uploadTime": "Upload Time",
+    "uploader": "Uploader"
+  },
+  "insight": {
+    "title": "Industry Insights",
+    "latest": "Latest News",
+    "trending": "Trending",
+    "hot": "Hot",
+    "publishTime": "Publish Time",
+    "source": "Source",
+    "readMore": "Read More"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "account": "Account Security",
+    "notifications": "Notification Settings",
+    "appearance": "Appearance",
+    "language": "Language Settings",
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

@@ -1,0 +1,85 @@
+.task-pipeline {
+  margin-top: 16px;
+}
+
+.pipeline-header {
+  margin-bottom: 20px;
+}
+
+.pipeline-header .ant-typography {
+  margin-bottom: 4px;
+}
+
+.pipeline-steps {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pipeline-steps .ant-steps-item-finish .ant-steps-item-icon {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pipeline-steps .ant-steps-item-process .ant-steps-item-icon {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pipeline-stats {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.pipeline-progress-card {
+  flex: 1;
+}
+
+.pipeline-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pipeline-urgent-card {
+  flex: 1;
+  background: rgba(214, 64, 69, 0.05);
+  border-color: rgba(214, 64, 69, 0.2);
+}
+
+:root[data-theme="dark"] .pipeline-urgent-card {
+  background: rgba(214, 64, 69, 0.1);
+}
+
+.urgent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.urgent-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.urgent-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.pipeline-actions {
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .pipeline-stats {
+    flex-direction: column;
+  }
+}

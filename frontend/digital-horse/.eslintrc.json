@@ -1,0 +1,24 @@
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "no-restricted-globals": "off",
+    "no-console": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-patterns": [
+          "error",
+          {
+            "name": "hardcoded-chinese",
+            "message": "检测到硬编码中文字符串。请使用 i18n t('key') 代替。示例：\n- 错误: <span>中文内容</span>\n- 正确: <span>{t('common.example')}</span>\n\n例外情况：\n1. Mock 数据中的示例内容\n2. 日期格式化模式（如 'YYYY-MM-DD'）\n3. 注释中的中文说明"
+          }
+        ]
+      }
+    }
+  ]
+}

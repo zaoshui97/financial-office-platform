@@ -1,0 +1,28 @@
+# Docker 构建/运行忽略文件，避免把不必要的上下文塞进镜像
+# 不要把 secrets 一起打包（环境变量应在 docker-compose / 运行平台注入）
+
+# 依赖与构建产物
+node_modules
+dist
+build
+.vite
+.cache
+coverage
+
+# 环境与 secrets
+.env
+.env.*
+!.env.example
+
+# 日志与临时
+*.log
+logs
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# 仓库元数据
+.git
+.gitignore
+.husky

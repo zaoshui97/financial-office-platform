@@ -1,0 +1,35 @@
+flowchart TD
+    START(["开始"]):::startEnd
+    INPUT[/"输入数组 a[0..n-1]，长度 n"/]:::io
+    INIT1["i ← 0"]:::init
+
+    CHECK1{"i &lt; n-1 ?"}:::decision
+    OUT[/"输出排序后的数组 a"/]:::io
+    END(["结束"]):::startEnd
+
+    MIN["minIdx ← i"]:::init
+    J1["j ← i+1"]:::init
+
+    CHECK2{"j &lt; n ?"}:::decision
+    SWAP["交换 a[i] 与 a[minIdx]"]:::init
+    I1["i ← i+1"]:::init
+
+    CHECK3{"a[j] &lt; a[minIdx] ?"}:::decision
+    M2["minIdx ← j"]:::init
+    J2["j ← j+1"]:::init
+
+    START --> INPUT --> INIT1 --> CHECK1
+    CHECK1 -- "否" --> OUT --> END
+    CHECK1 -- "是" --> MIN --> J1 --> CHECK2
+
+    CHECK2 -- "否" --> SWAP --> I1 --> CHECK1
+    CHECK2 -- "是" --> CHECK3
+
+    CHECK3 -- "是" --> M2 --> J2
+    CHECK3 -- "否" --> J2
+    J2 --> CHECK2
+
+    classDef startEnd fill:#FBE4E4,stroke:#D88A8A,stroke-width:1.5px,color:#8B3A3A
+    classDef io fill:#DDEBDA,stroke:#88B088,stroke-width:1.5px,color:#3D5A37
+    classDef init fill:#DDE5F0,stroke:#8AA0C2,stroke-width:1.5px,color:#2C3E5C
+    classDef decision fill:#FCEBC8,stroke:#D4B16A,stroke-width:1.5px,color:#7A5C2E

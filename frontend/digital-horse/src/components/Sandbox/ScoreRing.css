@@ -1,0 +1,19 @@
+.score-ring {
+  display: inline-block;
+  overflow: hidden;
+}
+
+/* 进度环动画 */
+.score-ring circle {
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 阻断状态特殊脉冲 */
+.score-ring.blocked circle[stroke="#DC2626"] {
+  animation: ring-pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes ring-pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

@@ -1,0 +1,21 @@
+.dashboard-charts {
+  margin-bottom: 12px;
+}
+
+.dashboard-charts .ant-card {
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.dashboard-charts .ant-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 21, 41, 0.10);
+}
+
+.dashboard-charts .recharts-legend-wrapper {
+  padding-bottom: 4px !important;
+}
+
+.dashboard-charts .recharts-area-curve {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}

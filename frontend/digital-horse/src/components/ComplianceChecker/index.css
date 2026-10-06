@@ -1,0 +1,114 @@
+.compliance-checker {
+  height: 100%;
+}
+
+.compliance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.compliance-check-section {
+  padding: 16px 0;
+}
+
+.compliance-check-content {
+  margin-top: 16px;
+}
+
+.compliance-content-preview {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--color-bg-hover);
+  border-radius: 8px;
+}
+
+.compliance-content-text {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--color-bg-card);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.compliance-result-section {
+  padding: 16px 0;
+}
+
+.compliance-score-card {
+  padding: 20px;
+  background: rgba(15, 43, 91, 0.05);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.score-number {
+  display: flex;
+  align-items: baseline;
+}
+
+.score-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.score-max {
+  font-size: 24px;
+  color: var(--color-text-hint);
+  margin-left: 4px;
+}
+
+.compliance-issues,
+.compliance-suggestions {
+  margin-top: 16px;
+}
+
+.issues-header,
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.issue-item,
+.suggestion-item {
+  padding: 10px 12px !important;
+  background: var(--color-bg-hover);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.compliance-actions {
+  text-align: right;
+}
+
+/* 暗色主题适配 */
+:root[data-theme="dark"] .compliance-score-card {
+  background: rgba(74, 144, 217, 0.1);
+}
