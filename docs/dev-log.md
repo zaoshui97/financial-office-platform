@@ -25,6 +25,419 @@
 
 ---
 
+<!-- ARCHIVE:ENTRY-START -->
+
+## 历史阶段归档（2026-07-16 → 2026-10-05）
+
+> **来源**：队友交付材料 `backend-dev-log(3).md`（桌面路径），按 dev-log 风格改写并按 commit / 阶段重排。
+> **覆盖范围**：RAG 主线（认证 / 知识库 / 文档解析 / OCR / 向量索引 / 引用绑定 / 评测） + Docker 部署主线（Compose / 健康检查 / 资源隔离）。
+> **不覆盖**：现有 dev-log 已记录的副线（沙箱 / 会议 / Agent / 答辩包装 / 4 新域），不重复。
+> **日期语义**：07-16~09-17 段为迁移文件 `Create Date`，09-30 起为 Git 提交日期。中间段（09-18~09-26）按聊天顺序记录，无逐日提交。
+
+### 索引
+
+| 段落 | 期间 | 关键提交 / 事件 | 触及模块 |
+|---|---|---|---|
+| 阶段 0 | 07-16 → 07-22 | 迁移 `001~004` | 用户 / 知识库 / 文档解析 / 聊天会话 |
+| 阶段 1 | 09-14 | 迁移 `005~006` | 持久化 chunk + 索引状态 |
+| 阶段 2 | 09-17 | 迁移 `007` | 索引代际 + 一致性 |
+| 阶段 3 | 09-18 → 09-26 | 真 Embedding / Qdrant / OCR 联调 | 真实百炼 / Qdrant / Tesseract |
+| 阶段 4 | 09-27 → 09-29 | 固定 Smoke + 阈值 / Top-N / 引用 | 检索选择器 / 引用绑定 |
+| 阶段 5 | 09-30 | `b70c6df` + `081dac8` | RAG 基线 + Docker 部署栈 |
+| 阶段 6 | 10-01 | `eabd119` + `d5d4bdb` + `dc74c56` | 资源隔离 / 兼容 AI / Qdrant 健康检查 |
+| 阶段 7 | 10-05 | 补全 dev-log（本次融合） | 文档整理 |
+
+---
+
+### 阶段 0：2026-07-16 → 2026-07-22  @assistant  [chore(db): users + knowledge base + document parsing + chat session 初始 schema（迁移 001~004）]
+
+- **触及文件**: 4 个新迁移 + `app/features/auth/` + `app/features/rag/` + `app/features/chat/` 初始代码
+- **提交状态**: 无独立 Git 提交（基线 `b70c6df` 之前未纳入版本控制），日期为迁移文件 `Create Date`
+
+#### 1. 用户与认证基础（迁移 `20260716_001`）
+
+- `alembic/versions/20260716_001_create_users.py`（新）— `users` 表：username / email / full_name / password_hash / is_active / is_superuser；username / email 唯一索引
+- 后续 `app/features/auth/` 模块、JWT 流程均依赖此表
+
+#### 2. 知识库 + 文档初始结构（迁移 `20260717_002`）
+
+- `alembic/versions/20260717_002_create_rag_tables.py`（新）：
+  - `knowledge_bases` / `knowledge_documents` + 初版 `document_chunks`
+  - 用户 / 知识库 / 文档外键 + 常用索引
+- 后续在 003 迁移删除初版切片表
+
+#### 3. 解析结果先行持久化（迁移 `20260721_003`）
+
+- `alembic/versions/20260721_003_simplify_rag_document_parsing.py`（新）：
+  - 删除初版切片表
+  - 文档表加 `parsed_text` / `page_count` / `parsed_char_count`；移除 `chunk_count`
+- 配套：`app/integrations/document_parser.py` / `app/features/rag/service.py`
+
+#### 4. 聊天会话与消息持久化（迁移 `20260722_004`）
+
+- `alembic/versions/20260722_004_create_chat_tables.py`（新）：
+  - `chat_conversations` / `chat_messages`
+  - 消息存 role / mode / content / JSON `citations`
+- 配套：`app/features/chat/{models,schemas,service,router}.py`
+
+#### 5. 关键数字
+
+```
+迁移版本: 4（001~004）
+新增表: 6（users / knowledge_bases / knowledge_documents / document_chunks→删除 / chat_conversations / chat_messages）
+最终 ORM 表: 5（初版 document_chunks 已被 003 迁移替代）
+```
+
+#### 6. 验证与边界
+
+- ⚠ 002 迁移的初版切片结构要求立即存在 Qdrant Point ID，不适合"先解析后索引"演进，已在 003 移除
+- ⚠ 当时 `citations` 单一概念，评测后（10-29 阶段 4）拆为 `retrieved_contexts` / `used_citations`
+- ✅ 当前 ORM 字段与原始 002 迁移不一致，应以**完整迁移链 + 现 ORM 为准**
+
+---
+
+### 阶段 1：2026-09-14  @assistant  [feat(rag): 持久化 chunk + 索引状态机（迁移 005~006）]
+
+- **触及文件**: 2 个新迁移 + `app/features/rag/{chunker,models,service}.py` + 关联测试
+- **提交状态**: 聊天记录可确认，未形成独立 Git 提交
+
+#### 1. 文档片段持久化（迁移 `20260914_005`）
+
+- `alembic/versions/20260914_005_create_document_chunks.py`（新）：
+  - `document_chunks` 表：owner_id / knowledge_base_id / document_id / chunk_index / content / page_number / metadata / content_sha256 / embedding_id(可空)
+  - 重建结构（替代被 003 迁移删除的初版切片表）
+
+#### 2. 文档索引状态（迁移 `20260914_006`）
+
+- `alembic/versions/20260914_006_add_document_index_status.py`（新）：
+  - 文档加 `index_status` / `index_error` / `indexed_at` / `index_collection`
+  - 默认 `pending`，区别"解析成功"和"可检索"
+
+#### 3. 切分器
+
+- `app/features/rag/chunker.py` — 长度 1000 / 重叠 150
+
+#### 4. 验收
+
+- ✅ 备份本地库后升级到 006，核验字段
+- ✅ TXT 上传 → 解析 → chunk 入库 → 归属与哈希验证
+- ⚠ **本日志整理时未重新执行**（按当时聊天记录核验）
+
+---
+
+### 阶段 2：2026-09-17  @assistant  [feat(rag): 索引代际 + 原子构建/发布 + 检索有效性校验（迁移 007）]
+
+- **触及文件**: 1 个新迁移 + `app/features/rag/{index_build,index_publish,indexing}.py` + `app/features/chat/rag_retriever.py` + `app/integrations/qdrant_client.py` + 版本化索引测试
+- **提交状态**: 聊天记录可确认
+
+#### 1. 索引代际（迁移 `20260917_007`）
+
+- `alembic/versions/20260917_007_add_index_generations.py`（新）：
+  - 文档加 `active_generation` / `building_generation`
+  - 区分"活动版本" vs "构建中版本"
+
+#### 2. 版本化 Point ID
+
+- `app/features/rag/index_build.py` — UUID5 派生确定性 Point ID（同一 chunk 重算永远同 ID）
+- 配套 `app/integrations/qdrant_client.py` + `tests/test_rag_point_ids.py`
+
+#### 3. 原子构建 / 原子发布
+
+- `app/features/rag/index_build.py` — 构建资格原子获取 + 失败条件收尾
+- `app/features/rag/index_publish.py` — 发布事务（Qdrant 写入 + MySQL `active_generation` 切换同事务）
+- Qdrant Payload 保存 `generation` / `content` / `sha256` / `page_number`
+
+#### 4. 检索有效性校验
+
+- `app/features/chat/rag_retriever.py` — 检索只接受：
+  - `active_generation` 一致
+  - 身份匹配（owner / kb / doc）
+  - Point ID 与 `content_sha256` 校验通过
+- 配套 `tests/test_active_index_filter.py` + `test_active_index_retrieval.py` + `test_versioned_indexing.py`
+
+#### 5. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| UUID5 派生 Point ID | 同 chunk 重算稳定，避免重复 |
+| 构建 / 发布拆事务 | Qdrant 部分写入后不污染 active |
+| 失败不删旧向量 | 旧索引仍可读，不雪崩 |
+| 检索三层校验 | 防止旧向量 + 新正文错配 |
+
+#### 6. 验收
+
+- ✅ 隔离数据库 + Mock 专项测试覆盖构建 / 发布 / 失败 / 检索可见性
+- ✅ 真实文档索引与问答链路成功
+- ⚠ SQLite ≠ MySQL 并发压力验收
+- ⚠ 旧版本向量清理 + 崩溃自动解锁仍是边界
+
+---
+
+### 阶段 3：2026-09-18 → 2026-09-26  @assistant  [feat(integration): 真实百炼 Embedding + 真实 Qdrant + 扫描 PDF OCR + 中文文件名 RFC 2047]
+
+- **触及文件**: `app/ai/embeddings/` + `app/ai/exceptions.py` + `app/integrations/qdrant_client.py` + `document_parser.py` + `ocr.py` + 上传文件名处理 + 测试 + `.env.example`
+- **提交状态**: 聊天顺序可确认，逐日提交日期未独立留存
+- **关键验收**: 单条 Embedding 1024 维通过 / 多份 TXT+PDF+DOCX 上传解析 / OCR / 首次索引 / RAG 问答
+
+#### 1. 真实百炼 Embedding
+
+- `app/ai/embeddings/{base,schemas,bailian,service}.py`：
+  - 百炼错误结构化（错误码 + trace_id）
+  - 安全网络诊断 + 可配置 `trust_env`
+  - 输出 1024 维向量
+
+#### 2. Qdrant 真实集成
+
+- `app/integrations/qdrant_client.py`：
+  - Collection 维度 / 距离校验
+  - upsert 完成状态返回
+  - 服务不可达返回明确 502
+
+#### 3. 扫描 PDF OCR
+
+- `app/integrations/ocr.py` + `document_parser.py`：
+  - PyMuPDF 逐页判断原生文本是否足够
+  - 不足页面 → Tesseract OCR 回退（`chi_sim+eng`）
+  - 页级超时 + 并发限制
+  - 混合 PDF 按"实际需 OCR 页数"计限额（不再按总页数拒绝）
+- 配套 `tests/test_ocr.py`
+
+#### 4. 上传文件名处理
+
+- `app/integrations/file_storage.py` — RFC 2047 + `filename*` 中文文件名支持
+- 配套 `tests/test_upload_filenames.py`
+
+#### 5. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| 错误结构化（错误码 + trace_id） | 便于排障百炼连接 / 代理问题 |
+| 混合 PDF 按需 OCR 页数计费 | 31 页混合 PDF 不再被总页数 30 误拒 |
+| 中文文件名 RFC 2047 兼容 | 修复中文被误判为无后缀 bug |
+
+#### 6. 踩坑记录
+
+- 百炼连接 / 代理问题（HTTP 400 诊断信息不足 → 加结构化错误码）
+- Qdrant 未启动或 502 → 启动期 healthcheck 修复见阶段 6
+- 扫描 PDF 无文本层 → PyMuPDF + Tesseract 双轨
+- 31 页混合 PDF 误按总页数拒 → 按需 OCR 改写
+
+---
+
+### 阶段 4：2026-09-27 → 2026-09-29  @assistant  [perf(rag): 固定 Smoke + Top-K 校准 + 阈值拒答 + 引用语义拆分]
+
+- **触及文件**: `app/core/config.py` + `.env.example` + `app/features/chat/rag_retriever.py` + `app/features/rag/retrieval_selector.py` + `app/features/chat/citation_binding.py` + 聊天 schemas/service + 测试 + `evals/results/`
+- **提交状态**: 评测报告 `generated_at` 可作为记录日期
+- **关键验收**: 固定 5 题 Smoke / 18 题 Top-K 校准 / 引用分析
+
+#### 1. 固定 Smoke 与 Top-20 检索诊断（2026-09-27）
+
+- `evals/rag_baseline_cases.json` — 5 题固定样本
+- `evals/results/baseline_smoke_run2.*` + `retrieval_rank_diagnostic.*`
+- **问题定位**：
+  - `single-08` 核心 chunk 84 排第 6，被 Top-4 截断
+  - `cross-02` 文档 9 首次排第 18，Top-4 被文档 11 占满
+  - 一题发生模型回退（Qwen → DeepSeek）拉长 P95
+
+#### 2. 标题约束 + 受控法律简称 + Top-6 方案（2026-09-28）
+
+- `app/features/rag/retrieval_selector.py` + `app/features/chat/rag_retriever.py`：
+  - `《标题》` 提取 + NFKC 规范化
+  - 唯一精确匹配 + 受控 `中华人民共和国` 前缀简称
+  - 多标题"全有或全无"解析 + 确定性轮询
+  - 候选池从 Top-4 扩到 Top-6（最终上下文）
+- 配套 `tests/test_rag_retrieval_selector.py` + `evals/results/cross_02_*` + `single_08_selection_analysis.*`
+
+#### 3. Top-6 + 0.45 阈值 + 引用语义拆分（2026-09-29）
+
+- `app/core/config.py` + `.env.example` — 默认 `RAG_VECTOR_TOP_K=20` / `TOP_N=6` / `SCORE_THRESHOLD=0.45`
+- `app/features/chat/rag_retriever.py` — 安全校验后、标题选择前应用 0.45 阈值；空上下文**直接固定拒答**，不调聊天模型
+- `app/features/chat/citation_binding.py` — 新增 `retrieved_contexts`（实际入 prompt 全部材料）+ `used_citations`（答案有效引用子集），保留 `citations` 兼容语义
+- 配套 `evals/results/retrieval_threshold_calibration.*` + `refusal_01_after_threshold_run2.*` + `baseline_smoke_after_retrieval_fixes.*` + `citation_binding_analysis.*`
+
+#### 4. 关键数字（修复前 → 修复后）
+
+| 指标 | 修复前 | 修复后 |
+|---|---:|---:|
+| 文档召回 micro | 83.33% | 100.00% |
+| 支持片段召回 | 70.00% | 80.00% |
+| 忠实度 | 71.74% | 82.61% |
+| 拒答正确率 | 100.00% | 100.00% |
+| 引用页码准确率 | 50.00% | 37.50% |
+
+#### 5. 响应语义（拆分后）
+
+| 字段 | 含义 | 前端用途 |
+|---|---|---|
+| `retrieved_contexts` | 实际送入 prompt 的全部材料 | 展示检索来源 |
+| `used_citations` | 答案用有效编号明确引用的子集 | 展示答案引用 |
+| `citations` | 与 `retrieved_contexts` 一致（兼容字段） | 兼容已有调用 |
+
+#### 6. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| Top-6 而非 Top-4 | 单文档第 6 名常含互补证据（single-08 验证） |
+| 0.45 分数阈值 | 18 题校准确定（不是单题决定） |
+| 空上下文不调模型 | 避免无依据时仍生成长答案 |
+| 引用编号去重 + 按首现绑定 | 答案"第 N 条"与材料顺序稳定对应 |
+
+#### 7. 验收与边界
+
+- ✅ 18 题只检索校准，18 次 Embedding / 18 次 Qdrant / 0 次聊天模型
+- ✅ 5 题 Smoke 全部通过；引用页码下降如实记录
+- ⚠ 跨文档仍遗漏部分支持 chunk（cross-02 仍未 100%）
+- ⚠ Qwen 超时回退 DeepSeek 拉高 P95（约 83.6 秒）
+
+---
+
+### 阶段 5：2026-09-30  @assistant  [chore(release): RAG 基线入库 + 独立 Docker 部署栈] — commit `b70c6df` + `081dac8`
+
+- **触及文件**: `b70c6df` 140 个文件 / +32344 行（含评测 JSON + 文档 + 测试）；`081dac8` 8 个文件 / +402 行
+- **提交状态**: 提交日期有 Git 对象为证
+- **关键验收**: 首次提交前离线 438 测试通过 / Ruff 通过 / 敏感扫描无阻塞 / Compose 静态解析通过（**部署当日仅静态检查通过，未启容器**）
+
+#### A. RAG 基线（commit `b70c6df`）
+
+- `feat: establish financial office RAG platform baseline`
+- 14 大类共 140 文件入库：
+  1. `app/main.py` + `bootstrap.py` — 应用入口
+  2. `app/api/router.py` — `/api/v1` 统一前缀 + 业务路由
+  3. `app/core/{config,database,security,exceptions,middleware,logging,swagger}.py` — 配置 / 连接 / 认证基础 / 异常 / 中间件 / 日志 / Swagger
+  4. `app/features/system/router.py` — `/system/health/{live,ready}` 健康检查
+  5. `app/features/auth/{models,schemas,service,router,dependencies}.py` + `tests/test_auth.py` — 注册 / 登录 / JWT / 当前用户
+  6. `app/features/rag/{models,schemas,service,router,chunker}.py` + 4 测试 — 知识库 / 文档 / 解析 / 切分
+  7. `app/features/chat/{models,schemas,service,router,rag_retriever,citation_binding}.py` + 5 测试 — 普通聊天 / RAG 聊天 / 引用绑定
+  8. `app/ai/{llm_gateway,model_router,diagnostics,usage,schemas,exceptions}.py` + `app/ai/embeddings/` + `app/ai/providers/` — 模型网关 / 路由 / Embedding
+  9. `app/integrations/{file_storage,document_parser,ocr,qdrant_client}.py` — 原件 / 解析 / OCR / Qdrant 适配
+  10. `app/features/rag/{indexing,index_build,index_publish}.py` + `app/features/rag/retrieval_selector.py` — 索引管理 / 检索选择
+  11. `alembic/versions/` 下 7 个迁移（001~007）— 覆盖用户 / 知识库 / 文档 / 聊天 / chunk / 索引状态 / 代际
+  12. `alembic/env.py` + `alembic.ini` — 迁移运行时配置（移除了硬编码 DB URL）
+  13. `docs/{api-contract-v1,repository-readiness,database-design}.md` + `evals/{README,rag_baseline_cases.json}` + `evals/results/` — 契约 / 准备度 / 评测样本与报告
+  14. `requirements.txt` + `requirements-dev.txt` + `pyproject.toml` + `.gitignore` + `.dockerignore` + `.env.example` — 依赖 / 检查配置 / 忽略规则 / 环境示例
+
+#### B. 独立 Docker 部署栈（commit `081dac8`）
+
+- `Dockerfile`（新）— Python 3.12 + 非 root + Tesseract chi_sim+eng + 监听 8000
+- `docker-compose.deploy.yml`（新）— 项目名 `financial-office-deploy`（后改） + 内部网络 + MySQL 8.0.43 + Qdrant v1.19.1 + 三个独立卷
+- `.env.deploy.example`（新）— 部署专用环境变量模板
+- `scripts/docker-entrypoint.sh`（新）— 等待 MySQL → alembic upgrade head → 启动 Uvicorn
+- `docs/docker-deployment.md`（新）— 部署教程
+- `.gitattributes`（新）— 行尾 / 编码策略
+- 修改：`.gitignore` + `.dockerignore`
+
+#### C. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| 提交合并 140 文件 | 之前无 Git，阶段成果一次归档 |
+| DB URL 改为从 Settings 读取 | 移除 `alembic.ini` 硬编码 |
+| 部署与开发隔离 | 避免容器覆盖开发 Qdrant 95 Points |
+| 容器不映射宿主端口 | 全部走内部网络 |
+| alembic 入口集成在 entrypoint | 启动即迁移，运维心智低 |
+
+#### D. 踩坑记录
+
+- 首次暂存检查发现 Markdown 尾随空格 + 多余空行（`api-contract-v1.md` 3-5 行 / `repository-readiness.md` 3 行 / `retrieval_rank_diagnostic.md` 末尾）→ 修复后重检
+- 部署阶段当日只完成静态结构，**不能写成容器已运行**
+- 首次推送前发现沙箱账户与当前 Windows 用户不同（`dubious ownership`）→ 信任例外后恢复
+
+#### E. 验收与边界
+
+- ✅ 提交前离线 438 测试通过 / Ruff 通过 / 敏感扫描无阻塞 / 知识库清点 10 个有效文档
+- ✅ Compose 静态解析通过 / 脚本语法通过
+- ⚠ 部署当日**仅静态检查**，未实际启容器
+- ⚠ 历史成功截图不能代替新版本验证
+
+---
+
+### 阶段 6：2026-10-01  @assistant  [chore(deploy): 资源隔离 + 兼容 AI 可选 + Qdrant 健康检查修复] — commit `eabd119` + `d5d4bdb` + `dc74c56`
+
+- **触及文件**: 3 提交共 7 个文件 / +38 / -20
+- **提交状态**: 三次独立提交，git 日志可查
+- **关键验收**: Compose 静态解析 + 差异 + 敏感扫描全通过；服务 healthy 来自后续运行截图，**非该静态提交本身证明**
+
+#### 1. 资源隔离（commit `eabd119` — `build: isolate deployment compose resources`）
+
+- `docker-compose.deploy.yml`（+12 / -8）— 项目名改 `financial-office-deploy`，内部网络 / 三个卷采用独立部署名（不与开发环境重名）
+- `.env.deploy.example`（+4 / -0）— 三项模型重试示例值设 0
+- `docs/docker-deployment.md`（+8 / -6）— 同步说明资源隔离 + 部署配置
+
+#### 2. 兼容 AI 配置可选（commit `d5d4bdb` — `chore: allow legacy AI config empty`）
+
+- `.env.deploy.example`（+2 / -1）— 旧 `openai_compatible` AI API Key / Model 可留空
+- `docker-compose.deploy.yml`（+4 / -3）— 对应环境变量由 required 改 optional
+
+#### 3. Qdrant 健康检查修复（commit `dc74c56` — `fix: qdrant healthcheck via /dev/tcp`）
+
+- `docker-compose.deploy.yml`（+6 / -1）— Qdrant healthcheck 改 Bash `/dev/tcp/127.0.0.1/6333`（镜像内无 curl / wget）
+- `docs/docker-deployment.md`（+2 / -1）— 说明检查不依赖 curl
+
+#### 4. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| 部署资源独立命名 | 不覆盖开发 Qdrant / MySQL / 上传卷 |
+| 旧兼容 AI 允许为空 | 旧占位符不应阻塞新专用模型密钥（Qwen / DeepSeek） |
+| Qdrant healthcheck 用 /dev/tcp | 镜像无 curl；/dev/tcp 端口探测足够（业务健康仍需真实请求验证） |
+
+#### 5. 踩坑记录
+
+- Qdrant 报 `/bin/sh: curl: not found`（健康检查失败 → API 卡在 created）→ /dev/tcp 修复
+- 旧 `AI_API_KEY` 空时 Compose 启动强校验 → 改 optional
+- 健康检查通过 ≠ 业务接口可用 → 文档明确区分
+
+#### 6. 验收与边界
+
+- ✅ 三次提交均通过静态检查
+- ⚠ "三个服务 healthy"截图来自**后续启动**，**不是该静态提交本身的证明**
+- ⚠ 业务链路（聊天 / RAG）需在真实部署环境单独验收
+
+---
+
+### 阶段 7：2026-10-05  @assistant  [docs(archive): 补全后端开发记录 — 阶段成果 + 接口清单 + 故障复盘 + 验收证据]
+
+- **触及文件**: `docs/dev-log.md`（本次融合，+~600 行）
+- **提交状态**: 本次融合的 dev-log 已在 `2026-10-05 16:15` 现有条目之后追加 `2026-10-06 18:30` 4 新域条目
+- **关键验收**: 文档与当前分支代码 + 可读报告交叉核对；**本轮不跑测试 / 容器 / 迁移 / 外部 API**
+
+#### 1. 融合目的
+
+- 老 log（20 章）覆盖 RAG + Docker 主线，与现有 dev-log 副线（沙箱 / 会议 / Agent / 4 新域）**完全不重叠**
+- 改写为 dev-log 风格（按 commit / 阶段逐条）插入 `## 历史阶段归档` 区段
+- 增加 `<!-- ARCHIVE:ENTRY-START -->` / `<!-- ARCHIVE:ENTRY-END -->` 标记，便于自动钩子识别区段
+
+#### 2. 风格映射
+
+| 老 log 风格 | 改写为 dev-log 风格 |
+|---|---|
+| `### 一、阶段成果概览` | `### 阶段 N：YYYY-MM-DD @author [type: title]` |
+| `**触及文件**：...` | `**触及文件**: N 个（+X / -Y）` |
+| `**实现思路**` | 拆为 `#### N. 标题` + `关键决策` 表格 |
+| `**验证结果**` | 拆为 `#### 验收与边界` + ✅ / ⚠ 标记 |
+| 提交列表 | 内联为 commit hash 在标题中 |
+
+#### 3. 关键决策
+
+| 决策 | 理由 |
+|---|---|
+| 不另开新文件 | 用户要求"融合进现在的后端改的记录" |
+| 顶部插 `## 历史阶段归档` | 现有 `## 每日提交快照` 时间线继续往后 |
+| 7-16~9-17 段不写独立 commit | 老 log 明确"无独立 Git 提交" |
+| 重叠区（09-30 提交）以 dev-log 为准 | dev-log 已含 `2026-10-05 16:15 v1.1 答辩包装`，老 log 阶段 5 不重复 |
+| 老 log 阶段 6 三 commit 单独保留 | 现有 dev-log 没记录，补上 |
+
+#### 4. 验收与边界
+
+- ✅ 老 log 20 章全部覆盖（合并为 8 个阶段）
+- ✅ 现有 dev-log 副线（沙箱 / 会议 / Agent / 4 新域）保持不动
+- ⚠ 老 log 第 8 章"嵌入与构建网络问题"未单独成段，归入阶段 5 踩坑记录
+- ⚠ 队友附件末尾提到的 `app/features/compliance/` 与 `app/features/blackboard/` 在本分支**未见代码**，老 log 第 19 章已标注"跨分支待核实"，本归档沿用
+
+---
+
+<!-- ARCHIVE:ENTRY-END -->
+
 ## 每日提交快照
 
 <!-- AUTO:ENTRY-START -->
