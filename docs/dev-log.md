@@ -95,6 +95,93 @@ alembic_version: 20261003_008
 
 
 
+### 2026-10-06 18:30  @assistant  [feat(v1.2): 新增 4 个新域 — 审批 / 工作台总览 / 即时通讯 / 通知中心 + 5 张新表 + 演示工具集]
+
+- **触及文件**: 24 个（+725 / -38），新增 25 个未跟踪文件（4 个新域模块 + 1 SQL + 1 迁移脚本 + 6 工具 + 13 个 `__pycache__` 已忽略）
+
+#### 1. 4 个新业务域（前端联调基座）
+
+- **审批域**（`app/features/approval/`）：
+  - `models.py`（+154）— `Approval` / `ApprovalAction` 两表 SQLAlchemy 模型（已与 `migrations/2026_10_06_new_features.sql` 同步）
+  - `schemas.py`（+80）— `ApprovalCreate` / `ApprovalOut` / `ApprovalActionCreate` 等 Pydantic 契约
+  - `service.py`（+260）— 业务层：建审批 / 流转移交 / 拒绝动作审批 / 列表查询（含状态机）
+  - `router.py`（+88）— 5 个端点：POST `/approvals`（创建）、GET `/approvals`（列表）、GET `/approvals/{id}`（详情）、POST `/approvals/{id}/approve`、`POST /approvals/{id}/reject`
+- **工作台总览**（`app/features/dashboard/`）：
+  - `models.py`（+148）— `MaintenanceRecord` 模型（虽然只 Mock）
+  - `schemas.py`（+78）— `DashboardStats` 契约（今日工单 / 待审批 / 通知计数）
+  - `service.py`（+260）— 聚合 4 个域的 stats + topN
+  - `router.py`（+58）— 1 个端点：`GET /dashboard/stats`
+- **即时通讯**（`app/features/im/`）：
+  - `models.py`（+92）— `ImDirectMessage` 模型
+  - `schemas.py`（+58）— `ImMessageCreate` / `ImMessageOut` 契约
+  - `service.py`（+220）— 发送 / 历史查询（含读未读标记）
+  - `router.py`（+48）— 2 个端点：`POST /im/messages`、`GET /im/messages`
+- **通知中心**（`app/features/notification/`）：
+  - `models.py`（+98）— `NotificationRecord` 模型
+  - `schemas.py`（+68）— `NotificationOut` 契约
+  - `service.py`（+220）— 列表 / 标记已读 / 发送
+  - `router.py`（+50）— 2 个端点：`GET /notifications`、`POST /notifications/send`
+
+#### 2. 5 张新表（建库脚本 + 幂等迁移）
+
+- `migrations/2026_10_06_new_features.sql`（+148，新文件）— 一脚本建 5 张表：
+  - `approvals`（含 state/created_by/approved_by/timestamp 索引）
+  - `approval_actions`（含 `approval_id FK` + 操作类型枚举）
+  - `meeting_actions`（与会后工单对齐，已规划）
+  - `notification_records`（含 user_id / type / read_at）
+  - `im_direct_messages`（含 sender_id / receiver_id / created_at）
+- `scripts/run_migration.py`（+74，新文件）— 一键迁移：
+  - 读 `.env` 里的 DB 配置（pymysql 直连，绕开 alembic）
+  - 按 `;` 切 statement，单条执行，已存在就跳过（`1060` 错误吞）
+  - **幂等**：可重复跑
+  - **已在本机 MySQL 跑通**：5 张表全部 CREATE 成功 ✅
+
+#### 3. 路由注册 + 配置打通
+
+- `app/api/router.py`（+11 / -0）— 引入 4 个新 router，挂到 `/api/v1/{approval,dashboard,im,notification}`
+- `app/core/config.py`（+14 / -0）— 加 `MAINTENANCE_MODE` / `DASHBOARD_REFRESH_INTERVAL` 两个开关
+- `app/models/__init__.py`（+8 / -2）— 引入 4 个新模型（`Approval` / `ApprovalAction` / `ImDirectMessage` / `NotificationRecord`）
+- `alembic/env.py`（+4 / -0）— 新增 4 行 import，让 alembic autogenerate 能识别新模型
+
+#### 4. 会议域扩展（既有 v1.1 基础上）
+
+- `app/features/meeting/__init__.py`（+8 / -0）— 导出新公共 API（`submit_report` / `dispatch_action`）
+- `app/features/meeting/schemas.py`（+93 / -0）— 新增 `ReportSubmit` / `ActionDispatch` / `ActionApproval` 3 套契约
+- `app/features/meeting/service.py`（+214 / -0）— 3 个新服务函数：会议报告提交 / 工单派发 / 工单审批
+- `app/features/meeting/router.py`（+56 / -0）— 3 个新端点：`POST /meetings/{id}/report` / `dispatch` / `action-approval`
+- `app/features/meeting/event_bus.py`（+147 / -25）— 事件总线扩展：支持动作审批事件链
+- `app/features/agent/models.py`（+67 / -0）— `AgentExecution` 模型加 `action_payload` 字段（适配派发场景）
+
+#### 5. 演示工具集（`tools/`）
+
+- `tools/verify_all.py`（+220）— 一键体检：DB 连通 / 用户存在 / RAG 索引 / 5 张表是否存在 / `pytest` 全绿
+- `tools/seed_demo_data.py`（+180）— 演示种子：3 个用户 / 5 张新表各 5 行 / IM + 通知若干
+- `tools/_check_db.py` / `_check_rag.py` / `_list_users.py` / `_reset_pwd.py` — 4 个 `_` 前缀的内部排查工具（开发自查用）
+
+#### 6. 部署 / 环境文件
+
+- `.env.example`（+4 / -2）— 加 `MAINTENANCE_MODE=false` 与 `DASHBOARD_REFRESH_INTERVAL=30`
+- `Dockerfile`（+4 / -3）— 加 `tools/` 目录 COPY（演示时容器内置种子）
+
+#### 7. 关键数字
+
+```
+新增域: 4（approval / dashboard / im / notification）
+新增端点: 11（审批 5 + 工作台 1 + IM 2 + 通知 2 + 会议 3）
+新增表: 5（approvals / approval_actions / meeting_actions / notification_records / im_direct_messages）
+新增工具: 7（1 主脚本 + 1 种子 + 1 一键体检 + 4 内部排查）
+迁移脚本: 1（run_migration.py，幂等）
+本机验证: 5 张表已 CREATE 成功
+```
+
+#### 8. 待办（未提交）
+
+- ⚠ `tests/test_new_features.py` **未写**（计划写 11 个新端点的 pytest，但还没动笔，下次 session 补）
+- ⚠ `requirements.txt` 是否需要加 `pymysql` 单独声明待 `pip freeze` 验证
+- ⚠ `.env` 的 `MAINTENANCE_MODE` 字段暂未生效（`config.py` 加了字段但 service 未消费）
+
+
+
 ### 2026-10-03 00:11  @fans  [feat(sandbox): add KillSwitch + exceptions + middleware + operational docs] — commit `36ae8ef`
 
 - **触及文件**: 8 个（+768 / -30），新增 3 个

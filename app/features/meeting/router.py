@@ -11,17 +11,24 @@ from app.core.database import get_db
 from app.features.agent.models import MeetingStatus
 from app.features.auth.dependencies import CurrentUser
 from app.features.meeting.schemas import (
+    ActionApprovalDraft,
+    ActionApprovalRequest,
     AgentTriggerRequest,
     AgentTriggerResponse,
     BlackboardEventListResponse,
     BlackboardReadResponse,
+    DispatchResponse,
     MeetingCreate,
     MeetingListResponse,
     MeetingRead,
+    MeetingReportResponse,
 )
 from app.features.meeting.service import (
+    action_to_approval,
     close_meeting,
     create_meeting,
+    dispatch_actions,
+    generate_meeting_report,
     get_meeting,
     list_blackboard_events,
     list_meetings,
@@ -139,4 +146,53 @@ def get_blackboard_events(
     """前端重连后用本地最大 event id 调此接口，缺失事件全量补齐。"""
     return list_blackboard_events(
         db, meeting_id, current_user.id, since_event_id, limit,
+    )
+
+
+# ---------- 会后报告 + 派单 + 转审批 ----------
+
+
+@router.get(
+    "/{meeting_id}/report",
+    response_model=MeetingReportResponse,
+    summary="会后结构化报告（汇总 4 Agent 黑板最新 state）",
+)
+def get_meeting_report(
+    meeting_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> MeetingReportResponse:
+    """汇总 moderator / noter / decision / dispatcher 4 个角色最新 state。"""
+    return generate_meeting_report(db, meeting_id, current_user.id)
+
+
+@router.post(
+    "/{meeting_id}/dispatch",
+    response_model=DispatchResponse,
+    summary="会后派单：从 dispatcher 黑板抽工单写入 meeting_action",
+)
+def post_dispatch(
+    meeting_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> DispatchResponse:
+    """去重策略：按 source_decision 字符串去重，相同决策不重复写入。"""
+    return dispatch_actions(db, meeting_id, current_user.id)
+
+
+@router.post(
+    "/{meeting_id}/actions/{action_id}/approval",
+    response_model=ActionApprovalDraft,
+    summary="工单转审批草稿（写 approval 表 status=draft）",
+)
+def post_action_to_approval(
+    meeting_id: int,
+    action_id: int,
+    data: ActionApprovalRequest,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ActionApprovalDraft:
+    """幂等：已生成过草稿的工单直接返回旧 approval_id。"""
+    return action_to_approval(
+        db, meeting_id, action_id, current_user.id, data,
     )

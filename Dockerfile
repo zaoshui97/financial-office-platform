@@ -9,6 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # 系统依赖：default-libmysqlclient-dev + gcc 用于 PyMySQL/SQLAlchemy
 # tesseract-ocr + chi_sim/eng 语言包用于 PDF 本地 OCR 回退（可选，默认关闭）
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
+ || sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list 2>/dev/null \
+ || true
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -26,7 +29,9 @@ WORKDIR /srv/app
 
 # 先装依赖，利用 Docker 层缓存
 COPY requirements.txt ./
-RUN pip install --upgrade pip \
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip config set global.trusted-host mirrors.aliyun.com \
+    && pip install --upgrade pip \
     && pip install -r requirements.txt
 
 # 再拷代码

@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -20,17 +22,26 @@ from app.core.logging import get_logger
 from app.features.agent.agents import AGENT_REGISTRY, get_agent
 from app.features.agent.models import MeetingSession, MeetingStatus
 from app.features.meeting.schemas import (
+    ActionApprovalDraft,
+    ActionApprovalRequest,
     AgentTriggerResponse,
     BlackboardEventItem,
     BlackboardEventListResponse,
     BlackboardReadResponse,
     BlackboardSnapshot,
+    DispatchResponse,
+    MeetingActionRead,
     MeetingCreate,
     MeetingListResponse,
     MeetingRead,
     MeetingPhase,
+    MeetingReportResponse,
 )
 from app.features.meeting.ws import get_blackboard_service as _get_shared_blackboard
+from app.features.agent.models import (
+    ActionStatus,
+    MeetingAction,
+)
 
 logger = get_logger(__name__)
 
@@ -311,4 +322,207 @@ def trigger_agent(
         agent_role=agent_role,
         new_version=int(new_state["version"]),
         state=new_state,
+    )
+
+
+# ---------- 会后报告 + 派单 + 转审批 ----------
+
+
+def _to_action_read(action: MeetingAction) -> MeetingActionRead:
+    """DB 行 → API 出参。"""
+    return MeetingActionRead(
+        id=action.id,
+        meeting_id=action.meeting_id,
+        title=action.title,
+        description=action.description,
+        owner_user_id=action.owner_user_id,
+        owner_role=action.owner_role,
+        priority=action.priority,
+        status=action.status,
+        source_decision=action.source_decision,
+        estimate_hours=action.estimate_hours,
+        deadline=action.deadline,
+        approval_id=action.approval_id,
+        created_at=action.created_at,
+        updated_at=action.updated_at,
+    )
+
+
+def generate_meeting_report(
+    db: Session,
+    meeting_id: int,
+    owner_id: int,
+) -> MeetingReportResponse:
+    """汇总 4 Agent 黑板最新 state，生成结构化报告。"""
+    meeting = _get_owned_meeting(db, meeting_id, owner_id)
+    svc = _get_shared_blackboard()
+    all_states = svc.read_all(meeting_id)
+    return MeetingReportResponse(
+        session_id=meeting_id,
+        title=meeting.title,
+        topic=meeting.topic,
+        agenda=meeting.agenda,
+        current_phase=meeting.current_phase,
+        status=meeting.status,
+        moderator=all_states.get("moderator", {}),
+        noter=all_states.get("noter", {}),
+        decision=all_states.get("decision", {}),
+        dispatcher=all_states.get("dispatcher", {}),
+        generated_at=datetime.now(timezone.utc).replace(tzinfo=None).isoformat(
+            timespec="seconds"
+        ),
+    )
+
+
+def dispatch_actions(
+    db: Session,
+    meeting_id: int,
+    owner_id: int,
+) -> DispatchResponse:
+    """从 dispatcher 黑板抽 tickets，写入 meeting_action。
+
+    去重策略：按 source_decision 字符串去重，相同决策的工单跳过（避免重跑覆盖）。
+    失败容错：dispatcher 黑板缺失/格式异常 → 返回 0 + 空 actions，不抛错。
+    """
+    meeting = _get_owned_meeting(db, meeting_id, owner_id)
+    svc = _get_shared_blackboard()
+    all_states = svc.read_all(meeting_id)
+    dispatcher_state = all_states.get("dispatcher", {}) or {}
+    tickets = dispatcher_state.get("tickets") or []
+
+    if not isinstance(tickets, list):
+        logger.warning(
+            "dispatch tickets 格式异常 | meeting_id=%s type=%s",
+            meeting_id, type(tickets).__name__,
+        )
+        tickets = []
+
+    # 已存在 source_decision → 跳过
+    existing_rows = list(
+        db.scalars(
+            select(MeetingAction).where(
+                MeetingAction.meeting_id == meeting_id,
+                MeetingAction.source_decision.is_not(None),
+            )
+        ).all()
+    )
+    seen_sources: set[str] = {row.source_decision for row in existing_rows if row.source_decision}
+
+    new_actions: list[MeetingAction] = []
+    skipped = 0
+    for ticket in tickets:
+        if not isinstance(ticket, dict):
+            skipped += 1
+            continue
+        source = str(ticket.get("source_decision") or ticket.get("title") or "")
+        if source and source in seen_sources:
+            skipped += 1
+            continue
+        action = MeetingAction(
+            meeting_id=meeting_id,
+            title=str(ticket.get("title") or "未命名工单")[:200],
+            description=ticket.get("description"),
+            owner_role=ticket.get("owner"),
+            priority=str(ticket.get("priority") or "P2")[:8],
+            status=ActionStatus.PENDING.value,
+            source_decision=source or None,
+            estimate_hours=ticket.get("estimate_hours"),
+            deadline=str(ticket.get("deadline")) if ticket.get("deadline") else None,
+        )
+        db.add(action)
+        if source:
+            seen_sources.add(source)
+        new_actions.append(action)
+
+    if new_actions:
+        db.commit()
+        for action in new_actions:
+            db.refresh(action)
+
+    logger.info(
+        "meeting 派单 | meeting_id=%s extracted=%s skipped=%s",
+        meeting_id, len(new_actions), skipped,
+    )
+    return DispatchResponse(
+        session_id=meeting_id,
+        extracted=len(new_actions),
+        skipped_duplicates=skipped,
+        actions=[_to_action_read(a) for a in new_actions],
+    )
+
+
+def action_to_approval(
+    db: Session,
+    meeting_id: int,
+    action_id: int,
+    owner_id: int,
+    payload: ActionApprovalRequest,
+) -> ActionApprovalDraft:
+    """工单 → 审批草稿（写 approval 表，status=draft，写回 action.approval_id）。
+
+    不直接走 approval 业务流（避免 service 间循环 import）。
+    这里做的是"草稿"：写入 approval 表的 status=draft 行，approval 模块后续
+    可被独立调用 submit 走沙箱 + 审批。
+    """
+    from fastapi import HTTPException, status as http_status
+
+    meeting = _get_owned_meeting(db, meeting_id, owner_id)
+    action = db.scalar(
+        select(MeetingAction).where(
+            MeetingAction.id == action_id,
+            MeetingAction.meeting_id == meeting_id,
+        )
+    )
+    if action is None:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="工单不存在或不属于该会议",
+        )
+    if action.approval_id is not None:
+        # 幂等：已经生成过草稿 → 直接返回
+        return ActionApprovalDraft(
+            action_id=action.id,
+            approval_id=action.approval_id,
+            approval_type=payload.approval_type,
+            content_preview=(
+                f"[{meeting.title}] {action.title}（已生成审批草稿）"
+            )[:200],
+        )
+
+    # 内联写 approval 行（避免循环 import approval.service）
+    from app.features.approval.models import Approval, ApprovalStatus
+
+    content_lines = [
+        f"来源会议：{meeting.title}（ID={meeting.id}）",
+        f"工单标题：{action.title}",
+        f"工单描述：{action.description or '（无）'}",
+        f"负责人角色：{action.owner_role or '未指定'}",
+        f"优先级：{action.priority}",
+        f"预估工时：{action.estimate_hours or 0} 小时",
+        f"截止：{action.deadline or '未指定'}",
+    ]
+    if payload.note:
+        content_lines.append(f"附加备注：{payload.note}")
+    content = "\n".join(content_lines)
+
+    approval = Approval(
+        user_id=owner_id,
+        type=payload.approval_type,
+        content=content,
+        status=ApprovalStatus.DRAFT.value,
+    )
+    db.add(approval)
+    db.flush()
+    action.approval_id = approval.id
+    db.commit()
+    db.refresh(approval)
+    logger.info(
+        "action → approval 草稿 | action_id=%s approval_id=%s type=%s",
+        action.id, approval.id, payload.approval_type,
+    )
+    return ActionApprovalDraft(
+        action_id=action.id,
+        approval_id=approval.id,
+        approval_type=approval.type,
+        content_preview=content[:200],
     )

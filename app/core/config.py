@@ -135,6 +135,20 @@ class Settings(BaseSettings):
     # LLM Judge 单次调用超时（毫秒）
     SANDBOX_LLM_JUDGE_TIMEOUT_MS: int = 15000
 
+    # ============== 通知推送 ==============
+    # 钉钉机器人 webhook（留空则跳过实际推送，仅落库 status=skipped）
+    DINGTALK_WEBHOOK: str = ""
+    # 钉钉推送签名密钥（可选，留空则不签名）
+    DINGTALK_SECRET: str = ""
+    # 邮件 SMTP（留空则跳过邮件推送）
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    # 通知单条最大长度（避免超长推送）
+    NOTIFICATION_MAX_CONTENT_CHARS: int = Field(default=2000, ge=50, le=10000)
+
     DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
     DEEPSEEK_MODEL: str = "deepseek-reasoner"

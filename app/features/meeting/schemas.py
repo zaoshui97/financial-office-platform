@@ -130,3 +130,96 @@ class AgentTriggerResponse(BaseModel):
     state: dict[str, Any] = Field(
         description="Agent 写入黑板的新状态",
     )
+
+
+# ---------- 会后报告 + 派单 + 转审批 ----------
+
+
+class MeetingReportResponse(BaseModel):
+    """会后结构化报告：汇总 4 Agent 黑板最新 state。"""
+
+    session_id: int
+    title: str
+    topic: str | None = None
+    agenda: str | None = None
+    current_phase: str | None = None
+    status: str
+    moderator: dict[str, Any] = Field(
+        default_factory=dict,
+        description="主持人最近 state（action/questions/pacing_notes）",
+    )
+    noter: dict[str, Any] = Field(
+        default_factory=dict,
+        description="记录员最近 state（key_points/decisions/open_questions）",
+    )
+    decision: dict[str, Any] = Field(
+        default_factory=dict,
+        description="决策追踪 state（decisions/risks/consensus_score）",
+    )
+    dispatcher: dict[str, Any] = Field(
+        default_factory=dict,
+        description="派单 state（tickets/total_workload_hours）",
+    )
+    generated_at: str = Field(
+        description="报告生成时间（ISO8601）",
+    )
+
+
+class MeetingActionRead(BaseModel):
+    """会议工单只读视图。"""
+
+    id: int
+    meeting_id: int
+    title: str
+    description: str | None = None
+    owner_user_id: int | None = None
+    owner_role: str | None = None
+    priority: str
+    status: str
+    source_decision: str | None = None
+    estimate_hours: int | None = None
+    deadline: str | None = None
+    approval_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class DispatchResponse(BaseModel):
+    """会后派单响应。"""
+
+    session_id: int
+    extracted: int = Field(
+        description="从 dispatcher.tickets 抽出的工单数",
+    )
+    skipped_duplicates: int = Field(
+        description="已存在工单被跳过的数量（按 source_decision 去重）",
+    )
+    actions: list[MeetingActionRead] = Field(
+        description="本次新写入的工单列表",
+    )
+
+
+class ActionApprovalDraft(BaseModel):
+    """工单转审批草稿响应。"""
+
+    action_id: int
+    approval_id: int = Field(
+        description="已写入 approval 表的草稿 ID（status=draft）",
+    )
+    approval_type: str
+    content_preview: str = Field(
+        description="审批内容预览（前 200 字）",
+    )
+
+
+class ActionApprovalRequest(BaseModel):
+    """工单转审批草稿请求（可覆盖字段）。"""
+
+    approval_type: str = Field(
+        default="general",
+        description="leave / reimburse / seal / general",
+    )
+    note: str | None = Field(
+        default=None, max_length=500,
+        description="附加备注",
+    )

@@ -162,6 +162,73 @@ class AgentTrigger(StrEnum):
     STATE_UPDATE = "state_update"
 
 
+class ActionStatus(StrEnum):
+    """会议派单工单状态。"""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    DONE = "done"
+
+
+class MeetingAction(TimestampMixin, Base):
+    """会议派单：从 dispatcher 输出的工单落到表里，可一键转审批。"""
+
+    __tablename__ = "meeting_actions"
+    __table_args__ = (
+        Index("idx_action_meeting", "meeting_id"),
+        Index("idx_action_status", "status"),
+        Index("idx_action_owner", "owner_user_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    meeting_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("meeting_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="关联的会议 ID",
+    )
+    title: Mapped[str] = mapped_column(
+        String(200), nullable=False, comment="工单标题",
+    )
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="工单详细描述",
+    )
+    owner_user_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="工单负责人 user_id（owner=角色时为 NULL）",
+    )
+    owner_role: Mapped[str | None] = mapped_column(
+        String(50), nullable=True,
+        comment="owner 角色（风控/合规/业务/IT 等）",
+    )
+    priority: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="P2",
+        comment="P0/P1/P2/P3",
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=ActionStatus.PENDING.value,
+        comment="pending/approved/rejected/done",
+    )
+    source_decision: Mapped[str | None] = mapped_column(
+        String(500), nullable=True,
+        comment="对应的决策项原文（来自 dispatcher Agent）",
+    )
+    estimate_hours: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True, comment="预估工时",
+    )
+    deadline: Mapped[str | None] = mapped_column(
+        String(19), nullable=True,
+        comment="截止时间（ISO8601 字符串）",
+    )
+    approval_id: Mapped[int | None] = mapped_column(
+        BigInteger, nullable=True,
+        comment="转审批后写入的 approval.id（草稿态为 NULL）",
+    )
+
+
 class AgentExecution(TimestampMixin, Base):
     """Agent 执行记录：每次语音片段或状态更新触发一次 Agent 调用快照。"""
 
