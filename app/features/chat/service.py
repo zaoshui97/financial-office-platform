@@ -103,7 +103,9 @@ def create_chat_reply(
         history = _load_history(db, conversation.id)
         history.append({"role": "user", "content": data.message})
 
-        mode = data.resolved_mode()
+        # 多 Agent 路由：用户没显式指定 mode → 走 dispatcher 自动调度
+        from app.features.chat.dispatcher import auto_dispatch
+        mode, dispatch_info = auto_dispatch(data)
         task = data.resolved_task()
         citations: list[ChatCitation] = []
         used_citations: list[ChatCitation] = []
@@ -203,13 +205,18 @@ def create_chat_reply_stream(
 
     history = [{"role": "user", "content": data.message}]
     task = data.resolved_task()
+    # 多 Agent 路由：用户没显式指定 mode → 走 dispatcher 自动调度
+    from app.features.chat.dispatcher import auto_dispatch
+    _dispatched_mode, dispatch_info = auto_dispatch(data)
 
     def _sse(event: str, payload: dict) -> str:
         return f"data: {json.dumps({'event': event, **payload}, ensure_ascii=False)}\n\n"
 
     try:
         # 简单 LLM 调用（流式）：不支持 RAG 的 citation
-        if data.resolved_mode() == ChatMode.RAG:
+        # 流式只支持 LLM / WEB_SEARCH；RAG / COMPLIANCE 走一次性接口
+        mode = data.resolved_mode()
+        if mode in (ChatMode.RAG, ChatMode.COMPLIANCE_SANDBOX):
             # RAG 流式要检索 + 注入上下文（一次性），实现稍重
             # 这里走非流式 RAG 然后单 chunk yield
             from app.core.database import SessionLocal
