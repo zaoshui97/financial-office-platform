@@ -17,6 +17,9 @@ import {
   Card,
   Col,
   Descriptions,
+  Form,
+  Input,
+  Modal,
   Popconfirm,
   Row,
   Space,
@@ -25,9 +28,11 @@ import {
   Typography,
   message,
 } from 'antd';
+import { UsergroupAddOutlined, CopyOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { AgentRole, MeetingPhase, meetingApi } from '@/api/meeting';
+import { meetingInviteApi, type InviteCode, type JoinResult } from '@/api/meetingInvite';
 import { MeetingWebSocket } from '@/api/meetingWs';
 import { useMeetingStore } from '@/store/meetingStore';
 
@@ -53,6 +58,12 @@ export default function MeetingDetailPage() {
     JSON.parse(localStorage.getItem('auth-storage')!).state?.token?.access_token) || '';
   const wsRef = useRef<MeetingWebSocket | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState<InviteCode | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinForm] = Form.useForm();
 
   const meetingObj = useMeetingStore((s) => s.currentMeeting);
   const blackboard = useMeetingStore((s) => s.blackboard);
@@ -120,6 +131,49 @@ export default function MeetingDetailPage() {
     }
   };
 
+  /** 主持人生成/重置邀请码 */
+  const onGenerateInvite = async () => {
+    setInviteLoading(true);
+    try {
+      const data = await meetingInviteApi.generate(mid, 7);
+      setInviteCode(data);
+      setInviteModalOpen(true);
+    } catch (e: any) {
+      message.error(`生成邀请码失败：${e.message}`);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  /** 队员通过邀请码加入 */
+  const onJoinByCode = async (values: { code: string }) => {
+    setJoinLoading(true);
+    try {
+      const result = await meetingInviteApi.join(values.code.toUpperCase());
+      if (result.joined) {
+        message.success(result.message);
+        setJoinModalOpen(false);
+        joinForm.resetFields();
+        // 刷新会议数据
+        loadMeeting(mid);
+      } else {
+        message.info(result.message);
+      }
+    } catch (e: any) {
+      message.error(`加入失败：${e.message || '邀请码无效'}`);
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
+  /** 复制邀请码到剪贴板 */
+  const onCopyCode = () => {
+    if (!inviteCode) return;
+    navigator.clipboard.writeText(inviteCode.invite_code)
+      .then(() => message.success('已复制邀请码'))
+      .catch(() => message.warning('复制失败，请手动复制'));
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
@@ -146,6 +200,14 @@ export default function MeetingDetailPage() {
           >
             触发主持人
           </Button>
+          <Button
+            icon={<UsergroupAddOutlined />}
+            onClick={onGenerateInvite}
+            loading={inviteLoading}
+          >
+            邀请队员
+          </Button>
+          <Button onClick={() => setJoinModalOpen(true)}>通过邀请码加入</Button>
           <Popconfirm
             title="确认关闭会议？"
             description="关闭后将无法再触发 Agent"
@@ -237,5 +299,97 @@ function AgentCard({
         <Typography.Text type="secondary">尚未写入</Typography.Text>
       )}
     </Card>
+
+    {/* 邀请码 Modal */}
+    <Modal
+      title="会议邀请码"
+      open={inviteModalOpen}
+      onCancel={() => setInviteModalOpen(false)}
+      footer={[
+        <Button key="close" onClick={() => setInviteModalOpen(false)}>关闭</Button>,
+      ]}
+      width={480}
+    >
+      {inviteCode && (
+        <div>
+          <p style={{ color: '#666', marginBottom: 16 }}>
+            把下面的邀请码发给队员，队员在会议详情页或
+            <Tag color="blue" style={{ margin: '0 4px' }}>通过邀请码加入</Tag>
+            处输入即可加入会议。
+          </p>
+          <div style={{
+            background: '#F7F9FC',
+            padding: '24px 16px',
+            borderRadius: 8,
+            textAlign: 'center',
+            border: '2px dashed #0F2B5B',
+          }}>
+            <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: 4, color: '#0F2B5B' }}>
+              {inviteCode.invite_code}
+            </div>
+            <Button
+              type="link"
+              icon={<CopyOutlined />}
+              onClick={onCopyCode}
+              style={{ marginTop: 8 }}
+            >
+              复制邀请码
+            </Button>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
+            会议：{inviteCode.meeting_title}<br />
+            过期时间：{inviteCode.expires_at
+              ? new Date(inviteCode.expires_at).toLocaleString('zh-CN')
+              : '永不过期'}
+          </div>
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginTop: 12 }}
+            message="重置邀请码后旧码立即失效"
+          />
+        </div>
+      )}
+    </Modal>
+
+    {/* 通过邀请码加入 Modal */}
+    <Modal
+      title="通过邀请码加入会议"
+      open={joinModalOpen}
+      onCancel={() => setJoinModalOpen(false)}
+      footer={null}
+      width={400}
+    >
+      <Form form={joinForm} onFinish={onJoinByCode} layout="vertical">
+        <Form.Item
+          name="code"
+          label="邀请码"
+          rules={[
+            { required: true, message: '请输入邀请码' },
+            { len: 6, message: '邀请码为 6 位字母数字' },
+          ]}
+        >
+          <Input
+            placeholder="例如：ABCDEF"
+            maxLength={6}
+            style={{
+              fontSize: 20,
+              letterSpacing: 4,
+              textAlign: 'center',
+              textTransform: 'uppercase',
+            }}
+            autoFocus
+          />
+        </Form.Item>
+        <Form.Item>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setJoinModalOpen(false)}>取消</Button>
+            <Button type="primary" htmlType="submit" loading={joinLoading}>
+              加入
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }

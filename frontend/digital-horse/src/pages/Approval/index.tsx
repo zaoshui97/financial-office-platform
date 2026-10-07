@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Card,
   Row,
@@ -21,6 +21,7 @@ import {
   Tooltip,
   Alert,
   List,
+  Radio,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -42,6 +43,7 @@ import {
   ReloadOutlined,
   ThunderboltOutlined,
   PaperClipOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useApprovalDraftStore, type ApprovalDraft } from '@/store/approvalDraftStore';
@@ -49,6 +51,12 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useMeetingWorkItemStore, type MeetingWorkItem } from '@/store/meetingWorkItemStore';
 import { checkCompliance } from '@/services/sandbox/sandboxApiContract';
 import { Can } from '@/components/Can';
+import { approvalsApi, type Approval as BackendApproval, type ApprovalScope, type ApprovalStatus as BackendApprovalStatus } from '@/api/approvals';
+import { attachmentsApi, type Attachment } from '@/api/attachments';
+import { useUserStore } from '@/store/userStore';
+import { userApi, getDisplayName, type UserInfo } from '@/api/users';
+import AttachmentPreviewModal from '@/components/Approval/AttachmentPreviewModal';
+import AIReviewCard from '@/components/Approval/AIReviewCard';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -78,6 +86,8 @@ interface ApprovalItem {
     warnings: string[];
     suggestions: string[];
   };
+  /** AI 辅助审批建议：pass / review / reject */
+  aiSuggestion?: 'pass' | 'review' | 'reject' | null;
   history: Array<{
     operator: string;
     action: string;
@@ -293,21 +303,145 @@ const MOCK_APPROVALS: ApprovalItem[] = [
   },
 ];
 
+// 适配：后端 Approval → UI ApprovalItem
+function mapBackendToUI(a: BackendApproval): ApprovalItem {
+  const statusMap: Record<BackendApprovalStatus, ApprovalStatus> = {
+    draft: 'pending',
+    pending: 'pending',
+    approved: 'approved',
+    rejected: 'rejected',
+    closed: 'approved', // 视作已完成
+  };
+  // type 映射（后端 4 种 → UI 7 种）
+  const typeMap: Record<string, ApprovalType> = {
+    reimburse: 'reimbursement',
+    leave: 'document',         // UI 没有 leave 类型，用 document 占位
+    seal: 'seal',
+    general: 'document',
+  };
+  // 提交时间格式
+  const submitted = a.created_at ? a.created_at.replace('T', ' ').slice(0, 16) : '';
+  // 默认 7 天后到期
+  const due = a.created_at
+    ? a.created_at.slice(0, 10)
+    : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  // 标题截断作为 description 摘要
+  const desc = a.content.length > 200 ? a.content.slice(0, 200) + '…' : a.content;
+  return {
+    id: String(a.id),
+    title: a.title || desc.split('\n')[0]?.slice(0, 60) || `审批 #${a.id}`,
+    type: typeMap[a.type] || 'document',
+    applicant: `用户#${a.user_id}`,
+    department: '—',
+    submittedAt: submitted,
+    dueDate: due,
+    status: statusMap[a.status] || 'pending',
+    priority: a.sandbox_passed === false ? 'urgent' : 'normal',
+    description: desc,
+    currentApprover: a.approved_by ? `用户#${a.approved_by}` : '—',
+    step: a.status === 'approved' || a.status === 'rejected' ? 2 : 1,
+    totalSteps: 2,
+    attachments: (a.attachment_ids || []).map((id) => `att:${id}`), // 详情页解析 att:{id}
+    // AI 辅助审批：用 ai_suggestion (pass/review/reject) 替代 sandbox_passed
+    aiSuggestion: a.ai_suggestion || null,
+    aiPrecheck: a.ai_suggestion
+      ? {
+          passed: a.ai_suggestion === 'pass',
+          warnings: a.ai_suggestion === 'reject'
+            ? ['AI 建议驳回（高风险）']
+            : a.ai_suggestion === 'review'
+              ? ['AI 建议人工复核']
+              : [],
+          suggestions: a.ai_review?.overall?.summary
+            ? [a.ai_review.overall.summary]
+            : [],
+        }
+      : undefined,
+    history: [
+      { operator: `用户#${a.user_id}`, action: '提交申请', time: submitted || '—' },
+      ...(a.approved_by
+        ? [{ operator: `用户#${a.approved_by}`, action: a.status === 'approved' ? '已通过' : '已驳回', time: a.closed_at?.replace('T', ' ').slice(0, 16) || '—' }]
+        : []),
+    ],
+  };
+}
+
 const Approval: React.FC = () => {
   const { t } = useTranslation();
   const { message, modal } = App.useApp();
   const location = useLocation();
+  const navigate = useNavigate();
   const { consumeDraft, setApprovalResult } = useApprovalDraftStore();
   const { addNotification } = useNotificationStore();
   const meetingWorkItems = useMeetingWorkItemStore((s) => s.items);
   const meetingWorkItemSetStatus = useMeetingWorkItemStore((s) => s.setStatus);
+  // 真实后端数据 + scope
+  const currentUser = useUserStore((s) => s.user);
+  // 普通员工（USER 角色）进入 /approval → 直接跳到新建工单页
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'USER') {
+      navigate('/approval/new', { replace: true });
+    }
+  }, [currentUser, navigate]);
+  if (currentUser && currentUser.role === 'USER') {
+    return <div style={{ padding: 24, color: '#999' }}>正在跳转到工单申请…</div>;
+  }
+  const currentRole = currentUser?.role;
+  const isSuper = currentRole === 'SUPER_ADMIN';
+  const isDeptLead = currentRole === 'DEPT_ADMIN' || isSuper;
+  const [scope, setScope] = useState<ApprovalScope>('mine');
+  const [loading, setLoading] = useState(false);
+  const [backendItems, setBackendItems] = useState<BackendApproval[]>([]);
+  // 兼容 UI：先用真实数据；如果真实数据为空（开发初/后端无数据），降级到 MOCK
+  const [approvalList, setApprovalList] = useState<ApprovalItem[]>(MOCK_APPROVALS);
+  const [dataSource, setDataSource] = useState<'backend' | 'mock'>('mock');
   const [selectedTab, setSelectedTab] = useState<string>('pending');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [detailItem, setDetailItem] = useState<ApprovalItem | null>(null);
-  const [approvalList, setApprovalList] = useState<ApprovalItem[]>(MOCK_APPROVALS);
   const [sandboxDraft, setSandboxDraft] = useState<ApprovalDraft | null>(null);
   // 业务联动：会议生成待办 → 工单/审批 一键跳转带来的会议工单
   const [meetingWorkItem, setMeetingWorkItem] = useState<MeetingWorkItem | null>(null);
+  // 附件预览
+  const [previewAtt, setPreviewAtt] = useState<Attachment | null>(null);
+  // 当前详情审批的附件元数据
+  const [detailAttachments, setDetailAttachments] = useState<Attachment[]>([]);
+  // 申请人/审批人 user info 缓存
+  const [userMap, setUserMap] = useState<Record<number, UserInfo>>({});
+
+  // 角色 → 默认 scope
+  useEffect(() => {
+    if (isSuper) {
+      setScope('all');
+    } else if (isDeptLead) {
+      setScope('dept');
+    } else {
+      setScope('mine');
+    }
+  }, [isSuper, isDeptLead]);
+
+  // 拉真实后端数据
+  const loadList = useCallback(async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    try {
+      const resp = await approvalsApi.list({ scope, limit: 100 });
+      setBackendItems(resp.items);
+      // 适配到 UI 结构
+      const mapped: ApprovalItem[] = resp.items.map(mapBackendToUI);
+      setApprovalList(mapped.length > 0 ? mapped : MOCK_APPROVALS);
+      setDataSource(mapped.length > 0 ? 'backend' : 'mock');
+    } catch (err) {
+      console.warn('[Approval] 拉真实数据失败，降级到 MOCK：', err);
+      setApprovalList(MOCK_APPROVALS);
+      setDataSource('mock');
+    } finally {
+      setLoading(false);
+    }
+  }, [scope, currentUser]);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
   // 消费 Sandbox 跳转带来的草稿 + 消费会议跳转带来的会议工单
   useEffect(() => {
@@ -326,6 +460,101 @@ const Approval: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (dataSource !== 'backend' || Object.keys(userMap).length === 0) return;
+    setApprovalList((prev) =>
+      prev.map((it) => {
+        // 仅对来自 backend 的项做 enrichment（id 是数字字符串）
+        if (!/^\d+$/.test(it.id)) return it;
+        const orig = backendItems.find((b) => String(b.id) === it.id);
+        if (!orig) return it;
+        const applicant = userMap[orig.user_id];
+        const approver = orig.approved_by ? userMap[orig.approved_by] : null;
+        return {
+          ...it,
+          applicant: applicant ? getDisplayName(applicant) : it.applicant,
+          department: applicant?.department || '—',
+          currentApprover: approver ? getDisplayName(approver) : it.currentApprover,
+          history: orig.approved_by && approver
+            ? [
+                ...it.history.slice(0, 1),
+                { operator: getDisplayName(approver), action: orig.status === 'approved' ? '已通过' : '已驳回', time: orig.closed_at?.replace('T', ' ').slice(0, 16) || '—' },
+              ]
+            : it.history,
+        };
+      })
+    );
+  }, [userMap, dataSource, backendItems]);
+
+  // 打开详情时拉附件元数据 + 完整审批详情（带 AI 审查）
+  const [detailAI, setDetailAI] = useState<typeof import('@/api/aiReview').AIReviewReport | null>(null);
+  useEffect(() => {
+    if (!detailItem || dataSource !== 'backend') {
+      setDetailAttachments([]);
+      setDetailAI(null);
+      return;
+    }
+    const approvalId = Number(detailItem.id);
+    if (!Number.isFinite(approvalId)) {
+      setDetailAttachments([]);
+      setDetailAI(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [atts, full] = await Promise.all([
+          attachmentsApi.listByBusiness('approval', approvalId),
+          approvalsApi.get(approvalId),
+        ]);
+        if (!cancelled) {
+          setDetailAttachments(atts.items);
+          setDetailAI(full.ai_review || null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setDetailAttachments([]);
+          setDetailAI(null);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [detailItem?.id, dataSource]);
+
+  // 用户信息缓存（id → UserInfo）
+  const userCache = React.useRef<Record<number, UserInfo>>({});
+  const resolveUser = useCallback(async (id: number): Promise<UserInfo | null> => {
+    if (userCache.current[id]) return userCache.current[id];
+    try {
+      const u = await userApi.get(id);
+      userCache.current[id] = u;
+      return u;
+    } catch {
+      return null;
+    }
+  }, []);
+  useEffect(() => {
+    if (dataSource !== 'backend' || backendItems.length === 0) {
+      setUserMap({});
+      return;
+    }
+    const ids = new Set<number>();
+    backendItems.forEach((a) => {
+      ids.add(a.user_id);
+      if (a.approved_by) ids.add(a.approved_by);
+    });
+    let cancelled = false;
+    (async () => {
+      const out: Record<number, UserInfo> = {};
+      for (const id of ids) {
+        const u = await resolveUser(id);
+        if (u) out[id] = u;
+      }
+      if (!cancelled) setUserMap(out);
+    })();
+    return () => { cancelled = true; };
+  }, [backendItems, dataSource, resolveUser]);
 
   const stats = useMemo(() => {
     return {
@@ -371,28 +600,40 @@ const Approval: React.FC = () => {
       ),
       okText: t('approval.action.approve'),
       cancelText: t('approval.action.cancel'),
-      onOk: () => {
-        const comment = (document.getElementById('approval-comment-input') as HTMLTextAreaElement)?.value || t('approval.approveModal.commentPlaceholder');
-        setApprovalList((prev) =>
-          prev.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  status: 'approved' as ApprovalStatus,
-                  history: [
-                    ...item.history,
-                    {
-                      operator: t('approval.detail.applicant'),
-                      action: t('approval.action.approved') || '已通过',
-                      comment,
-                      time: new Date().toLocaleString(),
-                    },
-                  ],
-                }
-              : item
-          )
-        );
-        message.success(t('approval.action.approved'));
+      onOk: async () => {
+        const comment = (document.getElementById('approval-comment-input') as HTMLTextAreaElement)?.value || '';
+        if (dataSource === 'backend') {
+          try {
+            await approvalsApi.act(Number(id), { action: 'approve', comment });
+            message.success('已通过');
+            await loadList();
+          } catch (err) {
+            console.error('approve failed', err);
+            return;
+          }
+        } else {
+          // 演示模式：仅前端改状态
+          setApprovalList((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    status: 'approved' as ApprovalStatus,
+                    history: [
+                      ...item.history,
+                      {
+                        operator: currentUser?.name || t('approval.detail.applicant'),
+                        action: '已通过',
+                        comment,
+                        time: new Date().toLocaleString(),
+                      },
+                    ],
+                  }
+                : item
+            )
+          );
+          message.success('已通过（演示模式）');
+        }
         setDetailItem(null);
       },
     });
@@ -406,27 +647,38 @@ const Approval: React.FC = () => {
       okText: t('approval.action.reject'),
       okType: 'danger',
       cancelText: t('approval.action.cancel'),
-      onOk: () => {
-        setApprovalList((prev) =>
-          prev.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  status: 'rejected' as ApprovalStatus,
-                  history: [
-                    ...item.history,
-                    {
-                      operator: t('approval.detail.applicant'),
-                      action: t('approval.action.rejected') || '已驳回',
-                      comment: '',
-                      time: new Date().toLocaleString(),
-                    },
-                  ],
-                }
-              : item
-          )
-        );
-        message.info(t('approval.action.rejected'));
+      onOk: async () => {
+        if (dataSource === 'backend') {
+          try {
+            await approvalsApi.act(Number(id), { action: 'reject', comment: '已驳回' });
+            message.info('已驳回');
+            await loadList();
+          } catch (err) {
+            console.error('reject failed', err);
+            return;
+          }
+        } else {
+          setApprovalList((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    status: 'rejected' as ApprovalStatus,
+                    history: [
+                      ...item.history,
+                      {
+                        operator: currentUser?.name || t('approval.detail.applicant'),
+                        action: '已驳回',
+                        comment: '',
+                        time: new Date().toLocaleString(),
+                      },
+                    ],
+                  }
+                : item
+            )
+          );
+          message.info('已驳回（演示模式）');
+        }
         setDetailItem(null);
       },
     });
@@ -793,6 +1045,13 @@ const Approval: React.FC = () => {
         }
         extra={
           <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/approval/new')}
+            >
+              新建审批
+            </Button>
             <Input
               placeholder={t('approval.searchPlaceholder')}
               prefix={<SearchOutlined />}
@@ -803,13 +1062,29 @@ const Approval: React.FC = () => {
             />
             <Button
               icon={<ReloadOutlined />}
-              onClick={() => message.success(t('approval.refreshed'))}
+              loading={loading}
+              onClick={loadList}
             >
               {t('approval.refresh')}
             </Button>
           </Space>
         }
       >
+        <Space style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+          <Radio.Group
+            value={scope}
+            onChange={(e) => setScope(e.target.value as ApprovalScope)}
+            optionType="button"
+            buttonStyle="solid"
+          >
+            <Radio.Button value="mine">我的申请</Radio.Button>
+            {isDeptLead && <Radio.Button value="dept">本部门</Radio.Button>}
+            {isSuper && <Radio.Button value="all">全部</Radio.Button>}
+          </Radio.Group>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {dataSource === 'backend' ? '已连接真实后端' : '演示数据（后端为空）'} · 共 {approvalList.length} 条
+          </Text>
+        </Space>
         <Tabs
           activeKey={selectedTab}
           onChange={setSelectedTab}
@@ -877,7 +1152,31 @@ const Approval: React.FC = () => {
                               {t('approval.overdueTag')}
                             </Tag>
                           )}
-                          {item.aiPrecheck && (
+                          {item.aiSuggestion && (
+                            <Tooltip
+                              title={
+                                item.aiSuggestion === 'pass'
+                                  ? 'AI 4 维度审查建议通过'
+                                  : item.aiSuggestion === 'review'
+                                    ? 'AI 建议人工复核'
+                                    : 'AI 建议驳回（高风险）'
+                              }
+                            >
+                              <Tag
+                                color={
+                                  item.aiSuggestion === 'pass' ? 'success'
+                                    : item.aiSuggestion === 'review' ? 'warning'
+                                      : 'error'
+                                }
+                                icon={<RobotOutlined />}
+                              >
+                                {item.aiSuggestion === 'pass' ? 'AI：通过'
+                                  : item.aiSuggestion === 'review' ? 'AI：复核'
+                                    : 'AI：驳回'}
+                              </Tag>
+                            </Tooltip>
+                          )}
+                          {!item.aiSuggestion && item.aiPrecheck && (
                             <Tooltip
                               title={
                                 item.aiPrecheck.passed
@@ -1035,8 +1334,45 @@ const Approval: React.FC = () => {
               </Col>
             </Row>
 
-            {/* 附件列表 */}
-            {detailItem.attachments && detailItem.attachments.length > 0 && (
+            {/* 附件列表（来自真后端 attachment_ids） */}
+            {detailAttachments.length > 0 ? (
+              <>
+                <Divider orientation="left" style={{ fontSize: 14 }}>
+                  {t('approval.attachments')}（{detailAttachments.length}）
+                </Divider>
+                <List
+                  size="small"
+                  bordered
+                  dataSource={detailAttachments}
+                  renderItem={(att) => (
+                    <List.Item
+                      style={{ padding: '6px 12px', cursor: 'pointer' }}
+                      onClick={() => setPreviewAtt(att)}
+                      actions={[
+                        <Button
+                          key="view"
+                          type="link"
+                          size="small"
+                          icon={<EyeOutlined />}
+                          onClick={(e) => { e.stopPropagation(); setPreviewAtt(att); }}
+                        >
+                          预览
+                        </Button>,
+                      ]}
+                    >
+                      <Space>
+                        <PaperClipOutlined />
+                        <Text>{att.original_filename}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          ({(att.size / 1024).toFixed(1)} KB)
+                        </Text>
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+              </>
+            ) : detailItem.attachments && detailItem.attachments.length > 0 ? (
+              // 演示数据 fallback
               <>
                 <Divider orientation="left" style={{ fontSize: 14 }}>
                   {t('approval.attachments')}
@@ -1055,6 +1391,13 @@ const Approval: React.FC = () => {
                   )}
                 />
               </>
+            ) : null}
+
+            {/* AI 辅助审查报告 */}
+            {dataSource === 'backend' && (
+              <div style={{ margin: '16px 0' }}>
+                <AIReviewCard report={detailAI} />
+              </div>
             )}
 
             <Divider orientation="left" style={{ fontSize: 14 }}>
@@ -1164,6 +1507,13 @@ const Approval: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* 附件预览 */}
+      <AttachmentPreviewModal
+        attachment={previewAtt}
+        open={!!previewAtt}
+        onClose={() => setPreviewAtt(null)}
+      />
     </div>
   );
 };
