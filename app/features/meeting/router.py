@@ -35,6 +35,11 @@ from app.features.meeting.service import (
     read_blackboard,
     trigger_agent,
 )
+from app.features.meeting.invite_service import (
+    generate_or_reset_invite,
+    join_meeting_by_code,
+)
+from pydantic import BaseModel as _BaseModel, Field as _Field
 
 router = APIRouter(prefix="/meetings", tags=["会议 Agent"])
 
@@ -195,4 +200,62 @@ def post_action_to_approval(
     """幂等：已生成过草稿的工单直接返回旧 approval_id。"""
     return action_to_approval(
         db, meeting_id, action_id, current_user.id, data,
+    )
+
+
+# ---------- 邀请码 ----------
+
+
+class InviteCodeResponse(_BaseModel):
+    """邀请码生成响应。"""
+
+    meeting_id: int
+    meeting_title: str
+    invite_code: str
+    expires_at: str | None = None
+
+
+class JoinByCodeRequest(_BaseModel):
+    """通过邀请码加入会议请求。"""
+
+    code: str = _Field(min_length=6, max_length=12)
+
+
+class JoinByCodeResponse(_BaseModel):
+    """加入会议响应。"""
+
+    meeting_id: int
+    meeting_title: str
+    joined: bool
+    message: str
+
+
+@router.post(
+    "/{meeting_id}/invite",
+    response_model=InviteCodeResponse,
+    summary="生成或重置会议邀请码（仅主持人）",
+)
+def post_invite(
+    meeting_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    expires_in_days: int | None = 7,
+) -> InviteCodeResponse:
+    return InviteCodeResponse.model_validate(
+        generate_or_reset_invite(db, meeting_id, current_user.id, expires_in_days)
+    )
+
+
+@router.post(
+    "/join",
+    response_model=JoinByCodeResponse,
+    summary="通过邀请码加入会议",
+)
+def post_join(
+    data: JoinByCodeRequest,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> JoinByCodeResponse:
+    return JoinByCodeResponse.model_validate(
+        join_meeting_by_code(db, current_user.id, data.code)
     )

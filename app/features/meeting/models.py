@@ -193,7 +193,7 @@ class Meeting(TimestampMixin, Base):
 
 
 class MeetingParticipant(TimestampMixin, Base):
-    """参会人员表。"""
+    """参会人员表（FK → meeting_sessions.id，因为实际运行用的是 MeetingSession 表）。"""
 
     __tablename__ = "meeting_participants"
     __table_args__ = (
@@ -204,9 +204,9 @@ class MeetingParticipant(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     meeting_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("meetings.id", ondelete="CASCADE"),
+        ForeignKey("meeting_sessions.id", ondelete="CASCADE"),
         nullable=False,
-        comment="会议ID",
+        comment="会议ID（meeting_sessions.id）",
     )
     user_id: Mapped[int] = mapped_column(
         BigInteger,
