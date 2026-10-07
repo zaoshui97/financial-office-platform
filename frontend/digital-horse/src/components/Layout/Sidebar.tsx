@@ -24,6 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useAppStore } from '@/store';
+import { useUserStore } from '@/store/userStore';
 import { usePermission } from '@/hooks/usePermission';
 import { MenuItem, GROUP_LABELS, type MenuGroup } from '@/types/permission';
 import Logo from './Logo';
@@ -59,44 +60,71 @@ const iconMap: Record<string, React.ReactNode> = {
   contacts: <TeamOutlined />,
 };
 
-/** 菜单配置 - 整合后精简版（19 → 12 项 + AI 智能中心 2 项 = 14 项） */
-const menuConfig: MenuItem[] = [
+/** 菜单配置 - 整合后精简版（19 → 12 项 + AI 智能中心 2 项 = 14 项）
+ *  注意：labelKey / path 涉及 role 判断，所以改为组件内 useMemo 生成
+ */
+const baseMenuConfig: Omit<MenuItem, 'labelKey' | 'path'>[] = [
   // 核心办公 - 所有人可见
-  { key: '/dashboard', path: '/dashboard', labelKey: 'nav.workspace', icon: 'dashboard', group: 'core', roles: ['*'] },
-  { key: '/meeting', path: '/meeting', labelKey: 'nav.meeting', icon: 'meeting', group: 'core', roles: ['*'] },
-  { key: '/approval', path: '/approval', labelKey: 'nav.approval', icon: 'approval', group: 'core', roles: ['*'] },
+  { key: '/dashboard', icon: 'dashboard', group: 'core', roles: ['*'] },
+  { key: '/meeting', icon: 'meeting', group: 'core', roles: ['*'] },
+  // 审批/工单入口：根据角色跳转不同页面（普通员工 → /approval/new，管理员 → /approval）
+  { key: '/approval', icon: 'approval', group: 'core', roles: ['*'] },
 
   // 合规中心 - 所有人可见（合规检测 + 报告）
-  { key: '/sandbox', path: '/sandbox', labelKey: 'nav.sandbox', icon: 'sandbox', group: 'compliance', roles: ['*'] },
-  { key: '/report', path: '/report', labelKey: 'nav.report', icon: 'report', group: 'compliance', roles: ['*'] },
+  { key: '/sandbox', icon: 'sandbox', group: 'compliance', roles: ['*'] },
+  { key: '/report', icon: 'report', group: 'compliance', roles: ['*'] },
 
   // 知识管理 - 所有人可见
-  { key: '/knowledge', path: '/knowledge', labelKey: 'nav.knowledge', icon: 'knowledge', group: 'knowledge', roles: ['*'] },
-  { key: '/industry-news', path: '/industry-news', labelKey: 'nav.industryNews', icon: 'industryNews', group: 'knowledge', roles: ['*'] },
+  { key: '/knowledge', icon: 'knowledge', group: 'knowledge', roles: ['*'] },
+  { key: '/industry-news', icon: 'industryNews', group: 'knowledge', roles: ['*'] },
 
   // AI 智能中心 - 问答 + 多 Agent（2025-Q4 恢复）
-  { key: '/qa', path: '/qa', labelKey: 'nav.qa', icon: 'qa', group: 'ai', roles: ['*'] },
-  { key: '/agent', path: '/agent', labelKey: 'nav.agentHub', icon: 'agentHub', group: 'ai', roles: ['*'] },
+  { key: '/qa', icon: 'qa', group: 'ai', roles: ['*'] },
+  // 多 Agent 路由在 Chat / QA 后端完成，不再单独设页面
 
   // 辅助工具 - 通讯录为系统内部辅助沟通工具（不作为核心业务流程）
-  { key: '/contacts', path: '/contacts', labelKey: 'nav.contacts', icon: 'contacts', group: 'communication', roles: ['*'] },
+  { key: '/contacts', icon: 'contacts', group: 'communication', roles: ['*'] },
 
   // 系统管理 - 仅超级管理员
-  { key: '/security', path: '/security', labelKey: 'nav.securityCenter', icon: 'security', group: 'system', roles: ['SUPER_ADMIN'] },
-  { key: '/settings', path: '/settings', labelKey: 'nav.systemSettings', icon: 'settings', group: 'system', roles: ['SUPER_ADMIN'] },
+  { key: '/security', icon: 'security', group: 'system', roles: ['SUPER_ADMIN'] },
+  { key: '/settings', icon: 'settings', group: 'system', roles: ['SUPER_ADMIN'] },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ width }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { collapsed, setCollapsed } = useAppStore();
+  const { user } = useUserStore();
   const { t } = useTranslation();
   const { filterAccessibleMenus } = usePermission();
 
   /** 根据权限过滤菜单 */
+  const menuConfig: MenuItem[] = useMemo(() => {
+    // 普通员工（user.role === 'USER'）→ 工单入口直接到 /approval/new
+    const isNormalUser = user?.role === 'USER';
+    return baseMenuConfig.map((m) => {
+      const labelKeyMap: Record<string, string> = {
+        '/dashboard': 'nav.workspace',
+        '/meeting': 'nav.meeting',
+        '/approval': isNormalUser ? 'nav.ticket' : 'nav.approval',
+        '/sandbox': 'nav.sandbox',
+        '/report': 'nav.report',
+        '/knowledge': 'nav.knowledge',
+        '/industry-news': 'nav.industryNews',
+        '/qa': 'nav.qa',
+        '/contacts': 'nav.contacts',
+        '/security': 'nav.securityCenter',
+        '/settings': 'nav.systemSettings',
+      };
+      // 普通员工的 /approval 入口 → /approval/new
+      const path = m.key === '/approval' && isNormalUser ? '/approval/new' : m.key;
+      return { ...m, path, labelKey: labelKeyMap[m.key] || m.key };
+    });
+  }, [user?.role]);
+
   const accessibleMenus = useMemo(() => {
     return filterAccessibleMenus(menuConfig);
-  }, [filterAccessibleMenus]);
+  }, [filterAccessibleMenus, menuConfig]);
 
   /** 按分组组织菜单 */
   const groupedMenus = useMemo(() => {
@@ -124,6 +152,12 @@ const Sidebar: React.FC<SidebarProps> = ({ width }) => {
 
   /** 菜单项点击处理 */
   const handleMenuClick = (e: { key: string }) => {
+    // 普通员工点"工单申请"菜单 → 直接到新建工单页
+    // 管理员则进入审批管理页（可看 scope=all 列表）
+    if (e.key === '/approval' && user?.role === 'USER') {
+      navigate('/approval/new');
+      return;
+    }
     navigate(e.key);
   };
 

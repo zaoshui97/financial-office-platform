@@ -15,13 +15,13 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const SecurityCenter = lazy(() => import('@/pages/Security'));
 const SystemSettings = lazy(() => import('@/pages/Settings'));
 const Approval = lazy(() => import('@/pages/Approval'));
+const NewApproval = lazy(() => import('@/pages/Approval/New'));
 const Sandbox = lazy(() => import('@/pages/Sandbox'));
 const Report = lazy(() => import('@/pages/Report'));
 const Login = lazy(() => import('@/pages/Login'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Contacts = lazy(() => import('@/pages/Contacts/index'));
 const QA = lazy(() => import('@/pages/QA'));
-const AgentCenter = lazy(() => import('@/pages/Agent/index'));
 const Chat = lazy(() => import('@/pages/Chat'));
 
 // ===== 旧路由重定向组件 =====
@@ -81,7 +81,6 @@ const routePermissions: Record<string, string[]> = {
   '/dashboard': ['*'],
   '/meeting': ['*'],
   '/qa': ['*'],
-  '/agent': ['*'],
   '/chat': ['*'],
   '/knowledge': ['*'],
   '/industry-news': ['*'],
@@ -404,12 +403,12 @@ const router = createBrowserRouter([
       { path: 'knowledge', element: <ProtectedRoute allowedRoles={routePermissions['/knowledge']}><Knowledge /></ProtectedRoute> },
       { path: 'industry-news', element: <ProtectedRoute allowedRoles={routePermissions['/industry-news']}><IndustryNews /></ProtectedRoute> },
       { path: 'qa', element: <ProtectedRoute allowedRoles={routePermissions['/qa']}><QA /></ProtectedRoute> },
-      { path: 'agent', element: <ProtectedRoute allowedRoles={routePermissions['/agent']}><AgentCenter /></ProtectedRoute> },
       { path: 'chat', element: <ProtectedRoute allowedRoles={routePermissions['/chat']}><Chat /></ProtectedRoute> },
       { path: 'notifications', element: <ProtectedRoute allowedRoles={routePermissions['/notifications']}><Notifications /></ProtectedRoute> },
       { path: 'security', element: <ProtectedRoute allowedRoles={routePermissions['/security']}><SecurityCenter /></ProtectedRoute> },
       { path: 'settings', element: <ProtectedRoute allowedRoles={routePermissions['/settings']}><SystemSettings /></ProtectedRoute> },
       { path: 'approval', element: <ProtectedRoute allowedRoles={routePermissions['/approval']}><Approval /></ProtectedRoute> },
+      { path: 'approval/new', element: <ProtectedRoute allowedRoles={routePermissions['/approval']}><NewApproval /></ProtectedRoute> },
       { path: 'sandbox', element: <ProtectedRoute allowedRoles={routePermissions['/sandbox']}><Sandbox /></ProtectedRoute> },
       { path: 'report', element: <ProtectedRoute allowedRoles={routePermissions['/report']}><Report /></ProtectedRoute> },
       { path: 'contacts', element: <ProtectedRoute allowedRoles={routePermissions['/contacts']}><Contacts /></ProtectedRoute> },
