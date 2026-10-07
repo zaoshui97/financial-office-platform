@@ -46,15 +46,16 @@ def post_approval(
 @router.get(
     "",
     response_model=ApprovalListResponse,
-    summary="列我的审批（可选按 status 过滤）",
+    summary="列审批（按 scope 过滤：mine=我的, dept=本部门, all=全部）",
 )
 def get_approvals(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     status_filter: str | None = Query(default=None, alias="status"),
+    scope: str = Query(default="mine", pattern="^(mine|dept|all)$"),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> ApprovalListResponse:
-    result = list_approvals(db, current_user.id, status_filter, limit)
+    result = list_approvals(db, current_user.id, status_filter, limit, scope)
     return ApprovalListResponse.model_validate(result)
 
 
@@ -100,6 +101,6 @@ def post_approval_action(
 ) -> ApprovalActionRead:
     return ApprovalActionRead.model_validate(
         act_on_approval(
-            db, approval_id, current_user.id, data.action, data.comment
+            db, approval_id, current_user.id, data.action, data.comment, data.override_reason
         )
     )

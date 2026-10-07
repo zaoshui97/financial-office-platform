@@ -22,6 +22,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, TimestampMixin
@@ -106,6 +107,19 @@ class Approval(TimestampMixin, Base):
         nullable=True,
         comment="沙箱是否通过（True/False/None=未检测）",
     )
+    ai_review: Mapped[str | None] = mapped_column(
+        Text().with_variant(LONGTEXT, "mysql"),
+        nullable=True,
+        comment="AI 辅助审批 4 维度审查报告 JSON（见 ai_reviewer.py）",
+    )
+    ai_reviewed_at: Mapped[str | None] = mapped_column(
+        String(19), nullable=True,
+        comment="AI 审查完成时间 ISO8601",
+    )
+    ai_suggestion: Mapped[str | None] = mapped_column(
+        String(16), nullable=True,
+        comment="AI 建议：pass/review/reject",
+    )
     approved_by: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -148,4 +162,12 @@ class ApprovalAction(TimestampMixin, Base):
     comment: Mapped[str | None] = mapped_column(
         Text, nullable=True,
         comment="意见/备注",
+    )
+    ai_suggestion: Mapped[str | None] = mapped_column(
+        String(16), nullable=True,
+        comment="审批时的 AI 建议：pass/review/reject（用于审计对比）",
+    )
+    override_reason: Mapped[str | None] = mapped_column(
+        Text, nullable=True,
+        comment="覆盖 AI 建议时填写的理由（合规审计需要）",
     )
