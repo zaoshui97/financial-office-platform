@@ -1,72 +1,36 @@
-# Python 缓存与编译产物
+# Python
 __pycache__/
 *.pyc
-*.py[cod]
+*.pyo
 *.pyd
-
-# 虚拟环境
+.Python
+*.egg-info/
 .venv/
 venv/
 
-# 环境变量与本地密钥
+# IDE / 工具
+.cursor/
+.idea/
+.vscode/
+.DS_Store
+
+# 测试 / 一次性开发脚本（不入仓）
+tools/_*
+tools/check_*
+.tmp_*
+.tmp-*
+.build.log
+
+# 运行时文件（不入仓）
+logs/
+*.log
+storage/uploads/*
+!storage/uploads/.gitkeep
+qdrant_data/
+qdrant_storage/
+
+# 凭据 / 环境变量（绝不入仓）
 .env
 .env.*
 !.env.example
-!.env.prod.example
-!.env.deploy.example
 
-# 测试、类型检查与覆盖率缓存
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# 运行时文件
-logs/
-*.log
-uploads/
-storage/uploads/*
-!storage/uploads/.gitkeep
-
-# 数据库备份与导出
-backups/
-db-backups/
-database-backups/
-*.sql
-*.sql.gz
-*.dump
-*.bak
-!migrations/*.sql
-
-# Qdrant 本地向量数据
-qdrant_data/
-qdrant_storage/
-storage/qdrant/
-.qdrant/
-
-# OCR 临时文件
-.ocr-tmp/
-ocr_tmp/
-ocr-temp/
-tmp/ocr/
-page-*-ocr.txt
-page-*-ocr.png
-page-*.png
-
-# IDE 与操作系统文件
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# 构建产物
-build/
-dist/
-*.egg-info/
-node_modules/
