@@ -10,6 +10,7 @@ from app.features.auth.dependencies import CurrentUser
 from app.features.rag.indexing import VectorIndexError, index_document
 from app.features.rag.schemas import (
     DocumentContentRead,
+    DocumentNormalizationRead,
     DocumentRead,
     KnowledgeBaseCreate,
     KnowledgeBaseRead,
@@ -19,6 +20,7 @@ from app.features.rag.service import (
     create_knowledge_base,
     delete_document,
     delete_knowledge_base,
+    get_document_normalization,
     get_document_status,
     get_owned_knowledge_base,
     list_documents,
@@ -142,6 +144,22 @@ def read_documents(
         DocumentRead.model_validate(item)
         for item in list_documents(db, knowledge_base_id, current_user.id)
     ]
+
+
+@router.get(
+    "/documents/{document_id}/normalization",
+    response_model=DocumentNormalizationRead,
+    summary="查看文档归一化状态",
+)
+def read_normalization(
+    document_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> DocumentNormalizationRead:
+    """返回归一化版本和正文指纹，供前端展示与核对。"""
+    return DocumentNormalizationRead.model_validate(
+        get_document_normalization(db, document_id, current_user.id)
+    )
 
 
 @router.get(

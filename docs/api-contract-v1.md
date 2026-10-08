@@ -405,6 +405,7 @@ Content-Type: multipart/form-data
 
 - 默认最大文件大小为 20 MB。
 - TXT 支持 UTF-8、UTF-8 BOM 和 GB18030。
+- 新上传文档的解析片段会按 `text-v1` 规则统一 Unicode NFC、换行和空白，保留页码、段落与表格来源；不折叠全角字符或改写金融术语。已有文档不会自动重处理。
 - 扫描版 PDF 当前不支持 OCR。
 
 成功响应 `201`：
@@ -489,6 +490,28 @@ Authorization: Bearer <access_token>
 
 - `404`：文档不存在或不属于当前用户。
 - `409`：文档尚未解析成功。
+
+### 5.6 查看文档归一化状态
+
+```http
+GET /api/v1/rag/documents/{document_id}/normalization
+Authorization: Bearer <access_token>
+```
+
+成功响应 `200`：
+
+```json
+{
+  "document_id": 10,
+  "status": "normalized",
+  "normalization_version": "text-v1",
+  "content_hash": "64 位 SHA-256 十六进制值",
+  "normalized_char_count": 12680,
+  "chunk_count": 12
+}
+```
+
+`status` 为 `legacy_or_unavailable` 时，表示历史文档或解析尚未成功；此时版本与指纹为 `null`，字符数为 `0`。该指纹用于内容核对，当前接口**不执行**跨文档去重、分类或旧文档自动重建索引。只有本人可读取该状态。
 
 ## 6. 智能聊天助手
 

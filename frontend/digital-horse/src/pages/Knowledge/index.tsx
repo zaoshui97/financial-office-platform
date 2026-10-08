@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Select, Table, Tag, Space, Button, Typography, Tooltip, Modal, Upload, message, Tabs, Row, Col, Popconfirm, Spin, Empty } from 'antd';
+import { Alert, Card, Input, Select, Table, Tag, Space, Button, Typography, Tooltip, Modal, Upload, message, Tabs, Row, Col, Popconfirm, Spin, Empty, Descriptions } from 'antd';
 import type { UploadProps } from 'antd';
 import {
   SearchOutlined,
@@ -19,8 +19,8 @@ import {
   BranchesOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { knowledgeApi } from '@/api/modules';
-import type { KnowledgeDocument } from '@/types/api';
+import { ragApi } from '@/api/rag';
+import type { DocumentNormalization, KnowledgeBase, RagDocument, RagDocumentContent } from '@/api/rag';
 import dayjs from 'dayjs';
 import KnowledgeGraph, { DEMO_GRAPH_DATA } from '@/components/KnowledgeGraph';
 import DocumentDiff from '@/components/DocumentDiff';
@@ -34,33 +34,7 @@ import {
 
 const { Text, Paragraph } = Typography;
 
-// 演示用 mock：后端未上线时保证页面有真实可浏览的文档，
-// 同时 fetchDocs 仍然调用接口（失败时静默 fallback，不会出现"网络连接失败"）。
-const DEMO_KNOWLEDGE_DOCS: KnowledgeDocument[] = [
-  { id: 'k-1001', title: '《商业银行资本管理办法》解读', category: 'policy', uploader: '合规部·王老师', fileSize: 248 * 1024, fileType: 'pdf', status: 'indexed', uploadedAt: '2026-08-12 09:30', updatedAt: '2026-09-20 14:08', content: '本文件为新资本管理办法核心条款逐条解读，配套流动性覆盖率、净稳定资金比例测算样表。' },
-  { id: 'k-1002', title: '反洗钱客户身份识别操作手册 v3.2', category: 'policy', uploader: '合规部·林岚', fileSize: 412 * 1024, fileType: 'docx', status: 'indexed', uploadedAt: '2026-05-04 11:15', updatedAt: '2026-09-18 16:42', content: '覆盖个人客户、对公客户、受益所有人的尽调要点及高风险情形升级流程。' },
-  { id: 'k-1003', title: '数马力·2026 数字化转型方案', category: 'project', uploader: '战略发展部·周敏', fileSize: 186 * 1024, fileType: 'pdf', status: 'indexed', uploadedAt: '2026-07-19 10:05', updatedAt: '2026-09-15 09:11', content: '面向"AI 中台+业务前台"的五年路线图，包含三阶段投入产出测算。' },
-  { id: 'k-1004', title: '智能客服意图识别 FAQ 库', category: 'faq', uploader: '客服中心·张涛', fileSize: 96 * 1024, fileType: 'md', status: 'indexed', uploadedAt: '2026-06-22 14:30', updatedAt: '2026-09-12 17:01', content: '覆盖信用卡、借记卡、贷款、理财、积分五大场景共 326 条问答。' },
-  { id: 'k-1005', title: '员工差旅报销模板（2026 修订版）', category: 'template', uploader: '财务部·李珊', fileSize: 38 * 1024, fileType: 'xlsx', status: 'indexed', uploadedAt: '2026-08-30 08:50', updatedAt: '2026-09-10 10:24', content: '内置差旅等级、出差审批流、一键自动校验逻辑。' },
-  { id: 'k-1006', title: 'Q3 经营分析报告（管理层版）', category: 'report', uploader: '战略发展部·周敏', fileSize: 524 * 1024, fileType: 'pdf', status: 'indexing', uploadedAt: '2026-09-22 18:20', updatedAt: '2026-09-23 09:05', content: '三季度营收、利润、客户增长全景分析，含区域与产品线拆分。' },
-  { id: 'k-1007', title: '信贷风险月度例会会议纪要（2026-08）', category: 'minutes', uploader: '风险部·陈昊', fileSize: 64 * 1024, fileType: 'docx', status: 'indexed', uploadedAt: '2026-08-29 17:40', updatedAt: '2026-08-29 17:40', content: '8 月不良率走势、五级分类迁徙、压力测试结果。' },
-  { id: 'k-1008', title: '《数据安全法》对金融机构的合规要求', category: 'policy', uploader: '合规部·王老师', fileSize: 152 * 1024, fileType: 'pdf', status: 'failed', uploadedAt: '2026-09-01 09:00', updatedAt: '2026-09-19 11:33', content: '个人金融信息保护、数据分级、跨境传输合规要点。' },
-  { id: 'k-1009', title: '理财经理营销话术合集（2026 H2）', category: 'template', uploader: '零售部·赵莉', fileSize: 78 * 1024, fileType: 'docx', status: 'indexed', uploadedAt: '2026-07-08 13:25', updatedAt: '2026-09-08 15:50', content: '存款、理财、基金、保险四大类共 80+ 场景话术。' },
-  { id: 'k-1010', title: '核心系统升级（CoreX）项目章程', category: 'project', uploader: '信息科技部·孙策', fileSize: 312 * 1024, fileType: 'pdf', status: 'indexed', uploadedAt: '2026-04-15 10:00', updatedAt: '2026-09-05 14:12', content: '项目目标、范围、干系人、风险与里程碑。' },
-  { id: 'k-1011', title: '投资者适当性管理 FAQ', category: 'faq', uploader: '合规部·林岚', fileSize: 56 * 1024, fileType: 'md', status: 'indexed', uploadedAt: '2026-06-30 16:10', updatedAt: '2026-09-02 09:48', content: '客户风险承受能力评估、产品风险等级匹配与录音录像要求。' },
-  { id: 'k-1012', title: 'AI 中台·2026 H1 建设总结', category: 'report', uploader: '信息科技部·孙策', fileSize: 480 * 1024, fileType: 'pdf', status: 'indexed', uploadedAt: '2026-07-05 09:00', updatedAt: '2026-07-05 09:00', content: '模型工厂、Agent 编排、知识图谱三大能力的 H1 进展与下阶段计划。' },
-];
-
 type TemplateType = 'notice' | 'email' | 'weekly';
-
-interface DocumentFile {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  date: string;
-  uploader: string;
-}
 
 interface GeneratedDoc {
   id: string;
@@ -81,37 +55,69 @@ const Knowledge: React.FC = () => {
   const [policyDiffOpen, setPolicyDiffOpen] = useState(false);
   const [policySearchQuery, setPolicySearchQuery] = useState('');
 
-  // ===== 数据来源：先渲染 mock 让页面真实可浏览；接口请求仅作"锦上添花"，
-  //                 失败时静默 fallback 到 mock，不会出现"网络连接失败"。 =====
-  const [docs, setDocs] = useState<KnowledgeDocument[]>(DEMO_KNOWLEDGE_DOCS);
+  // ===== 真实知识库数据 =====
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
+  const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState<number | null>(null);
+  const [docs, setDocs] = useState<RagDocument[]>([]);
+  const [normalizations, setNormalizations] = useState<Record<number, DocumentNormalization>>({});
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [docsError, setDocsError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [indexingDocumentId, setIndexingDocumentId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailDocument, setDetailDocument] = useState<RagDocumentContent | null>(null);
+  const [detailNormalization, setDetailNormalization] = useState<DocumentNormalization | null>(null);
 
-  const fetchDocs = async () => {
+  const fetchDocs = async (knowledgeBaseId = selectedKnowledgeBaseId) => {
+    if (!knowledgeBaseId) {
+      setDocs([]);
+      return;
+    }
     setLoadingDocs(true);
     setDocsError(null);
     try {
-      const resp = await knowledgeApi.getList({
-        page: 1,
-        pageSize: 100,
-        category: selectedCategory || undefined,
-        keyword: searchQuery || undefined,
+      const remote = await ragApi.listDocuments(knowledgeBaseId);
+      setDocs(remote);
+      const results = await Promise.allSettled(remote.map((doc) => ragApi.getNormalization(doc.id)));
+      const next: Record<number, DocumentNormalization> = {};
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') next[result.value.document_id] = result.value;
       });
-      const remote = (resp.data?.data?.list as unknown as KnowledgeDocument[]) ?? [];
-      setDocs(remote.length ? remote : DEMO_KNOWLEDGE_DOCS);
-    } catch (err: any) {
-      // 后端未上线：静默回落到本地 mock，不向用户暴露网络错误
-      setDocs(DEMO_KNOWLEDGE_DOCS);
-      setDocsError(null);
+      setNormalizations(next);
+    } catch {
+      setDocs([]);
+      setDocsError('真实知识库加载失败，请确认后端服务和登录状态。');
     } finally {
       setLoadingDocs(false);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'knowledge') fetchDocs();
+    const initialize = async () => {
+      setLoadingDocs(true);
+      setDocsError(null);
+      try {
+        let bases = await ragApi.listKnowledgeBases();
+        if (bases.length === 0) {
+          const created = await ragApi.createKnowledgeBase({
+            name: '企业知识库',
+            description: '用于公司制度、业务材料和内部知识的检索与引用',
+          });
+          bases = [created];
+        }
+        setKnowledgeBases(bases);
+        setSelectedKnowledgeBaseId(bases[0].id);
+        await fetchDocs(bases[0].id);
+      } catch {
+        setDocsError('无法初始化真实知识库，请确认后端服务和登录状态。');
+      } finally {
+        setLoadingDocs(false);
+      }
+    };
+    void initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedCategory, activeTab]);
+  }, []);
 
   // Document generator state
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('notice');
@@ -122,48 +128,52 @@ const Knowledge: React.FC = () => {
   // History
   const [history, setHistory] = useState<GeneratedDoc[]>([]);
 
-  // Files
-  const [files, setFiles] = useState<DocumentFile[]>([
-    { id: '1', name: 'Product Specification.docx', type: 'docx', size: '2.5 MB', date: '2024-01-20', uploader: 'Alice' },
-    { id: '2', name: 'Financial Report.pdf', type: 'pdf', size: '5.8 MB', date: '2024-01-19', uploader: 'Bob' },
-    { id: '3', name: 'Project Plan.doc', type: 'doc', size: '1.2 MB', date: '2024-01-18', uploader: 'Charlie' },
-    { id: '4', name: 'Budget Forecast.xlsx', type: 'xlsx', size: '3.4 MB', date: '2024-01-17', uploader: 'Diana' },
-  ]);
-
   // Upload configuration
   const uploadProps: UploadProps = {
     name: 'file',
     multiple: true,
     showUploadList: false,
-    accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv',
+    accept: '.pdf,.docx,.txt',
+    disabled: uploading || !selectedKnowledgeBaseId,
     beforeUpload: (file) => {
-      const ext = file.name.split('.').pop() || '';
-      const newFile: DocumentFile = {
-        id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-        name: file.name,
-        type: ext,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        date: dayjs().format('YYYY-MM-DD'),
-        uploader: '当前用户',
-      };
-      setFiles(prev => [newFile, ...prev]);
-      message.success(`${file.name} 上传成功`);
+      const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
+      if (!['.pdf', '.docx', '.txt'].includes(extension)) {
+        message.error('仅支持 PDF、DOCX 和 TXT 文件');
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        message.error('单个文件不能超过 20MB');
+        return Upload.LIST_IGNORE;
+      }
+      if (!selectedKnowledgeBaseId) {
+        message.error('知识库尚未就绪，请稍后重试');
+        return Upload.LIST_IGNORE;
+      }
+      setUploading(true);
+      void ragApi.uploadDocument(selectedKnowledgeBaseId, file as File)
+        .then(async (document) => {
+          const normalization = await ragApi.getNormalization(document.id);
+          setNormalizations((previous) => ({ ...previous, [document.id]: normalization }));
+          message.success(`${file.name} 已上传并完成归一化`);
+          await fetchDocs(selectedKnowledgeBaseId);
+        })
+        .catch(() => undefined)
+        .finally(() => setUploading(false));
       return false;
     },
   };
 
-  const categoryMap: Record<string, { label: string; color: string }> = {
-    policy: { label: '政策法规', color: 'blue' },
-    project: { label: '项目资料', color: 'blue' },
-    faq: { label: '常见问题', color: 'orange' },
-    template: { label: '模板', color: 'cyan' },
-    report: { label: '报告', color: 'green' },
+  const parseStatusMap: Record<string, { label: string; color: string }> = {
+    processing: { label: '解析中', color: 'processing' },
+    parsed: { label: '已解析', color: 'blue' },
+    failed: { label: '解析失败', color: 'error' },
   };
 
-  const statusMap: Record<string, { label: string; color: string }> = {
+  const indexStatusMap: Record<string, { label: string; color: string }> = {
+    pending: { label: '待索引', color: 'default' },
+    building: { label: '索引中', color: 'processing' },
     indexed: { label: '已索引', color: 'success' },
-    indexing: { label: '索引中', color: 'processing' },
-    failed: { label: '失败', color: 'error' },
+    failed: { label: '索引失败', color: 'error' },
   };
 
   const templates = [
@@ -172,16 +182,18 @@ const Knowledge: React.FC = () => {
     { key: 'weekly', label: '周报', icon: <CalendarOutlined />, color: '#0F2B5B' },
   ];
 
-  const categories = [
-    { value: '', label: '全部分类' },
-    { value: 'policy', label: '政策法规' },
-    { value: 'project', label: '项目资料' },
-    { value: 'faq', label: '常见问题' },
-    { value: 'template', label: '模板' },
-    { value: 'report', label: '报告' },
+  const fileTypes = [
+    { value: '', label: '全部格式' },
+    { value: 'pdf', label: 'PDF' },
+    { value: 'docx', label: 'Word' },
+    { value: 'txt', label: 'TXT' },
   ];
 
-  const filteredData = docs;
+  const filteredData = docs.filter((doc) => {
+    const matchesKeyword = !searchQuery.trim() || doc.original_filename.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    const matchesType = !selectedCategory || doc.file_type === selectedCategory;
+    return matchesKeyword && matchesType;
+  });
 
   const handleGenerate = async () => {
     if (!formValues.content) {
@@ -280,21 +292,59 @@ ${formValues.content || ''}
 
   const getTemplateIcon = (key: TemplateType) => templates.find(t => t.key === key)?.icon || <FileTextOutlined />;
 
-  const getFileIcon = (type: string) => {
-    if (type === 'folder') return <FolderOutlined style={{ color: '#faad14' }} />;
-    return <FileOutlined />;
+  const handleOpenDocument = async (document: RagDocument) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailDocument(null);
+    setDetailNormalization(normalizations[document.id] || null);
+    try {
+      const [content, normalization] = await Promise.all([
+        ragApi.getDocumentContent(document.id),
+        ragApi.getNormalization(document.id),
+      ]);
+      setDetailDocument(content);
+      setDetailNormalization(normalization);
+    } catch {
+      setDetailOpen(false);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleIndexDocument = async (document: RagDocument) => {
+    setIndexingDocumentId(document.id);
+    try {
+      const indexed = await ragApi.indexDocument(document.id, document.index_status === 'failed' || document.index_status === 'indexed');
+      setDocs((previous) => previous.map((item) => item.id === indexed.id ? indexed : item));
+      message.success(`${document.original_filename} 已完成索引，可用于智能问答`);
+    } catch {
+      await fetchDocs(document.knowledge_base_id);
+    } finally {
+      setIndexingDocumentId(null);
+    }
+  };
+
+  const handleDeleteDocument = async (document: RagDocument) => {
+    await ragApi.deleteDocument(document.id);
+    setDocs((previous) => previous.filter((item) => item.id !== document.id));
+    setNormalizations((previous) => {
+      const next = { ...previous };
+      delete next[document.id];
+      return next;
+    });
+    message.success('文档已删除');
   };
 
   const knowledgeColumns = [
     {
       title: '文档名称',
-      dataIndex: 'title',
-      key: 'title',
-      render: (text: string) => (
+      dataIndex: 'original_filename',
+      key: 'original_filename',
+      render: (text: string, record: RagDocument) => (
         <Space>
           <FileTextOutlined style={{ color: '#1890ff' }} />
           <Tooltip title={text}>
-            <a style={{ maxWidth: 300, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <a onClick={() => void handleOpenDocument(record)} style={{ maxWidth: 300, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {text}
             </a>
           </Tooltip>
@@ -302,88 +352,69 @@ ${formValues.content || ''}
       ),
     },
     {
-      title: '分类',
-      dataIndex: 'category',
-      key: 'category',
-      width: 110,
-      render: (category: string) => (
-        <Tag color={categoryMap[category]?.color}>{categoryMap[category]?.label || category}</Tag>
-      ),
-    },
-    {
-      title: '作者',
-      dataIndex: 'uploader',
-      key: 'uploader',
-      width: 120,
-      render: (uploader?: string) => <Text type="secondary">{uploader || '-'}</Text>,
+      title: '格式',
+      dataIndex: 'file_type',
+      key: 'file_type',
+      width: 80,
+      render: (type: string) => <Tag>{type.toUpperCase()}</Tag>,
     },
     {
       title: '大小',
-      dataIndex: 'fileSize',
-      key: 'fileSize',
+      dataIndex: 'file_size',
+      key: 'file_size',
       width: 100,
       render: (size: number) => <Text type="secondary">{(size / 1024).toFixed(1)} KB</Text>,
     },
     {
-      title: '更新时间',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
+      title: '归一化',
+      key: 'normalization',
       width: 120,
-      render: (date: string) => <Text type="secondary">{new Date(date).toLocaleDateString('zh-CN')}</Text>,
+      render: (_: unknown, record: RagDocument) => {
+        const normalization = normalizations[record.id];
+        return normalization?.status === 'normalized'
+          ? <Tooltip title={`${normalization.chunk_count} 个文本片段`}><Tag color="cyan">已归一化 · {normalization.normalization_version}</Tag></Tooltip>
+          : <Tag>未归一化</Tag>;
+      },
     },
     {
-      title: '状态',
-      dataIndex: 'status',
+      title: '处理状态',
       key: 'status',
-      width: 90,
-      render: (status: string) => (
-        <Tag color={statusMap[status]?.color || 'default'}>{statusMap[status]?.label || status}</Tag>
+      width: 170,
+      render: (_: unknown, record: RagDocument) => (
+        <Space size={4} wrap>
+          <Tag color={parseStatusMap[record.status]?.color}>{parseStatusMap[record.status]?.label || record.status}</Tag>
+          <Tooltip title={record.index_error || undefined}>
+            <Tag color={indexStatusMap[record.index_status]?.color}>{indexStatusMap[record.index_status]?.label || record.index_status}</Tag>
+          </Tooltip>
+        </Space>
       ),
+    },
+    {
+      title: '上传时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 120,
+      render: (date: string) => <Text type="secondary">{dayjs(date).format('YYYY-MM-DD')}</Text>,
     },
     {
       title: '操作',
       key: 'action',
-      width: 100,
-      render: () => (
+      width: 210,
+      render: (_: unknown, record: RagDocument) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />}>查看</Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const fileColumns = [
-    {
-      title: '文件名',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: DocumentFile) => (
-        <Space>
-          {getFileIcon(record.type)}
-          <span>{text}</span>
-        </Space>
-      ),
-    },
-    { title: '大小', dataIndex: 'size', key: 'size', width: 100 },
-    { title: '上传时间', dataIndex: 'date', key: 'date', width: 120 },
-    { title: '上传人', dataIndex: 'uploader', key: 'uploader', width: 100 },
-    {
-      title: '操作',
-      key: 'action',
-      width: 150,
-      render: (_: any, record: DocumentFile) => (
-        <Space>
-          <Button type="link" icon={<DownloadOutlined />}>下载</Button>
-          <Popconfirm
-            title="确认删除？"
-            onConfirm={() => {
-              setFiles(prev => prev.filter(f => f.id !== record.id));
-              message.success('已删除');
-            }}
-            okText="确认"
-            cancelText="取消"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => void handleOpenDocument(record)}>查看</Button>
+          {record.status === 'parsed' && (
+            <Button
+              type="link"
+              size="small"
+              loading={indexingDocumentId === record.id}
+              onClick={() => void handleIndexDocument(record)}
+            >
+              {record.index_status === 'indexed' ? '重建索引' : '建立索引'}
+            </Button>
+          )}
+          <Popconfirm title="确认删除这份文档？" onConfirm={() => void handleDeleteDocument(record)} okText="确认" cancelText="取消">
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
           </Popconfirm>
         </Space>
       ),
@@ -398,6 +429,16 @@ ${formValues.content || ''}
         <>
           <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
             <Space size="large" wrap>
+              <Select
+                value={selectedKnowledgeBaseId ?? undefined}
+                placeholder="选择知识库"
+                onChange={(value) => {
+                  setSelectedKnowledgeBaseId(value);
+                  void fetchDocs(value);
+                }}
+                style={{ width: 180 }}
+                options={knowledgeBases.map((item) => ({ label: item.name, value: item.id }))}
+              />
               <Input.Search
                 placeholder="搜索文档..."
                 prefix={<SearchOutlined />}
@@ -411,12 +452,21 @@ ${formValues.content || ''}
                 onChange={setSelectedCategory}
                 style={{ width: 150 }}
               >
-                {categories.map((cat) => (
+                {fileTypes.map((cat) => (
                   <Select.Option key={cat.value} value={cat.value}>{cat.label}</Select.Option>
                 ))}
               </Select>
+              <Button onClick={() => void fetchDocs()} loading={loadingDocs}>刷新</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setActiveTab('files')}>上传文档</Button>
             </Space>
           </div>
+          <Alert
+            type="info"
+            showIcon
+            message="真实知识库"
+            description="文档上传后会自动解析和归一化；完成向量索引后，可在 AI 智能助手中检索并引用原文。"
+            style={{ margin: '16px 24px 0' }}
+          />
           <Spin spinning={loadingDocs}>
             {docsError && !loadingDocs && (
               <div style={{ padding: 16, marginBottom: 12, background: '#FFF7E6', border: '1px solid #FFD591', borderRadius: 6 }}>
@@ -464,23 +514,24 @@ ${formValues.content || ''}
       children: (
         <>
           <div style={{ padding: '16px 24px' }}>
-            <Upload.Dragger {...uploadProps}>
+            <Upload.Dragger {...uploadProps} style={{ opacity: uploading ? 0.7 : 1 }}>
               <p className="ant-upload-drag-icon" style={{ marginBottom: 8 }}>
                 <InboxOutlined style={{ fontSize: 48, color: '#0F2B5B' }} />
               </p>
               <p className="ant-upload-text" style={{ fontSize: 16, color: '#1D2129', marginBottom: 4 }}>
-                点击或拖拽文件上传
+                {uploading ? '正在上传并归一化…' : '点击或拖拽文件上传'}
               </p>
               <p className="ant-upload-hint" style={{ fontSize: 12, color: '#666' }}>
-                支持 PDF、Word、Excel、PPT、TXT、MD、CSV 格式，单个文件最大 50MB
+                支持 PDF、DOCX、TXT，单个文件最大 20MB。原文件会保留，解析文本将自动归一化。
               </p>
             </Upload.Dragger>
           </div>
           <Table
-            columns={fileColumns}
-            dataSource={files}
+            columns={knowledgeColumns}
+            dataSource={filteredData}
             rowKey="id"
-            pagination={false}
+            pagination={{ pageSize: 10 }}
+            locale={{ emptyText: <Empty description="还没有真实文档，请上传第一份文件" /> }}
           />
         </>
       ),
@@ -703,6 +754,40 @@ ${formValues.content || ''}
         onClose={() => setPolicyDiffOpen(false)}
         document={policyDiffDoc}
       />
+
+      <Modal
+        open={detailOpen}
+        width={820}
+        title={detailDocument?.original_filename || '文档详情'}
+        footer={null}
+        onCancel={() => setDetailOpen(false)}
+      >
+        <Spin spinning={detailLoading}>
+          {detailDocument && (
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+              <Descriptions size="small" bordered column={2}>
+                <Descriptions.Item label="文件格式">{detailDocument.file_type.toUpperCase()}</Descriptions.Item>
+                <Descriptions.Item label="文件大小">{(detailDocument.file_size / 1024).toFixed(1)} KB</Descriptions.Item>
+                <Descriptions.Item label="解析字符">{detailDocument.parsed_char_count.toLocaleString()}</Descriptions.Item>
+                <Descriptions.Item label="文本片段">{detailNormalization?.chunk_count ?? '-'}</Descriptions.Item>
+                <Descriptions.Item label="归一化版本">{detailNormalization?.normalization_version || '未归一化'}</Descriptions.Item>
+                <Descriptions.Item label="索引状态">{indexStatusMap[detailDocument.index_status]?.label || detailDocument.index_status}</Descriptions.Item>
+                <Descriptions.Item label="正文指纹" span={2}>
+                  <Text copyable={{ text: detailNormalization?.content_hash || '' }} style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                    {detailNormalization?.content_hash || '-'}
+                  </Text>
+                </Descriptions.Item>
+              </Descriptions>
+              <div>
+                <Text strong>归一化文本预览</Text>
+                <pre style={{ marginTop: 8, padding: 16, maxHeight: 420, overflow: 'auto', whiteSpace: 'pre-wrap', background: '#f7f8fa', borderRadius: 6 }}>
+                  {detailDocument.parsed_text}
+                </pre>
+              </div>
+            </Space>
+          )}
+        </Spin>
+      </Modal>
     </Card>
   );
 };

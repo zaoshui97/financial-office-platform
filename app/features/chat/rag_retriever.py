@@ -82,7 +82,13 @@ def retrieve_knowledge_context(
     knowledge_base_id: int,
     question: str,
 ) -> list[RetrievedContext]:
-    """校验权限，优先使用向量检索，失败时按配置回退关键词检索。"""
+    """校验权限，优先使用向量检索，失败时按配置回退关键词检索。
+
+    若知识库不存在（owner_id 不匹配或 id 不存在），返回空列表（而非抛异常），
+    上层 service 会自动降级到 LLM 模式。这保证：
+      - 前端没有知识库时仍能正常对话
+      - 用户指定了不存在的 KB 时优雅降级
+    """
     knowledge_base = db.scalar(
         select(KnowledgeBase.id).where(
             KnowledgeBase.id == knowledge_base_id,
@@ -90,7 +96,13 @@ def retrieve_knowledge_context(
         )
     )
     if knowledge_base is None:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        # 知识库不存在 → 返回空上下文，上层自动降级到 LLM
+        logger.info(
+            "知识库 id=%s 不存在或无权限，跳过 RAG，降级到 LLM（owner_id=%s）",
+            knowledge_base_id,
+            owner_id,
+        )
+        return []
 
     if settings.RAG_VECTOR_SEARCH_ENABLED:
         try:

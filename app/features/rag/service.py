@@ -9,6 +9,11 @@ from sqlalchemy.orm import Session
 from app.core.logging import get_logger
 from app.features.rag.chunker import chunk_document
 from app.features.rag.models import DocumentChunk, KnowledgeBase, KnowledgeDocument
+from app.features.rag.normalization import (
+    NORMALIZATION_VERSION,
+    normalize_parsed_document,
+    normalized_content_hash,
+)
 from app.features.rag.schemas import KnowledgeBaseCreate, KnowledgeBaseUpdate
 from app.integrations.document_parser import DocumentParseError, parse_document
 from app.integrations.file_storage import save_upload_file
@@ -184,7 +189,9 @@ def upload_and_parse_document(
     db.refresh(document)
 
     try:
-        parsed = parse_document(stored_file.path)
+        parsed = normalize_parsed_document(parse_document(stored_file.path))
+        if not parsed.text:
+            raise DocumentParseError("文档归一化后没有可提取文本")
         chunks = chunk_document(parsed)
         db.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
         db.add_all(
@@ -196,7 +203,10 @@ def upload_and_parse_document(
                     chunk_index=chunk.chunk_index,
                     chunk_text=chunk.chunk_text,
                     page_number=chunk.page_number,
-                    chunk_metadata=chunk.metadata,
+                    chunk_metadata={
+                        **chunk.metadata,
+                        "normalization_version": NORMALIZATION_VERSION,
+                    },
                     content_hash=chunk.content_hash,
                 )
                 for chunk in chunks
@@ -233,6 +243,31 @@ def read_document_content(
     if document.status != "parsed" or document.parsed_text is None:
         raise HTTPException(status_code=409, detail="文档尚未解析成功")
     return document
+
+
+def get_document_normalization(db: Session, document_id: int, owner_id: int) -> dict:
+    """读取文档规范化版本和指纹，区分历史上传的未归一化记录。"""
+    document = get_owned_document(db, document_id, owner_id)
+    chunks = list(
+        db.scalars(select(DocumentChunk).where(DocumentChunk.document_id == document_id)).all()
+    )
+    normalized = (
+        document.status == "parsed"
+        and document.parsed_text is not None
+        and bool(chunks)
+        and all(
+            (chunk.chunk_metadata or {}).get("normalization_version") == NORMALIZATION_VERSION
+            for chunk in chunks
+        )
+    )
+    return {
+        "document_id": document.id,
+        "status": "normalized" if normalized else "legacy_or_unavailable",
+        "normalization_version": NORMALIZATION_VERSION if normalized else None,
+        "content_hash": normalized_content_hash(document.parsed_text) if normalized else None,
+        "normalized_char_count": document.parsed_char_count if normalized else 0,
+        "chunk_count": len(chunks),
+    }
 
 
 def _remove_stored_file(stored_path: str) -> None:

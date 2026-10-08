@@ -56,3 +56,14 @@ class DocumentContentRead(DocumentRead):
     """文档元数据和解析后的完整文本。"""
 
     parsed_text: str
+
+
+class DocumentNormalizationRead(BaseModel):
+    """前端可读取的归一化状态；旧文档不会被误标为已归一化。"""
+
+    document_id: int
+    status: str
+    normalization_version: str | None
+    content_hash: str | None
+    normalized_char_count: int
+    chunk_count: int
