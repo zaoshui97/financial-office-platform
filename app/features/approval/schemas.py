@@ -79,6 +79,15 @@ class ApprovalListResponse(BaseModel):
     total: int
 
 
+class AIReviewResponse(BaseModel):
+    """手动触发 AI 审查的响应。"""
+
+    approval_id: int
+    ai_review: dict
+    ai_suggestion: str
+    ai_reviewed_at: str
+
+
 # ---------- 操作 ----------
 
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -37,7 +37,7 @@ def _normalize_type(raw: str | None) -> str:
     return raw if raw in _ALLOWED_TYPES else ApprovalType.GENERAL.value
 
 
-def _to_read(a: Approval) -> dict:
+def _to_read(db: Session, a: Approval) -> dict:
     """DB 行 → 出参 dict（不直接返回 SQLAlchemy 行给上层）。"""
     import json as _json
     ai_review = None
@@ -46,6 +46,11 @@ def _to_read(a: Approval) -> dict:
             ai_review = _json.loads(a.ai_review)
         except Exception:
             ai_review = None
+    # 关联附件 ID（与 list 保持一致）
+    att_rows = db.execute(
+        text("SELECT id FROM attachments WHERE business_type='approval' AND business_id=:bid"),
+        {"bid": a.id},
+    ).fetchall()
     return {
         "id": a.id,
         "user_id": a.user_id,
@@ -61,6 +66,7 @@ def _to_read(a: Approval) -> dict:
         "closed_at": a.closed_at,
         "created_at": a.created_at,
         "updated_at": a.updated_at,
+        "attachment_ids": [r[0] for r in att_rows],
     }
 
 
@@ -151,7 +157,7 @@ def create_approval(
         "approval 创建 | id=%s user_id=%s type=%s status=%s attachments=%s",
         approval.id, user_id, approval.type, approval.status, attachment_ids,
     )
-    out = _to_read(approval)
+    out = _to_read(db, approval)
     out["attachment_ids"] = attachment_ids
     # 通知提交人（Phase 1：in-app；Phase 2 接 dispatcher）
     _notify_approval_submitted(db, out)
@@ -212,6 +218,9 @@ def list_approvals(
         normalized = status_filter.strip().lower()
         if normalized in _ALLOWED_STATUS:
             stmt = stmt.where(Approval.status == normalized)
+    # 先算 total（复用所有过滤条件，不含 limit/order）
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = int(db.scalar(count_stmt) or 0)
     stmt = stmt.order_by(Approval.id.desc()).limit(limit)
     rows = list(db.scalars(stmt).all())
     # 一次性把 attachment_ids 取出来
@@ -231,16 +240,9 @@ def list_approvals(
         for aid, bid in db.execute(att_stmt).all():
             att_map.setdefault(bid, []).append(aid)
         for a in rows:
-            d = _to_read(a)
+            d = _to_read(db, a)
             d["attachment_ids"] = att_map.get(a.id, [])
             items_out.append(d)
-    total = int(
-        db.scalar(
-            select(func.count())
-            .select_from(Approval)
-        )
-        or 0
-    )
     return {
         "items": items_out,
         "total": total,
@@ -252,20 +254,86 @@ def get_approval(
     approval_id: int,
     user_id: int,
 ) -> dict:
-    """审批详情（仅本人可见，404 处理）。"""
+    """审批详情。
+
+    权限：
+      - 申请人本人 → 必可见
+      - 同部门的部门管理员（DEPT_ADMIN）→ 可看本部门员工单据
+      - 超级管理员（SUPER_ADMIN）→ 可见全部
+    """
     from fastapi import HTTPException, status as http_status
-    row = db.scalar(
-        select(Approval).where(
-            Approval.id == approval_id,
-            Approval.user_id == user_id,
-        )
-    )
+    from app.features.auth.models import User
+
+    row = db.scalar(select(Approval).where(Approval.id == approval_id))
     if row is None:
         raise HTTPException(
             status_code=http_status.HTTP_404_NOT_FOUND,
-            detail="审批不存在或不属于当前用户",
+            detail="审批不存在",
         )
-    return _to_read(row)
+
+    # 申请人本人
+    if row.user_id == user_id:
+        return _to_read(db, row)
+
+    # 超级管理员
+    me = db.scalar(select(User).where(User.id == user_id))
+    if me and me.is_superuser:
+        return _to_read(db, row)
+
+    # 部门管理员 + 同部门
+    if me and (me.position or "").strip() == "部门经理":
+        applicant = db.scalar(select(User).where(User.id == row.user_id))
+        if applicant and (applicant.department or "").strip() == (me.department or "").strip():
+            return _to_read(db, row)
+
+    raise HTTPException(
+        status_code=http_status.HTTP_404_NOT_FOUND,
+        detail="审批不存在或不属于当前用户",
+    )
+
+
+def trigger_ai_review(db: Session, approval_id: int, user_id: int) -> dict:
+    """手动触发指定审批单的 AI 审查。
+
+    适用于：创建时未审查 / 提交后内容有变更 / 审批人想重新审查。
+    仅 PENDING 状态的工单可重新审查。
+    """
+    from fastapi import HTTPException, status as http_status
+    from app.features.approval.ai_reviewer import review_approval
+
+    approval = db.query(Approval).filter(Approval.id == approval_id).first()
+    if not approval:
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="审批不存在")
+    if approval.status not in (ApprovalStatus.PENDING.value, ApprovalStatus.DRAFT.value):
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="仅待审批 / 草稿状态可重新审查",
+        )
+
+    # 拉附件列表
+    att_rows = db.execute(
+        text(
+            "SELECT id FROM attachments WHERE business_type='approval' AND business_id=:bid"
+        ),
+        {"bid": approval_id},
+    ).fetchall()
+    attachment_ids = [r[0] for r in att_rows]
+
+    ai_report = review_approval(db, approval, attachment_ids)
+    import json as _json
+    approval.ai_review = _json.dumps(ai_report, ensure_ascii=False)
+    approval.ai_suggestion = ai_report.get("overall", {}).get("suggestion")
+    approval.ai_reviewed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    approval.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(approval)
+
+    return {
+        "approval_id": approval_id,
+        "ai_review": ai_report,
+        "ai_suggestion": approval.ai_suggestion,
+        "ai_reviewed_at": approval.ai_reviewed_at,
+    }
 
 
 def list_approval_actions(

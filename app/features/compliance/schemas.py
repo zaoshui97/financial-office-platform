@@ -52,6 +52,57 @@ class SandboxChatResponse(BaseModel):
     )
 
 
+# =====================================================================
+# 沙箱结构化审查接口（/sandbox/check）
+#   - 区别于 /chat：只做"输入→结构化风险清单"，
+#     不调 LLM 生成回答，纯粹基于守卫 4 层防御 + 词库 + 脱敏 + 审计。
+#   - 返回前端 SandboxRunner 需要的所有字段：score / passed / blocked /
+#     issues[] / regulations[] / hitSpans / sanitizedFields / auditId。
+# =====================================================================
+
+class SandboxCheckRequest(BaseModel):
+    """合规沙箱结构化审查请求。"""
+
+    text: str = Field(min_length=1, max_length=20000, description="待审查文本")
+    source: str | None = Field(
+        default="sandbox_page",
+        description="业务来源：approval/report/qa/sandbox_page/demo 等",
+    )
+    business_ref: dict[str, Any] | None = Field(
+        default=None, description="业务单据绑定：{type, id}",
+    )
+
+
+class SandboxCheckIssue(BaseModel):
+    """单条命中风险的结构化描述。"""
+
+    rule_id: str
+    rule_name: str
+    category: str
+    severity: str  # block / high / medium / low
+    snippet: str = ""
+    suggestion: str = ""
+    regulation_ids: list[str] = Field(default_factory=list)
+
+
+class SandboxCheckResponse(BaseModel):
+    """合规沙箱结构化审查响应（供前端 SandboxRunner 直接消费）。"""
+
+    score: float = Field(ge=0.0, le=5.0, description="综合评分 0-5")
+    passed: bool = Field(description="是否通过（无任何命中）")
+    blocked: bool = Field(description="是否包含阻断级风险")
+    issues: list[SandboxCheckIssue] = Field(default_factory=list)
+    total_hits: int = 0
+    duration_ms: int = 0
+    sanitized_text: str = ""
+    sanitized_fields: dict[str, int] = Field(default_factory=dict)
+    risk_category: str | None = None
+    confidence: float | None = None
+    judge_source: str | None = None
+    audit_id: int | None = None
+    model_version: str = "sandbox-check-v1.0"
+
+
 class KillSwitchRequest(BaseModel):
     """Kill Switch 切换请求（仅管理员）。"""
 

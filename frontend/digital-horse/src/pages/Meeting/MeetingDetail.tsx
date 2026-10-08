@@ -38,6 +38,8 @@ import {
   SyncOutlined,
   ClockCircleOutlined,
   LoadingOutlined,
+  KeyOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +48,8 @@ import type { Meeting, ActionItem, MeetingStatus } from '@/types/api';
 import { useMeetingWorkItemStore } from '@/store/meetingWorkItemStore';
 import i18n from '@/i18n';
 import TaskPipeline from '@/components/TaskPipeline';
+import { meetingInviteApi, type InviteCode, type JoinResult } from '@/api/meetingInvite';
+import { http } from '@/utils/request';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -131,6 +135,12 @@ const MeetingDetail: React.FC = () => {
   const [form] = Form.useForm();
   const [mockUsers, setMockUsers] = useState(getMockUsers());
 
+  // ===== 会议邀请码状态 =====
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState<InviteCode | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  // 「用邀请码加入」入口已统一放 MeetingHub 顶栏，本页不再单独提供
+
   // mock data
   useEffect(() => {
     if (!transcribing) {
@@ -150,12 +160,12 @@ const MeetingDetail: React.FC = () => {
     return () => clearInterval(interval);
   }, [transcribing]);
 
-  // mock datamock mock data
+  // mock datamock mock data（仅当没有真实数据时 language change 才重置）
   useEffect(() => {
     const handleLanguageChange = () => {
       setMockUsers(getMockUsers());
-      // mock data
-      if (meeting) {
+      // mock data 没真实数据时（demo 路径）才重置
+      if (meeting && (meeting.id === 'meeting-001' || !meeting.id)) {
         setMeeting(getMockMeeting());
       }
     };
@@ -166,11 +176,46 @@ const MeetingDetail: React.FC = () => {
     };
   }, [meeting]);
 
+  // 拉真实会议数据，失败兜底 mock
   useEffect(() => {
-    setTimeout(() => {
-      setMeeting(getMockMeeting());
-      setLoading(false);
-    }, 500);
+    let cancelled = false;
+    const load = async () => {
+      const mid = Number(id ?? 0);
+      // 没有 id 或非数字 id（mock 详情页） → 直接显示 mock
+      if (!mid || Number.isNaN(mid)) {
+        setMeeting(getMockMeeting());
+        setLoading(false);
+        return;
+      }
+      try {
+        const data = await http.get(`/meetings/${mid}`);
+        if (cancelled) return;
+        if (data) {
+          setMeeting({
+            id: String(data.id ?? mid),
+            title: data.title ?? data.topic ?? `会议 #${mid}`,
+            startTime: data.scheduled_at ?? data.startTime ?? '',
+            endTime: data.endTime ?? '',
+            participants: data.participants ?? [],
+            status: data.status ?? 'pending',
+            transcript: data.transcript ?? '',
+            summary: data.summary ?? '',
+            actionItems: data.actionItems ?? [],
+            createdAt: data.created_at ?? data.createdAt ?? '',
+            updatedAt: data.updated_at ?? data.updatedAt ?? '',
+          });
+        } else {
+          setMeeting(getMockMeeting());
+        }
+      } catch {
+        // 后端没接上，兜底 mock
+        setMeeting(getMockMeeting());
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [id]);
 
   const getUserName = (userId: string) => {
@@ -178,12 +223,16 @@ const MeetingDetail: React.FC = () => {
   };
 
   const getStatusConfig = (status: MeetingStatus) => {
-    const config: Record<MeetingStatus, { color: string; text: string }> = {
-      pending: { color: 'default', text: t('meeting.pending') },
-      ongoing: { color: 'processing', text: t('meeting.inProgress') },
-      ended: { color: 'success', text: t('meeting.ended') },
+    // 兼容后端枚举（preparing/active/closed）与旧 mock（pending/ongoing/ended）
+    const config: Record<string, { color: string; text: string }> = {
+      preparing: { color: 'default',    text: '准备中' },
+      pending:   { color: 'default',    text: '准备中' },
+      active:    { color: 'processing', text: '进行中' },
+      ongoing:   { color: 'processing', text: '进行中' },
+      closed:    { color: 'success',    text: '已结束' },
+      ended:     { color: 'success',    text: '已结束' },
     };
-    return config[status];
+    return config[status] ?? { color: 'default', text: status };
   };
 
   const getActionStatusConfig = (status: ActionItem['status']) => {
@@ -204,6 +253,36 @@ const MeetingDetail: React.FC = () => {
       ),
     });
     message.success(t('common.success'));
+  };
+
+  /** 生成/重置会议邀请码（主持人） */
+  const handleGenerateInvite = async () => {
+    const mid = Number(id ?? 0);
+    if (!mid) {
+      message.error('会议 ID 缺失');
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const data = await meetingInviteApi.generate(mid, 7);
+      setInviteCode(data);
+      setInviteModalOpen(true);
+    } catch (e: any) {
+      message.error(e?.message ?? '生成邀请码失败');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  /** 复制邀请码到剪贴板 */
+  const handleCopyInvite = async () => {
+    if (!inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(inviteCode.invite_code);
+      message.success('邀请码已复制');
+    } catch {
+      message.error('复制失败，请手动选中');
+    }
   };
 
   const handleDeleteAction = (actionId: string) => {
@@ -624,6 +703,31 @@ const MeetingDetail: React.FC = () => {
             </Descriptions.Item>
           </Descriptions>
 
+          {/* ===== 会议邀请码（生成 + 加入） =====
+              仅「准备中 preparing」/「进行中 active」会议才显示：
+              已结束的会议不需要再邀请人进来。 */}
+          {(meeting.status === 'preparing' || meeting.status === 'active') && (
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'linear-gradient(90deg, #e6f7ff 0%, #f0f5ff 100%)', border: '1px solid #91d5ff', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Space size={12}>
+              <Tag color="cyan" style={{ fontSize: 12, margin: 0 }}>v1.2</Tag>
+              <Text style={{ fontSize: 13, color: '#0050b3' }}>
+                通过邀请码快速召集参会人，无需逐个添加
+              </Text>
+            </Space>
+            <Space size={8}>
+              <Button
+                type="primary"
+                size="small"
+                icon={<KeyOutlined />}
+                loading={inviteLoading}
+                onClick={handleGenerateInvite}
+              >
+                生成邀请码
+              </Button>
+            </Space>
+          </div>
+          )}
+
           {/* ===== 会议生命周期时间线（嵌入顶栏） ===== */}
           <div style={{ background: '#fafafa', padding: '12px 16px', borderRadius: 8, border: '1px solid #f0f0f0' }}>
             <Space style={{ marginBottom: 6 }}>
@@ -889,6 +993,47 @@ const MeetingDetail: React.FC = () => {
         .markdown-content code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px; }
         .markdown-content blockquote { border-left: 3px solid #d9d9d9; padding-left: 1em; color: #666; }
       `}</style>
+
+      {/* ===== 生成邀请码弹窗 ===== */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined style={{ color: '#1890ff' }} />
+            <span>会议邀请码</span>
+          </Space>
+        }
+        open={inviteModalOpen}
+        onCancel={() => setInviteModalOpen(false)}
+        footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyInvite}>
+            复制邀请码
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setInviteModalOpen(false)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        {inviteCode && (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>会议</Text>
+              <div style={{ fontSize: 15, fontWeight: 500 }}>{inviteCode.meeting_title}</div>
+            </div>
+            <div style={{ background: '#f5f5f5', padding: '16px 20px', borderRadius: 8, textAlign: 'center' }}>
+              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>邀请码</Text>
+              <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'monospace', letterSpacing: 4, color: '#1890ff' }}>
+                {inviteCode.invite_code}
+              </div>
+            </div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              把这个邀请码发给参会人，他们在前端"用邀请码加入"即可一键参会。
+              {inviteCode.expires_at && (
+                <> 有效期至 {new Date(inviteCode.expires_at).toLocaleString('zh-CN')}。</>
+              )}
+            </Text>
+          </Space>
+        )}
+      </Modal>
     </div>
   );
 };

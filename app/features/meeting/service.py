@@ -153,9 +153,23 @@ def list_meetings(
     status_filter: MeetingStatus | None = None,
     limit: int = 50,
 ) -> MeetingListResponse:
-    """列出当前用户的会议（默认按 id desc）。"""
+    """列出当前用户相关的会议（我主持的 + 我作为参会人加入的），按 id desc。
+
+    多用户联机场景下：teammate 通过邀请码加入会议后，
+    列表页（/meetings）要能看到这些会议，否则队友登录进来一片空白。
+    """
+    from app.features.meeting.models import MeetingParticipant
+
+    # 我作为参会人加入的会议 id 集合
+    participant_meeting_ids = list(db.scalars(
+        select(MeetingParticipant.meeting_id).where(
+            MeetingParticipant.user_id == owner_id
+        )
+    ).all())
+
     stmt = select(MeetingSession).where(
-        MeetingSession.host_user_id == owner_id,
+        (MeetingSession.host_user_id == owner_id)
+        | (MeetingSession.id.in_(participant_meeting_ids) if participant_meeting_ids else False)
     )
     if status_filter is not None:
         stmt = stmt.where(MeetingSession.status == status_filter.value)
@@ -166,7 +180,10 @@ def list_meetings(
         db.scalar(
             select(func.count())
             .select_from(MeetingSession)
-            .where(MeetingSession.host_user_id == owner_id)
+            .where(
+                (MeetingSession.host_user_id == owner_id)
+                | (MeetingSession.id.in_(participant_meeting_ids) if participant_meeting_ids else False)
+            )
         )
         or 0
     )

@@ -145,6 +145,15 @@ class MeetingSession(TimestampMixin, Base):
         String(32), nullable=True,
         comment="主持人最近写入的 phase（open/discussing/closing）",
     )
+    # ---------- 邀请码 ----------
+    invite_code: Mapped[str | None] = mapped_column(
+        String(12), nullable=True, index=True, unique=True,
+        comment="会议邀请码，队友用此码加入会议",
+    )
+    invite_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True,
+        comment="邀请码过期时间，None=永不过期",
+    )
 
 
 class AgentExecutionStatus(StrEnum):

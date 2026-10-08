@@ -49,8 +49,11 @@ export const ExportToolbar: React.FC<ExportToolbarProps> = ({ report, onShareToK
 
   const handleExportPDF = async () => {
     setExporting(true);
+    // 首次调用需下载中文字体（~1MB），给用户明确提示
+    message.loading({ content: '正在生成 PDF（首次需加载中文字体，约 1 秒）…', key: 'pdf-load', duration: 0 });
     try {
       const result = await exportMeetingPDF(report);
+      message.destroy('pdf-load');
       message.success(
         t('postMeeting.pdfExported', {
           filename: result.filename,
@@ -58,6 +61,7 @@ export const ExportToolbar: React.FC<ExportToolbarProps> = ({ report, onShareToK
         })
       );
     } catch (e) {
+      message.destroy('pdf-load');
       message.error(t('postMeeting.exportFailed'));
       console.error(e);
     } finally {

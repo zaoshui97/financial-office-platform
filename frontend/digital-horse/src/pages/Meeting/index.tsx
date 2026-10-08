@@ -16,10 +16,12 @@ import {
   Typography,
   message,
 } from 'antd';
+import { KeyOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 import { MeetingRead, MeetingStatus, meetingApi } from '@/api/meeting';
 import { useMeetingStore } from '@/store/meetingStore';
+import { meetingInviteApi, JoinResult } from '@/api/meetingInvite';
 
 const STATUS_COLOR: Record<MeetingStatus, string> = {
   preparing: 'default',
@@ -40,6 +42,10 @@ export default function MeetingListPage() {
   const [statusFilter, setStatusFilter] = useState<MeetingStatus | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  // 用邀请码加入（任何角色都能用）
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
 
   useEffect(() => {
     loadList(statusFilter).catch((e) =>
@@ -64,6 +70,33 @@ export default function MeetingListPage() {
     }
   };
 
+  /** 用邀请码加入会议 —— 列表页快捷入口 */
+  const onJoinByCode = async () => {
+    const code = joinCode.trim();
+    if (!code) {
+      message.warning('请输入邀请码');
+      return;
+    }
+    setJoinLoading(true);
+    try {
+      const res: JoinResult = await meetingInviteApi.join(code);
+      if (res.joined) {
+        message.success(res.message || '加入成功');
+        setJoinOpen(false);
+        setJoinCode('');
+        // 刷新列表（让用户看到刚加入的会议）+ 跳详情
+        try { await loadList(statusFilter); } catch { /* ignore */ }
+        navigate(`/meetings/${res.meeting_id}`);
+      } else {
+        message.warning(res.message || '未加入会议');
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail ?? e?.message ?? '加入失败');
+    } finally {
+      setJoinLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
@@ -83,7 +116,17 @@ export default function MeetingListPage() {
               { value: 'preparing', label: '准备中' },
             ]}
           />
-          <Button type="primary" onClick={() => setModalOpen(true)}>
+          <Button
+            icon={<KeyOutlined />}
+            onClick={() => setJoinOpen(true)}
+          >
+            用邀请码加入
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setModalOpen(true)}
+          >
             新建会议
           </Button>
         </Space>
@@ -122,6 +165,37 @@ export default function MeetingListPage() {
             <Input placeholder="（可选）希望首先讨论什么" maxLength={500} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 用邀请码加入弹窗 —— 列表页入口，任何角色可用 */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined style={{ color: '#1890ff' }} />
+            <span>用邀请码加入会议</span>
+          </Space>
+        }
+        open={joinOpen}
+        onCancel={() => { setJoinOpen(false); setJoinCode(''); }}
+        onOk={onJoinByCode}
+        confirmLoading={joinLoading}
+        okText="加入"
+        cancelText="取消"
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            请向会议组织者获取 6 位字符串邀请码：
+          </Typography.Text>
+          <Input
+            size="large"
+            placeholder="例如：a8K2pZ"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            onPressEnter={onJoinByCode}
+            maxLength={32}
+            style={{ fontFamily: 'monospace', letterSpacing: 2, fontSize: 18 }}
+          />
+        </Space>
       </Modal>
     </div>
   );

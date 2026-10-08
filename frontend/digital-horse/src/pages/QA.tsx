@@ -73,8 +73,30 @@ const QA: React.FC = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  /** 动态获取当前用户知识库 ID（无 KB 时降级 LLM） */
+  const [knowledgeBaseId, setKnowledgeBaseId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // 启动时动态获取用户知识库列表
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const resp = await fetch('/api/v1/rag/knowledge-bases', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (resp.ok) {
+          const kbs: { id: number }[] = await resp.json();
+          if (kbs.length > 0) {
+            setKnowledgeBaseId(kbs[0].id);
+          }
+        }
+      } catch {
+        // KB 获取失败 → 用 null
+      }
+    })();
+  }, []);
 
   const currentConversation = conversations.find((c) => c.id === currentConversationId);
   const messages = currentConversation?.messages || [];
@@ -155,13 +177,13 @@ const QA: React.FC = () => {
     setInput('');
     setLoading(true);
 
-    // ── 真实后端 RAG 问答 ──
+    // ── 真实后端 RAG 问答（无知识库时降级 LLM）──
     try {
       const res = await chatApi.ask({
         message: userInput,
-        knowledge_base_id: 1,
-        mode: 'rag',
-        task: 'rag',
+        ...(knowledgeBaseId != null
+          ? { knowledge_base_id: knowledgeBaseId, mode: 'rag' as const, task: 'rag' }
+          : {}),
       });
       const data = res.data;
       const aiMessage: Message = {
@@ -189,7 +211,7 @@ const QA: React.FC = () => {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `⚠️ AI 服务暂时不可用：${errorMsg}\n\n请确保后端服务运行于 http://127.0.0.1:8001`,
+        content: `⚠️ AI 服务暂时不可用：${errorMsg}\n\n请确保后端服务运行于 http://127.0.0.1:8030`,
         timestamp: new Date(),
       };
       setConversations((prev) =>

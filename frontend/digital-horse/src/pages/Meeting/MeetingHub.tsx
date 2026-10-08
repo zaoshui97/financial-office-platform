@@ -15,8 +15,8 @@
  */
 
 import React, { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Card, Tabs, Spin, Alert, Typography, Space, Tag } from 'antd';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Card, Tabs, Spin, Alert, Typography, Space, Tag, Modal, Input, Button, message } from 'antd';
 import {
   UnorderedListOutlined,
   ProfileOutlined,
@@ -24,8 +24,10 @@ import {
   PlayCircleOutlined,
   FileTextOutlined,
   CalendarOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { meetingInviteApi, JoinResult } from '@/api/meetingInvite';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -53,6 +55,36 @@ const MeetingHub: React.FC = () => {
     isValidTab(rawTab) ? rawTab : 'list'
   );
   const syncedRef = React.useRef(false);
+  const navigate = useNavigate();
+
+  // 顶部栏"用邀请码加入"弹窗
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
+
+  const handleJoinByCode = async () => {
+    const code = joinCode.trim();
+    if (!code) {
+      message.warning('请输入邀请码');
+      return;
+    }
+    setJoinLoading(true);
+    try {
+      const res: JoinResult = await meetingInviteApi.join(code);
+      if (res.joined) {
+        message.success(res.message || '加入成功');
+        setJoinOpen(false);
+        setJoinCode('');
+        navigate(`/meeting?tab=detail&id=${res.meeting_id}`);
+      } else {
+        message.warning(res.message || '未加入会议');
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail ?? e?.message ?? '加入失败');
+    } finally {
+      setJoinLoading(false);
+    }
+  };
 
   // 同步 query: 仅在初次挂载或外部 query 真正变化时同步一次，避免 setSearchParams 反向触发自身形成循环
   useEffect(() => {
@@ -176,10 +208,19 @@ const MeetingHub: React.FC = () => {
                 {'5 大场景合一'}
               </Tag>
             </Space>
-<Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
-                会议从预约、详情、实时会议、彩排到报告生成，全在一个页面
-              </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+              会议从预约、详情、实时会议、彩排到报告生成，全在一个页面
+            </Text>
           </Space>
+          <Button
+            type="primary"
+            ghost
+            icon={<KeyOutlined />}
+            onClick={() => setJoinOpen(true)}
+            style={{ borderColor: 'rgba(255,255,255,0.6)', color: '#fff' }}
+          >
+            用邀请码加入
+          </Button>
         </Space>
       </Card>
 
@@ -209,6 +250,37 @@ const MeetingHub: React.FC = () => {
           </Suspense>
         </div>
       </Card>
+
+      {/* 用邀请码加入弹窗 —— Header 快捷入口 */}
+      <Modal
+        title={
+          <Space>
+            <KeyOutlined style={{ color: '#1890ff' }} />
+            <span>用邀请码加入会议</span>
+          </Space>
+        }
+        open={joinOpen}
+        onCancel={() => { setJoinOpen(false); setJoinCode(''); }}
+        onOk={handleJoinByCode}
+        confirmLoading={joinLoading}
+        okText="加入"
+        cancelText="取消"
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Text type="secondary">
+            请向会议组织者获取 6 位字符串邀请码：
+          </Text>
+          <Input
+            size="large"
+            placeholder="例如：a8K2pZ"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            onPressEnter={handleJoinByCode}
+            maxLength={32}
+            style={{ fontFamily: 'monospace', letterSpacing: 2, fontSize: 18 }}
+          />
+        </Space>
+      </Modal>
     </div>
   );
 };

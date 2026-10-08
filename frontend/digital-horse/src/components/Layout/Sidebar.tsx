@@ -257,6 +257,19 @@ const Sidebar: React.FC<SidebarProps> = ({ width }) => {
 
   const collapseText = collapsed ? t('sidebar.expand') : t('sidebar.collapse');
 
+  /** 计算当前应该高亮的菜单 key 集合
+   *  - 普通员工在 /approval/new 时，高亮 /approval 菜单（菜单 key 与路由不同步的兼容）
+   *  - 管理员在 /approval 时高亮 /approval
+   */
+  const selectedKeys = useMemo<string[]>(() => {
+    const path = location.pathname;
+    const keys: string[] = [path];
+    if (path === '/approval/new' && user?.role === 'USER') {
+      keys.push('/approval');
+    }
+    return keys;
+  }, [location.pathname, user?.role]);
+
   return (
     <Sider
       collapsible
@@ -311,7 +324,7 @@ const Sidebar: React.FC<SidebarProps> = ({ width }) => {
       <Menu
         theme="dark"
         mode="inline"
-        selectedKeys={[location.pathname]}
+        selectedKeys={selectedKeys}
         items={getMenuItems()}
         onClick={handleMenuClick}
         style={{

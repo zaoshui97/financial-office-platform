@@ -57,12 +57,14 @@ import { generateId } from '@/utils/format';
 import { useUserStore } from '@/store';
 import { useContactsStore } from '@/store';
 import { useLocalCamera } from '@/hooks/useLocalCamera';
+import { useScreenShare } from '@/hooks/useScreenShare';
 import { AgentPanel } from '@/components/Meeting/AgentPanel';
 import { PostMeetingDrawer } from '@/components/Meeting/PostMeeting/PostMeetingDrawer';
-import { resetMeeting, fanoutChunk, runClosingSummary } from '@/services/multiAgentOrchestrator';
+import { resetMeeting, fanoutChunk, runClosingSummary, runRehearsal } from '@/services/multiAgentOrchestrator';
 import { useBlackboard } from '@/services/useMultiAgent';
 import i18n from '@/i18n';
 import './MeetingRoom.css';
+import { TRANSCRIPT_LINES, STRATEGY_MEETING, PARTICIPANTS, type TranscriptLine } from './strategyMeetingData';
 
 const { Text, Paragraph } = Typography;
 
@@ -86,7 +88,32 @@ interface Participant {
   joinedAt: string;
   department?: string;
   position?: string;
+  /**
+   * 真实参会人视频 URL（MP4）。如果设置，VideoTile 优先展示该视频而不是头像占位。
+   * 视频本身应为静音、循环、铺满的占位视频。
+   */
+  videoUrl?: string;
 }
+
+/**
+ * 4 位战略会议主持人对应的 MP4 占位视频。
+ * dev 下由 vite 插件 strategyVideos 从桌面目录读取并流式返回（不拷入 dist）。
+ * 生产构建请部署这 4 个文件到 /videos/ 下，或改用 CDN 路径。
+ *
+ * 当前映射（参与者顺序：
+ *   张总 CEO · 机会派 ← jm.mp4
+ *   王总 CIO · 风险派 ← lbw.mp4
+ *   赵总 CFO · 财务派 ← lyt.mp4
+ *   李总 战略部 · 客户派 ← syr.mp4
+ */
+const STRATEGY_VIDEO_MAP: Record<string, string> = {
+  '张总': '/videos/jm.mp4',
+  '王总': '/videos/lbw.mp4',
+  '赵总': '/videos/lyt.mp4',
+  '李总': '/videos/syr.mp4',
+};
+
+const getVideoUrlForName = (name: string): string | undefined => STRATEGY_VIDEO_MAP[name];
 
 interface TranscriptItem {
   id: number;
@@ -145,42 +172,16 @@ const buildOtherParticipantsFromContacts = (
 };
 
 const getMockTranscripts = (isZh: boolean, hostName: string): TranscriptItem[] => {
-  // 模块级不能使用 hook 的 t，改用 i18n.t
-  const tKey = (key: string) => i18n.t(key);
-  return [
-    {
-      id: 1,
-      speaker: hostName || (tKey('meeting.host')),
-      speakerId: 'current-user',
-      content: tKey('auto.65'),
-      time: '14:00:01',
-      type: 'transcript',
-    },
-    {
-      id: 2,
-      speaker: tKey('auto.22'),
-      speakerId: 'user-002',
-      content: tKey('auto.64'),
-      time: '14:00:25',
-      type: 'transcript',
-    },
-    {
-      id: 3,
-      speaker: tKey('auto.21'),
-      speakerId: 'user-003',
-      content: tKey('auto.63'),
-      time: '14:01:15',
-      type: 'transcript',
-    },
-    {
-      id: 4,
-      speaker: hostName || (tKey('meeting.host')),
-      speakerId: 'current-user',
-      content: tKey('auto.62'),
-      time: '14:01:30',
-      type: 'transcript',
-    },
-  ];
+  // 直接复用 TRANSCRIPT_LINES 数据（年度战略规划研讨会）
+  // 列表倒序，最新一条在底部
+  return TRANSCRIPT_LINES.map((l) => ({
+    id: l.id,
+    speaker: l.speaker,
+    speakerId: l.speakerId,
+    content: l.content,
+    time: l.time,
+    type: l.type === 'ai-note' ? 'ai' : l.type === 'summary' ? 'ai' : 'transcript',
+  } as TranscriptItem));
 };
 
 const getMockAIMessages = (isZh: boolean): AIMessage[] => [
@@ -231,12 +232,15 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
 
   // 控制状态
   const [isMuted, setIsMuted] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  // 屏幕共享本地状态已迁移到 useScreenShare().active
   const [isRecording, setIsRecording] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 摄像头（真实接入）
   const camera = useLocalCamera();
+
+  // 屏幕共享（真实接入 getDisplayMedia）
+  const screenShare = useScreenShare();
 
   // 视图状态
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -304,33 +308,51 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
     }
   }, [id]);
 
-  // 初始化会议对象与转写内容
+  // 初始化会议对象（转写内容由下方"实时转写队列"逐条 push，不在此处预填）
   useEffect(() => {
     if (id) {
       setMeeting({
         id,
-        title: t('auto.14'),
+        title: STRATEGY_MEETING.title,
         startTime: new Date().toISOString(),
         endTime: '',
-        participants: [currentUserId, 'user-002', 'user-003', 'user-004', 'user-005'],
+        participants: PARTICIPANTS.map((p) => p.id),
         status: 'ongoing',
       });
     }
-    setTranscripts(getMockTranscripts(isZh, currentDisplayName));
+    // 先清空转写，让"实时队列"接管（避免重复添加）
+    setTranscripts([]);
     setAIMessages(getMockAIMessages(isZh));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // 构造参与者列表 + 同步本人摄像头/静音状态：合并到一个 effect，
-  // 用 ref 守卫避免重复 setParticipants，并消除两个 effect 之间的相互触发
+  // 构造参与者列表 + 同步本人摄像头/静音状态
+  // 强制 4 人参会（年度战略规划研讨会）：当前用户作为 host + 张/王/赵/李 总中的 3 位作为其他参会人
+  // （根据当前用户名推断替代关系）
   const lastParticipantsSnapshotRef = useRef<string>('');
   useEffect(() => {
-    const otherList = buildOtherParticipantsFromContacts(employees, currentDisplayName).map<Participant>(
-      (p) => ({ ...p, role: 'member' as const })
-    );
+    // 选 3 位非当前用户作为其他参会人
+    const otherProfiles = PARTICIPANTS.filter((p) => p.name !== currentDisplayName).slice(0, 3);
+    const otherList: Participant[] = otherProfiles.map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      avatar: p.avatarColor,
+      status: 'joined' as const,
+      isMuted: i % 2 === 0,
+      isVideoOff: false, // 4 人全部开摄像头（MP4 视频）
+      isSpeaking: false,
+      isScreenSharing: false,
+      joinedAt: new Date().toISOString(),
+      department: p.role,
+      position: p.stanceLabel,
+      role: 'member' as const,
+      videoUrl: getVideoUrlForName(p.name), // ← 关联 MP4
+    }));
+    // 第一位标为 co-host
     if (otherList.length > 0) {
       otherList[0] = { ...otherList[0], role: 'co-host' as const };
     }
+    // 构造 host 参与者（当前用户）
     const hostParticipant: Participant = {
       id: currentUserId,
       name: currentDisplayName,
@@ -353,7 +375,6 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
     setParticipants(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    employees.length,
     currentUserId,
     currentDisplayName,
     currentAvatar,
@@ -371,6 +392,55 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  // ============================================================
+  // 实时转写队列 + Agent 自动运行
+  //   - 按 delaySec 间隔逐条 push 到 transcripts（视觉真实）
+  //   - 每条触发时同步调用 fanoutChunk 走真实 multiAgentOrchestrator
+  //     → 右下 4 AgentCard 会显示 思考中→流式→完成（不再是"待机"）
+  //   - 进入会议时先跑 runRehearsal() 触发 4 Agent 起始思考
+  // ============================================================
+  const transcriptTimersRef = useRef<number[]>([]);
+  useEffect(() => {
+    // 清空旧 timer
+    transcriptTimersRef.current.forEach((tid) => window.clearTimeout(tid));
+    transcriptTimersRef.current = [];
+
+    // 重置多 Agent 状态 + 触发开场预演
+    if (id) {
+      resetMeeting(id);
+    }
+    // 异步触发开场预演（4 Agent 起步状态）
+    runRehearsal().catch((e) => console.error('[MeetingRoom] runRehearsal', e));
+
+    let cumulative = 0;
+    TRANSCRIPT_LINES.forEach((line) => {
+      cumulative += line.delaySec * 1000;
+      const tid = window.setTimeout(() => {
+        const item: TranscriptItem = {
+          id: line.id,
+          speaker: line.speaker,
+          speakerId: line.speakerId,
+          content: line.content,
+          time: line.time,
+          // AI 标注 & 会议总结 走 ai channel
+          type: line.type === 'ai-note' || line.type === 'summary' ? 'ai' : 'transcript',
+        };
+        setTranscripts((prev) => [...prev, item]);
+        // 同步触发 4 Agent 并行分析（仅对真实发言触发，AI 标注/总结不触发避免冗余）
+        if (line.type === 'speech') {
+          fanoutChunk(line.speaker, line.content).catch((e) => console.error('[MeetingRoom] fanout', e));
+        }
+      }, cumulative);
+      transcriptTimersRef.current.push(tid);
+    });
+
+    return () => {
+      transcriptTimersRef.current.forEach((tid) => window.clearTimeout(tid));
+      transcriptTimersRef.current = [];
+    };
+  }, [id]);
+
 
   // 模拟发言轮流
   // 修复：用 ref 保存最新 participants，避免过期闭包；用 speakerIndexRef 让重启 timer 不重置索引
@@ -556,7 +626,7 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
   // 更多菜单
   const moreMenuItems: MenuProps['items'] = [
     { key: 'record', icon: <SoundOutlined />, label: isRecording ? (t('auto.38')) : (t('auto.37')) },
-    { key: 'share', icon: <ShareAltOutlined />, label: isScreenSharing ? (t('meeting.stopSharing')) : (t('meeting.shareScreen')) },
+    { key: 'share', icon: <ShareAltOutlined />, label: screenShare.active ? (t('meeting.stopSharing')) : (t('meeting.shareScreen')), onClick: () => screenShare.toggle() },
     { key: 'lock', icon: <LockOutlined />, label: t('auto.54') },
     { type: 'divider' },
     { key: 'fullscreen', icon: isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />, label: isFullscreen ? (t('auto.53')) : (t('auto.52')) },
@@ -702,6 +772,26 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
             </div>
           )}
 
+          {screenShare.error && (
+            <div style={{
+              position: 'absolute', top: 12, left: 12, right: 12, zIndex: 30,
+              background: 'rgba(250, 173, 20, 0.15)', border: '1px solid #faad14',
+              padding: '6px 12px', borderRadius: 6, color: '#faad14', fontSize: 12,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <ExclamationCircleOutlined />
+              <span>{screenShare.error}</span>
+            </div>
+          )}
+
+          {/* 屏幕共享主舞台：active 时独占视频区，原始视频网格保留为缩略条 */}
+          {screenShare.active && screenShare.stream && (
+            <ScreenShareStage
+              stream={screenShare.stream}
+              onStop={screenShare.stop}
+            />
+          )}
+
           <div className="view-switcher">
             <Segmented
               value={viewMode}
@@ -785,13 +875,13 @@ const MeetingRoom: React.FC<MeetingRoomProps> = ({ meetingId: propMeetingId }) =
                 />
               </Tooltip>
 
-              <Tooltip title={isScreenSharing ? (t('meeting.stopSharing')) : (t('meeting.shareScreen'))}>
+              <Tooltip title={screenShare.active ? (t('meeting.stopSharing')) : (t('meeting.shareScreen'))}>
                 <Button
-                  type={isScreenSharing ? 'primary' : 'default'}
+                  type={screenShare.active ? 'primary' : 'default'}
                   shape="circle"
                   size="large"
                   icon={<DesktopOutlined />}
-                  onClick={() => setIsScreenSharing(!isScreenSharing)}
+                  onClick={() => screenShare.toggle()}
                 />
               </Tooltip>
 
@@ -1149,6 +1239,8 @@ const VideoTile: React.FC<VideoTileProps> = ({
 }) => {
   const { t } = useTranslation();
   const showCamera = isCurrentUser && !participant.isVideoOff && cameraStream;
+  // 4 位战略会议主持人的 MP4 视频：非当前用户 + 有关联视频 → 渲染 mp4
+  const showStrategyVideo = !isCurrentUser && !participant.isVideoOff && !!participant.videoUrl;
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -1177,6 +1269,21 @@ const VideoTile: React.FC<VideoTileProps> = ({
             objectFit: 'cover',
             background: '#000',
             transform: 'scaleX(-1)',
+          }}
+        />
+      ) : showStrategyVideo ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          src={participant.videoUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            background: '#000',
           }}
         />
       ) : (
@@ -1221,6 +1328,114 @@ const VideoTile: React.FC<VideoTileProps> = ({
           {t('auto.24')}
         </Tag>
       )}
+    </div>
+  );
+};
+
+/**
+ * ScreenShareStage —— 本地屏幕共享主舞台
+ *
+ * 用途：当本地用户点击"共享屏幕"按钮并选择窗口后，
+ *      在视频区上方覆盖一层 16:9 区域，渲染 getDisplayMedia 返回的 MediaStream。
+ *      原来的 4 宫格 / 演讲者视图缩到下方继续显示（用户可同时看到 4 个 Agent）。
+ *
+ * 为什么不放在宫格里？因为 4 宫格是"等大方块"，PPT 是 16:9 矩形，
+ *      放在宫格里要么裁剪要么缩得很小，体验差。
+ */
+interface ScreenShareStageProps {
+  stream: MediaStream;
+  onStop: () => void;
+}
+
+const ScreenShareStage: React.FC<ScreenShareStageProps> = ({ stream, onStop }) => {
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    el.play().catch(() => {
+      // autoplay 偶尔被拒；用户点一次画面会触发
+    });
+  }, [stream]);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 15,
+        background: '#0a0a0a',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain', // contain 不裁剪 PPT 黑边
+          background: '#000',
+        }}
+      />
+      {/* 顶部状态条：正在共享 + 停止按钮 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          right: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 10px',
+            background: 'rgba(0,0,0,0.55)',
+            color: '#fff',
+            borderRadius: 14,
+            fontSize: 12,
+            pointerEvents: 'auto',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: '#ff4d4f',
+              boxShadow: '0 0 6px #ff4d4f',
+            }}
+          />
+          {'正在共享屏幕'}
+        </div>
+        <Button
+          danger
+          size="small"
+          icon={<DesktopOutlined />}
+          onClick={onStop}
+          style={{ pointerEvents: 'auto' }}
+        >
+          {'停止共享'}
+        </Button>
+      </div>
     </div>
   );
 };

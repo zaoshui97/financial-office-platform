@@ -425,9 +425,12 @@ const Approval: React.FC = () => {
     setLoading(true);
     try {
       const resp = await approvalsApi.list({ scope, limit: 100 });
+      console.log('[Approval] loadList scope=', scope, 'items.length=', resp.items.length, 'total=', (resp as any).total);
+      console.log('[Approval] items[0] =', resp.items[0]);
       setBackendItems(resp.items);
       // 适配到 UI 结构
       const mapped: ApprovalItem[] = resp.items.map(mapBackendToUI);
+      console.log('[Approval] mapped.length =', mapped.length);
       setApprovalList(mapped.length > 0 ? mapped : MOCK_APPROVALS);
       setDataSource(mapped.length > 0 ? 'backend' : 'mock');
     } catch (err) {
@@ -489,6 +492,7 @@ const Approval: React.FC = () => {
 
   // 打开详情时拉附件元数据 + 完整审批详情（带 AI 审查）
   const [detailAI, setDetailAI] = useState<typeof import('@/api/aiReview').AIReviewReport | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   useEffect(() => {
     if (!detailItem || dataSource !== 'backend') {
       setDetailAttachments([]);
@@ -503,20 +507,21 @@ const Approval: React.FC = () => {
     }
     let cancelled = false;
     (async () => {
+      // 1) 拉附件（独立 try，失败时保留旧值，不影响附件展示）
       try {
-        const [atts, full] = await Promise.all([
-          attachmentsApi.listByBusiness('approval', approvalId),
-          approvalsApi.get(approvalId),
-        ]);
-        if (!cancelled) {
-          setDetailAttachments(atts.items);
-          setDetailAI(full.ai_review || null);
-        }
+        const atts = await attachmentsApi.listByBusiness('approval', approvalId);
+        if (!cancelled) setDetailAttachments(atts.items);
       } catch (e) {
-        if (!cancelled) {
-          setDetailAttachments([]);
-          setDetailAI(null);
-        }
+        console.warn('[Approval] 拉附件失败：', e);
+        if (!cancelled) setDetailAttachments([]);
+      }
+      // 2) 拉 AI 审查（独立 try）
+      try {
+        const full = await approvalsApi.get(approvalId);
+        if (!cancelled) setDetailAI(full.ai_review || null);
+      } catch (e) {
+        console.warn('[Approval] 拉详情失败（仅影响 AI 卡片）：', e);
+        if (!cancelled) setDetailAI(null);
       }
     })();
     return () => { cancelled = true; };
@@ -682,6 +687,31 @@ const Approval: React.FC = () => {
         setDetailItem(null);
       },
     });
+  };
+
+  // ── 手动触发 AI 审查 ──
+  const handleTriggerAIReview = async (id: string) => {
+    if (dataSource !== 'backend') {
+      message.info('演示模式：AI 审查需连接后端');
+      return;
+    }
+    setReviewing(true);
+    try {
+      const res = await approvalsApi.triggerReview(Number(id));
+      console.log('[AI 审查] 响应数据:', res);
+      message.success(
+        `AI 审查完成 → ${res.ai_suggestion === 'pass' ? '通过 ✓' : res.ai_suggestion === 'review' ? '建议复核 ⚠' : '建议驳回 ✗'}`,
+      );
+      // 更新 detailAI → AIReviewCard 自动重新渲染（4 维度完整报告）
+      setDetailAI(res.ai_review);
+      // 刷新列表（total / status 状态）
+      await loadList();
+    } catch (err) {
+      console.error('AI 审查失败', err);
+      message.error('AI 审查失败：' + ((err as any)?.response?.data?.detail || (err as Error).message));
+    } finally {
+      setReviewing(false);
+    }
   };
 
   // 催办（接入通知中心）
@@ -1070,8 +1100,34 @@ const Approval: React.FC = () => {
           </Space>
         }
       >
-        <Space style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
-          <Radio.Group
+        <div style={{ marginBottom: 12 }}>
+          {currentUser?.department && scope === 'dept' && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 8 }}
+              message={
+                <span>
+                  你正在以 <b>{currentUser.department}</b> 部门管理员身份查看本部门员工提交的审批；
+                  切到「全部」可看跨部门工单（仅超级管理员）。
+                </span>
+              }
+            />
+          )}
+          {currentUser?.department && scope === 'mine' && (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 8 }}
+              message={
+                <span>
+                  「我的申请」= 你作为申请人提交的所有工单（{currentUser.department}）。
+                </span>
+              }
+            />
+          )}
+          <Space style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Radio.Group
             value={scope}
             onChange={(e) => setScope(e.target.value as ApprovalScope)}
             optionType="button"
@@ -1084,7 +1140,8 @@ const Approval: React.FC = () => {
           <Text type="secondary" style={{ fontSize: 12 }}>
             {dataSource === 'backend' ? '已连接真实后端' : '演示数据（后端为空）'} · 共 {approvalList.length} 条
           </Text>
-        </Space>
+          </Space>
+        </div>
         <Tabs
           activeKey={selectedTab}
           onChange={setSelectedTab}
@@ -1405,7 +1462,22 @@ const Approval: React.FC = () => {
             </Divider>
             <Paragraph>{detailItem.description}</Paragraph>
 
-            {detailItem.aiPrecheck && (
+            {detailAI ? (
+              <>
+                <Divider orientation="left" style={{ fontSize: 14 }}>
+                  <Space>
+                    <RobotOutlined style={{ color: '#1890ff' }} />
+                    {t('approval.detail.aiPrecheck')}
+                    {detailAI.reviewed_at && (
+                      <Tag color="default" style={{ fontSize: 11 }}>
+                        {new Date(detailAI.reviewed_at).toLocaleString('zh-CN')}
+                      </Tag>
+                    )}
+                  </Space>
+                </Divider>
+                <AIReviewCard report={detailAI} />
+              </>
+            ) : (
               <>
                 <Divider orientation="left" style={{ fontSize: 14 }}>
                   <Space>
@@ -1416,36 +1488,25 @@ const Approval: React.FC = () => {
                 <Card
                   size="small"
                   style={{
-                    background: detailItem.aiPrecheck.passed
-                      ? 'rgba(34, 167, 117, 0.05)'
-                      : 'rgba(250, 140, 22, 0.05)',
-                    borderColor: detailItem.aiPrecheck.passed ? '#22A775' : '#fa8c16',
+                    background: '#fafafa',
+                    border: '1px dashed #d9d9d9',
+                    textAlign: 'center',
                   }}
                 >
-                  {detailItem.aiPrecheck.warnings.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <Text strong style={{ color: '#fa8c16' }}>
-                        <ExclamationCircleOutlined /> {t('approval.detail.riskWarning')}：
-                      </Text>
-                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
-                        {detailItem.aiPrecheck.warnings.map((w, i) => (
-                          <li key={i}>{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {detailItem.aiPrecheck.suggestions.length > 0 && (
-                    <div>
-                      <Text strong style={{ color: '#22A775' }}>
-                        <CheckCircleOutlined /> {t('approval.detail.suggestion')}：
-                      </Text>
-                      <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
-                        {detailItem.aiPrecheck.suggestions.map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                    此工单尚未经过 AI 合规审查
+                  </Paragraph>
+                  <Button
+                    type="primary"
+                    icon={<RobotOutlined />}
+                    loading={reviewing}
+                    onClick={() => handleTriggerAIReview(detailItem.id)}
+                  >
+                    {reviewing ? '审查中…' : '触发 AI 审查'}
+                  </Button>
+                  <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                    将执行 4 维度合规检查（合规 / 要素完整 / 异常检测 / 制度匹配）
+                  </Paragraph>
                 </Card>
               </>
             )}

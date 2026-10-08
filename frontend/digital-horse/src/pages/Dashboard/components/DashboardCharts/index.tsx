@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import './index.css';
 import { useNavigate } from 'react-router-dom';
+import { useUserStore } from '@/store/userStore';
 
 const { Text } = Typography;
 
@@ -49,6 +50,10 @@ const ENTRIES: EntryTile[] = [
 
 const DashboardCharts: React.FC = () => {
   const navigate = useNavigate();
+  const role = useUserStore((s) => s.user?.role);
+  const isAdmin = role === 'SUPER_ADMIN' || role === 'DEPT_ADMIN';
+  // 普通用户不展示「智能审批」入口
+  const visibleEntries = isAdmin ? ENTRIES : ENTRIES.filter((e) => e.key !== 'approval');
 
   return (
     <div className="dashboard-charts">
@@ -66,7 +71,7 @@ const DashboardCharts: React.FC = () => {
         }
       >
         <Row gutter={[12, 12]}>
-          {ENTRIES.map((e) => (
+          {visibleEntries.map((e) => (
             <Col xs={12} sm={12} md={6} key={e.key}>
               <div
                 onClick={() => navigate(e.path)}

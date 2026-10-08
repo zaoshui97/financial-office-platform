@@ -47,8 +47,9 @@ export interface ActionItem {
   status: 'todo' | 'in_progress' | 'done';
 }
 
-/** 会议状态 */
-export type MeetingStatus = 'pending' | 'ongoing' | 'ended';
+/** 会议状态（与后端 meeting_sessions.status 对齐：preparing/active/closed）
+ *  兼容旧 mock 数据里的 pending/ongoing/ended，统一映射见 meetingStore 的 normalizeStatus */
+export type MeetingStatus = 'preparing' | 'active' | 'closed' | 'pending' | 'ongoing' | 'ended';
 
 /** 会议详情 */
 export interface Meeting {

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { Layout as AntLayout } from 'antd';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import ChatDrawer from './ChatDrawer';
 import RoleSwitchModal from '@/components/RoleSwitchModal';
+import PageLoader from '@/components/PageLoader';
 import { useAppStore, useUserStore, useContactsStore } from '@/store';
 import { useWorkitemDueReminder } from '@/hooks/useWorkitemDueReminder';
 import type { ContactEmployee } from '@/types/contacts';
@@ -72,7 +73,13 @@ const AppLayout: React.FC = () => {
             background: '#F7F9FC',
           }}
         >
-          <Outlet />
+          {/*
+            路由级 Suspense：lazy() 页面 chunk 未到达时显示 PageLoader，
+            避免从 MeetingListPage → MeetingHub 等切换时整片白屏。
+          */}
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </Content>
       </AntLayout>
 

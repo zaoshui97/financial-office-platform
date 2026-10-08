@@ -34,10 +34,22 @@ class UserRead(BaseModel):
     id: int
     username: str
     email: EmailStr
-    full_name: str | None
+    full_name: str | None = None
+    department: str | None = None
+    position: str | None = None
+    business_line: str | None = None
+    compliance_level: str | None = None
     is_active: bool
     is_superuser: bool
     created_at: datetime
+    # 角色枚举（SUPER_ADMIN/DEPT_ADMIN/USER/AUDITOR），前端 store/路由守卫会读。
+    # 历史 UserRead 不带该字段，老调用方忽略即可；登录后由 /auth/me 显式填充。
+    role: str = "USER"
+
+    @property
+    def display_name(self) -> str:
+        """前端展示用：full_name 优先，没有就用 username。"""
+        return self.full_name or self.username
 
 
 class TokenResponse(BaseModel):

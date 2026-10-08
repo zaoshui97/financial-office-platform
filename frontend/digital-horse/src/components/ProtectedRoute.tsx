@@ -11,7 +11,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Result, Button } from 'antd';
-import { useUserStore, isTokenExpired } from '@/store/userStore';
+import { useUserStore, isTokenExpired, mapRoleFromBackend } from '@/store/userStore';
 import { authApi } from '@/api/auth';
 import { usePermission } from '@/hooks/usePermission';
 import type { Role } from '@/types/permission';
@@ -49,14 +49,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     authApi
       .me()
-      .then(({ data }) => {
+      .then((data) => {
+        // 注意：utils/request.ts 的 axios 拦截器已经 `return response.data`，
+        // 所以 authApi.me() 直接返回 UserRead 对象本身，data 就是用户。
+        if (!data || !data.id) return;
         // 把后端最新 user 信息同步回 store，避免角色不刷新
         useUserStore.getState().setUser({
           id: String(data.id),
           username: data.username,
           name: data.full_name || data.username,
           email: data.email,
-          role: data.is_superuser ? 'SUPER_ADMIN' : 'USER',
+          role: mapRoleFromBackend({
+            is_superuser: data.is_superuser,
+            role: (data as any).role,
+            position: (data as any).position,
+          }),
           department: '',
         });
       })

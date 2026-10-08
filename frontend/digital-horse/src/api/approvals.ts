@@ -92,8 +92,12 @@ export const approvalsApi = {
   },
 
   /** 创建审批 */
-  create: (data: { type: ApprovalType; title?: string; content: string }) =>
-    http.post<Approval>('/approvals', data),
+  create: (data: {
+    type: ApprovalType;
+    title?: string;
+    content: string;
+    attachment_ids?: number[];
+  }) => http.post<Approval>('/approvals', data),
 
   /** 审批详情 */
   get: (id: number) => http.get<Approval>(`/approvals/${id}`),
@@ -104,6 +108,13 @@ export const approvalsApi = {
   /** 对审批做操作 */
   act: (id: number, data: { action: ApprovalActionType; comment?: string }) =>
     http.post<ApprovalAction>(`/approvals/${id}/action`, data),
+
+  /** 手动触发 AI 审查 */
+  triggerReview: (id: number) =>
+    http.post<{ approval_id: number; ai_review: AIReviewReport; ai_suggestion: string; ai_reviewed_at: string }>(
+      `/approvals/${id}/review`,
+      {},
+    ),
 };
 
 export default approvalsApi;

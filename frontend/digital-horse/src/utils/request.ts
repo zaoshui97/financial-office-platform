@@ -39,9 +39,8 @@ const createRequest = () => {
   const instance: AxiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
     timeout: 30000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    // ⚠️ 不要设置默认 Content-Type —— FormData 请求要由浏览器自动生成 multipart boundary
+    // 否则 FastAPI 解析 multipart 会 422。request 拦截器会按 data 类型动态设置。
   });
 
   // Request interceptor: 注入 Bearer Token
@@ -51,14 +50,30 @@ const createRequest = () => {
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // ⚠️ 关键：如果请求体是 FormData，必须让浏览器自动设置 Content-Type（含 boundary）。
+      // 如果继续带默认的 application/json，FastAPI 解析 multipart 会 422。
+      // axios 不会自动清掉我们 create 时设的默认 header，所以这里手动删。
+      if (config.data instanceof FormData) {
+        if (config.headers) {
+          // AxiosHeaders 实例要 delete；普通对象要 delete 字段
+          try {
+            (config.headers as any).delete?.('Content-Type');
+            (config.headers as any).delete?.('content-type');
+          } catch {
+            // 兜底：直接设 undefined 也能让浏览器补
+            (config.headers as any)['Content-Type'] = undefined;
+            (config.headers as any)['content-type'] = undefined;
+          }
+        }
+      }
       return config;
     },
     (error) => Promise.reject(error),
   );
 
-  // Response interceptor: 统一错误处理（FastAPI 用 HTTPException 抛错，detail 是字符串）
+  // Response interceptor: 解开 data，统一错误处理
   instance.interceptors.response.use(
-    (response: AxiosResponse) => response,
+    (response: AxiosResponse) => response.data,
     (error: AxiosError<{ detail?: string | { msg?: string }[] }>) => {
       if (error.response) {
         const { status, data, config } = error.response;
@@ -105,9 +120,10 @@ const createRequest = () => {
         // 在 error 上保留 config，便于业务层做更精细处理
         (error as any).config = config;
       } else if (error.request) {
-        message.error('网络连接失败，请确认后端 /api/v1 可达');
+        // 网络层错误（拿不到任何响应），给一个短 toast，不挡住登录页
+        message.error({ content: '网络连接失败，请确认后端 /api/v1 可达', duration: 3, key: 'net-err' });
       } else {
-        message.error(error.message || '请求已取消');
+        message.error({ content: error.message || '请求已取消', duration: 3, key: 'req-err' });
       }
 
       return Promise.reject(error);

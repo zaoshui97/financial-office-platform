@@ -97,3 +97,22 @@ CREATE TABLE IF NOT EXISTS `im_direct_messages` (
   CONSTRAINT `fk_im_from` FOREIGN KEY (`from_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_im_to` FOREIGN KEY (`to_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== 6. 附件表（审批 / 其它业务关联）=====
+CREATE TABLE IF NOT EXISTS `attachments` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `stored_name` varchar(255) NOT NULL,
+  `original_filename` varchar(255) NOT NULL,
+  `extension` varchar(16) NOT NULL,
+  `content_type` varchar(100) DEFAULT NULL,
+  `size` int NOT NULL,
+  `business_type` varchar(32) DEFAULT NULL,
+  `business_id` bigint DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_attachment_uploader` (`user_id`),
+  KEY `idx_attachment_business` (`business_type`, `business_id`),
+  CONSTRAINT `fk_attachment_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -14,14 +14,15 @@ import { ROLE_LABELS, MOCK_USERS } from '@/types/permission';
 import { authApi } from '@/api/auth';
 import Logo from '@/components/Layout/Logo';
 import DingtalkQrLogin from '@/components/DingtalkQrLogin';
+import SystemHealthBanner from '@/components/SystemHealthBanner';
 
 /**
  * 真实模式 vs Mock 模式开关 —— 受 VITE_USE_MOCK 控制。
- * 当 VITE_USE_MOCK=false 时：
+ * 当 VITE_USE_MOCK=false 时（默认）：
  *   - handleLogin 严格走 /api/v1/auth/login
- *   - 快速体验账号按钮 / MOCK_USERS 一律不参与登录
+ *   - 快捷体验账号仍然显示，点击后调用后端真账号（已在 MySQL seed）
  * 当 VITE_USE_MOCK=true 时：
- *   - 保留原 mock 登录与快速体验账号，方便离线 Demo
+ *   - handleLogin 直接读 MOCK_USERS 放行；快捷按钮仍调本地假数据
  */
 const USE_MOCK: boolean = import.meta.env.VITE_USE_MOCK === 'true';
 
@@ -168,10 +169,12 @@ const Login: React.FC = () => {
     full_name: string | null;
     is_superuser?: boolean;
     role?: string;
+    position?: string;
   }) => {
     const role: Role = mapRoleFromBackend({
       is_superuser: backendUser.is_superuser,
       role: backendUser.role,
+      position: backendUser.position,
     });
     return {
       id: String(backendUser.id),
@@ -233,7 +236,9 @@ const Login: React.FC = () => {
     // ============ 真实模式：走 OAuth2PasswordRequestForm ============
     try {
       clearAuth();
-      const { data: token } = await authApi.login(values.username, values.password);
+      // 注意：utils/request.ts 的 axios 响应拦截器已经 `return response.data`，
+      // 所以 authApi.login() 直接返回 TokenResponse 对象，不要再解构 { data }。
+      const token = await authApi.login(values.username, values.password);
       setToken({
         access_token: token.access_token,
         token_type: token.token_type,
@@ -241,14 +246,28 @@ const Login: React.FC = () => {
         saved_at: Date.now(),
       });
       // 用 /auth/me 拉一次真实用户信息
-      const { data: me } = await authApi.me();
+      const me = await authApi.me();
       const userData = mapBackendUserToStore(me);
       setUser(userData);
       message.success(`${t('login.success')} - ${ROLE_LABELS[userData.role]}`);
       navigate(fromPath, { replace: true });
     } catch (err: any) {
-      // axios 拦截器已经弹过 message，这里仅记录并清理 token。
-      // 用户名/密码错误时后端返回 401 + detail，避免误判为成功。
+      // 友好错误提示：避免后端 JSON 解析失败 / 网络错误时一片空白
+      const status = err?.response?.status;
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        '登录失败';
+      if (status === 401) {
+        message.error(`用户名或密码错误。可用 demo 账号：admin_test / admin123 或 zhangsan / 123456`, 4);
+      } else if (status === 422) {
+        message.error('请求参数缺失，请检查用户名和密码是否填写', 4);
+      } else if (status === 0 || !status) {
+        message.error('后端服务不可达，请确认 uvicorn 已运行于 http://127.0.0.1:8030', 4);
+      } else {
+        message.error(`登录失败：${detail}`, 4);
+      }
       // eslint-disable-next-line no-console
       console.error('[login] 真实模式登录失败', err);
       clearAuth();
@@ -258,26 +277,23 @@ const Login: React.FC = () => {
   };
 
   const handleQuickLogin = (username: string, role: Role) => {
-    if (!USE_MOCK) {
-      message.warning('快速体验账号仅在 VITE_USE_MOCK=true 时可用，请用后端 admin 账号登录');
-      return;
-    }
     form.setFieldsValue({ username, password: '123456', role });
     handleLogin({ username, password: '123456', role });
   };
 
-  // 快速登录示例账号（仅 mock 模式显示）
+  // 快速登录示例账号 —— 后端 MySQL 已 seed 4 个账号（zhangsan/lisi/wangwu/zhaoliu，密码统一 123456）。
+  // 真实模式下：自动填表 + handleLogin 走 /api/v1/auth/login；mock 模式下：MOCK_USERS 直接放行。
   const quickAccounts: Array<{
     username: string;
     role: Role;
     label: string;
-  }> = USE_MOCK
-    ? [
-        { username: 'zhangsan', role: 'SUPER_ADMIN', label: '超级管理员（mock）' },
-        { username: 'lisi', role: 'DEPT_ADMIN', label: '部门管理员（mock）' },
-        { username: 'wangwu', role: 'USER', label: '普通用户（mock）' },
-      ]
-    : [];
+  }> = [
+    { username: 'zhangsan', role: 'SUPER_ADMIN', label: '张三（超级管理员）' },
+    { username: 'lisi', role: 'DEPT_ADMIN', label: '李四（合规部管理员）' },
+    { username: 'wangba', role: 'DEPT_ADMIN', label: '王八（市场部管理员）' },
+    { username: 'wangwu', role: 'USER', label: '王五（市场部员工）' },
+    { username: 'zhaoliu', role: 'AUDITOR', label: '赵六（审计员）' },
+  ];
 
   return (
     <div
@@ -287,9 +303,15 @@ const Login: React.FC = () => {
         overflow: 'hidden',
         position: 'relative',
         display: 'flex',
+        flexDirection: 'column',
         background: 'linear-gradient(120deg, #152b5c 0%, #1a3a72 45%, #234b9e 100%)',
       }}
     >
+      {/* 后端健康条幅 —— 顶部 */}
+      <SystemHealthBanner />
+
+      {/* 主体内容 */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       {/* 全屏共享动态粒子背景 */}
       <AnimatedBackground />
 
@@ -656,8 +678,7 @@ const Login: React.FC = () => {
             </div>
           </Form>
 
-          {/* 快速体验 —— 仅 mock 模式可见 */}
-          {USE_MOCK && (
+          {/* 快速体验账号 —— 后端已 seed 4 个 demo 账号（zhangsan/lisi/wangwu/zhaoliu，密码统一 123456）。*/}
           <div style={{ marginTop: 14 }}>
             <div
               style={{
@@ -668,7 +689,7 @@ const Login: React.FC = () => {
               }}
             >
               <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
-              <Text style={{ fontSize: 12, color: '#999' }}>快速体验（Mock）</Text>
+              <Text style={{ fontSize: 12, color: '#999' }}>快速体验账号</Text>
               <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
             </div>
 
@@ -697,9 +718,9 @@ const Login: React.FC = () => {
               })}
             </Space>
           </div>
-          )}
         </div>
       </div>
+      </div>  {/* 主体内容结束 */}
 
       {/* 钉钉扫码登录 Modal（仿真 OAuth） */}
       <DingtalkQrLogin

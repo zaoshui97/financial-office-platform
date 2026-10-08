@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.features.auth.dependencies import CurrentUser
+from app.features.compliance.check_service import execute_sandbox_check
 from app.features.compliance.models import ComplianceAuditLog
 from app.features.compliance.schemas import (
     AuditLogListResponse,
@@ -19,6 +20,8 @@ from app.features.compliance.schemas import (
     KillSwitchResponse,
     SandboxChatRequest,
     SandboxChatResponse,
+    SandboxCheckRequest,
+    SandboxCheckResponse,
 )
 from app.features.compliance.service import execute_sandbox_chat
 
@@ -37,6 +40,24 @@ def sandbox_chat(
 ) -> SandboxChatResponse:
     """在受限 Provider + 脱敏 + 全量审计下进行 LLM 对话。"""
     return execute_sandbox_chat(db, current_user.id, data)
+
+
+@router.post(
+    "/check",
+    response_model=SandboxCheckResponse,
+    summary="合规沙箱结构化审查（4 层防御 + 词库 + 脱敏 + 审计）",
+)
+def sandbox_check(
+    data: SandboxCheckRequest,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> SandboxCheckResponse:
+    """结构化审查输入文本，返回 9 大类风险清单 + 评分 + 法规引用 + 审计 ID。
+
+    不调 LLM 生成回答，纯粹基于守卫 4 层防御 + 内置规则库 + PII 脱敏 + 审计。
+    供前端 SandboxRunner 调用，替代前端本地 mock 引擎。
+    """
+    return execute_sandbox_check(db, current_user.id, data)
 
 
 @router.get(

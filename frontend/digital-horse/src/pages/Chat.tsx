@@ -80,9 +80,31 @@ const Chat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   /** 合规校验开关：开启后 AI 输出会过沙箱检测，命中风险时显示标识 */
   const [complianceCheckEnabled, setComplianceCheckEnabled] = useState(false);
+  /** 动态获取当前用户知识库 ID（无 KB 时自动降级到 LLM 模式） */
+  const [knowledgeBaseId, setKnowledgeBaseId] = useState<number | null>(null);
   const [sessionId] = useState(() => Date.now().toString());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamingTimerRef = useRef<number | null>(null);
+
+  // 启动时动态获取用户知识库列表（无 KB 则用 null → 降级 LLM）
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const resp = await fetch('/api/v1/rag/knowledge-bases', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (resp.ok) {
+          const kbs: { id: number }[] = await resp.json();
+          if (kbs.length > 0) {
+            setKnowledgeBaseId(kbs[0].id);
+          }
+        }
+      } catch {
+        // KB 获取失败 → 用 null，不阻断对话
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -111,14 +133,15 @@ const Chat: React.FC = () => {
     setInput('');
     setLoading(true);
 
-    // ── 真实后端 RAG 问答 ──
+    // ── 真实后端 RAG 问答（无知识库时降级到 LLM 模式）──
     try {
       const { chatApi } = await import('@/api/chat');
+      // 有知识库时用 RAG，没有时自动降级到 LLM（mode 不传或传 'llm'）
       const res = await chatApi.ask({
         message: query,
-        knowledge_base_id: 1,        // 金融法规库（演示固定用 KB id=1）
-        mode: 'rag',
-        task: 'rag',
+        ...(knowledgeBaseId != null
+          ? { knowledge_base_id: knowledgeBaseId, mode: 'rag' as const, task: 'rag' }
+          : {}),
       });
 
       const data = res.data;
@@ -189,7 +212,7 @@ const Chat: React.FC = () => {
       const aiMessage: Message = {
         id: messageId,
         role: 'assistant',
-        content: `⚠️ AI 服务暂时不可用：${errorMsg}\n\n请确保后端服务（uvicorn）正在运行于 http://127.0.0.1:8001`,
+        content: `⚠️ AI 服务暂时不可用：${errorMsg}\n\n请确保后端服务（uvicorn）正在运行于 http://127.0.0.1:8030`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);

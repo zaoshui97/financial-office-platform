@@ -3,7 +3,7 @@
  * 定义角色、菜单配置和权限相关类型
  */
 
-export type Role = 'USER' | 'DEPT_ADMIN' | 'SUPER_ADMIN';
+export type Role = 'USER' | 'DEPT_ADMIN' | 'SUPER_ADMIN' | 'AUDITOR';
 
 /** 菜单分组 */
 export type MenuGroup = 'core' | 'compliance' | 'knowledge' | 'ai' | 'system' | 'communication';
@@ -44,6 +44,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   'SUPER_ADMIN': '超级管理员',
   'DEPT_ADMIN': '部门管理员',
   'USER': '普通员工',
+  'AUDITOR': '审计员',
 };
 
 /** 菜单分组显示名称 */

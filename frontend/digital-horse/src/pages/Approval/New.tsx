@@ -13,7 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card, Form, Input, Select, Button, Space, Typography, Upload, message,
-  App, Row, Col, Tag, Result, Alert,
+  Row, Col, Tag, Result, Alert,
 } from 'antd';
 import {
   InboxOutlined, ArrowLeftOutlined, FileTextOutlined, PaperClipOutlined,
@@ -33,9 +33,17 @@ const TYPE_OPTIONS: { value: ApprovalType; label: string; color: string; hint: s
   { value: 'general',    label: '通用申请', color: '#0F2B5B', hint: '其它事务' },
 ];
 
+/** 把字节数格式化成 KB / MB；size 缺失时显示 — 而不是 NaN */
+const formatSize = (size: number | null | undefined): string => {
+  if (typeof size !== 'number' || !Number.isFinite(size) || size < 0) return '—';
+  if (size === 0) return '0 B';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(2)} MB`;
+};
+
 const NewApprovalPage: React.FC = () => {
   const navigate = useNavigate();
-  const { message: msgApi } = App.useApp();
   const [form] = Form.useForm();
   const user = useUserStore((s) => s.user);
   const [submitting, setSubmitting] = useState(false);
@@ -47,44 +55,84 @@ const NewApprovalPage: React.FC = () => {
     setUploading(true);
     try {
       const att = await attachmentsApi.upload(file);
+      // eslint-disable-next-line no-console
+      console.log('[NewApproval] uploaded att =', att, 'size =', att?.size, 'typeof =', typeof att?.size);
       setAttachments((prev) => [...prev, att]);
-      msgApi.success(`已上传：${att.original_filename}`);
-    } catch (e) {
-      msgApi.error('上传失败');
-      console.error(e);
+      message.success(`已上传：${att.original_filename}`);
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail || e?.message || String(e);
+      message.error(`上传失败：${detail}`);
+      // eslint-disable-next-line no-console
+      console.error('[NewApproval] upload failed', e);
     } finally {
       setUploading(false);
     }
     return false; // 阻止 antd 自动上传
   };
 
+  // AntD v5 推荐：接管上传就用 customRequest，让 file 不再走 ajax 默认分支
+  const customRequest = ({ file, onSuccess, onError }: any) => {
+    Promise.resolve()
+      .then(() => handleUpload(file as File))
+      .then(() => onSuccess && onSuccess({}, new XMLHttpRequest()))
+      .catch((err) => onError && onError(err));
+  };
+
   const handleRemove = async (att: Attachment) => {
     try {
       await attachmentsApi.remove(att.id);
       setAttachments((prev) => prev.filter((a) => a.id !== att.id));
-      msgApi.success('已删除');
+      message.success('已删除');
     } catch (e) {
-      msgApi.error('删除失败');
+      message.error('删除失败');
     }
   };
 
   const handleSubmit = async () => {
+    console.log('[NewApproval] handleSubmit CLICKED, attachments =', attachments.length);
     try {
       const values = await form.validateFields();
+      console.log('[NewApproval] validateFields OK, values =', values);
       setSubmitting(true);
-      const created = await approvalsApi.create({
+      const payload = {
         type: values.type,
         title: values.title,
         content: values.content,
         attachment_ids: attachments.map((a) => a.id),
-      });
-      msgApi.success('已提交，审批已入列');
+      };
+      console.log('[NewApproval] sending payload =', JSON.stringify(payload));
+      const created: any = await approvalsApi.create(payload);
+      console.log('[NewApproval] created RAW =', JSON.stringify(created));
+      console.log('[NewApproval] created.id =', created?.id, 'created.title =', created?.title);
+      if (!created || created.id == null) {
+        console.error('[NewApproval] created has no id, full =', created);
+        return;
+      }
+      // 用直接 antd message API（不走 App context，最稳）
+      message.success('已提交，审批已入列 #' + created.id);
       setResult({ id: created.id, title: created.title || values.title });
     } catch (e: any) {
+      console.error('[NewApproval] CAUGHT error =', e);
+      console.error('[NewApproval] e.stack =', e?.stack);
+      console.error('[NewApproval] e.errorFields =', e?.errorFields);
+      console.error('[NewApproval] e.response =', e?.response);
+      // 1) antd 表单校验错误
       if (e?.errorFields) {
-        msgApi.warning('请补全必填项');
+        const fieldList = e.errorFields.map((f: any) => `${f.name?.join('.') || '?'}: ${f.errors?.join('、') || '必填'}`).join('；');
+        message.error(`表单未通过校验：${fieldList}`);
+        return;
+      }
+      // 2) Axios 错误 → 把后端 detail / status 完整吐出来
+      const status = e?.response?.status;
+      const detail =
+        e?.response?.data?.detail ||
+        e?.response?.data?.message ||
+        e?.message ||
+        String(e);
+      if (status) {
+        message.error(`提交失败 (HTTP ${status})：${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
       } else {
-        console.error(e);
+        message.error(`提交失败：${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
       }
     } finally {
       setSubmitting(false);
@@ -139,7 +187,12 @@ const NewApprovalPage: React.FC = () => {
               </Space>
             }
           >
-            <Form form={form} layout="vertical" requiredMark="optional" initialValues={{ type: 'general' }}>
+            <Form
+              form={form}
+              layout="vertical"
+              requiredMark="optional"
+              initialValues={{ type: 'general' }}
+            >
               <Form.Item
                 name="type"
                 label="审批类型"
@@ -160,20 +213,32 @@ const NewApprovalPage: React.FC = () => {
               <Form.Item
                 name="title"
                 label="标题"
+                preserve={true}
+                getValueFromEvent={(e) => (e?.target?.value ?? '')}
                 rules={[
                   { required: true, message: '请填写标题' },
                   { max: 200, message: '标题不能超过 200 字' },
+                  { whitespace: true, message: '标题不能全是空格' },
                 ]}
               >
-                <Input size="large" placeholder="如：Q4 部门团建预算申请" maxLength={200} showCount />
+                <Input
+                  size="large"
+                  placeholder="如：Q4 部门团建预算申请"
+                  maxLength={200}
+                  showCount
+                  autoComplete="off"
+                />
               </Form.Item>
 
               <Form.Item
                 name="content"
                 label="申请详情"
+                preserve={true}
+                getValueFromEvent={(e) => (e?.target?.value ?? '')}
                 rules={[
                   { required: true, message: '请填写申请详情' },
                   { min: 10, message: '详情至少 10 字' },
+                  { whitespace: true, message: '详情不能全是空格' },
                 ]}
               >
                 <Input.TextArea
@@ -181,19 +246,18 @@ const NewApprovalPage: React.FC = () => {
                   placeholder="详细说明：背景、金额、时间、需要的支持等…"
                   maxLength={64000}
                   showCount
+                  autoComplete="off"
                 />
               </Form.Item>
 
-              <Form.Item label="附件（可选，最多 20 MB / 个）">
+              <Form.Item label="附件（可选，最多 20 MB / 个）" valuePropName="fileList">
                 <Dragger
-                  name="file"
                   multiple
-                  beforeUpload={(file) => {
-                    handleUpload(file);
-                    return false;
-                  }}
+                  customRequest={customRequest}
                   showUploadList={false}
                   disabled={uploading}
+                  maxCount={20}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.zip,.rar"
                 >
                   <p className="ant-upload-drag-icon">
                     <InboxOutlined style={{ color: '#0F2B5B' }} />
@@ -217,7 +281,7 @@ const NewApprovalPage: React.FC = () => {
                           <Space>
                             <PaperClipOutlined style={{ color: '#0F2B5B' }} />
                             <Text strong>{att.original_filename}</Text>
-                            <Tag>{(att.size / 1024).toFixed(1)} KB</Tag>
+                            <Tag>{formatSize(att.size)}</Tag>
                           </Space>
                           <Space>
                             <Button

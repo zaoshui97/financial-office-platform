@@ -1,5 +1,9 @@
-"""审批模块 REST 路由。"""
+"""审批模块 REST 路由。
 
+FastAPI 按定义顺序匹配路径！
+子路径路由（/{id}/xxx）必须写在 /{id} 通配符路由之前，
+否则 "34/review" 会被 "/{approval_id}" 截获 → 404。
+"""
 from __future__ import annotations
 
 from typing import Annotated
@@ -9,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.features.approval.schemas import (
+    AIReviewResponse,
     ApprovalActionRead,
     ApprovalActionRequest,
     ApprovalCreate,
@@ -21,6 +26,7 @@ from app.features.approval.service import (
     get_approval,
     list_approval_actions,
     list_approvals,
+    trigger_ai_review,
 )
 from app.features.auth.dependencies import CurrentUser
 
@@ -59,19 +65,7 @@ def get_approvals(
     return ApprovalListResponse.model_validate(result)
 
 
-@router.get(
-    "/{approval_id}",
-    response_model=ApprovalRead,
-    summary="审批详情",
-)
-def get_approval_route(
-    approval_id: int,
-    current_user: CurrentUser,
-    db: Annotated[Session, Depends(get_db)],
-) -> ApprovalRead:
-    return ApprovalRead.model_validate(
-        get_approval(db, approval_id, current_user.id)
-    )
+# ── 子路径路由（必须在 /{approval_id} 通配符之前）──────────────────────────────
 
 
 @router.get(
@@ -89,6 +83,26 @@ def get_approval_actions_route(
 
 
 @router.post(
+    "/{approval_id}/review",
+    response_model=AIReviewResponse,
+    summary="手动触发 AI 审查（4 维度合规检查）",
+)
+def post_ai_review(
+    approval_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> AIReviewResponse:
+    """任何人可对 pending/draft 状态的审批单手动触发 AI 审查。
+
+    审查完成后更新 approval.ai_review / ai_suggestion / ai_reviewed_at，
+    详情页刷新即可看到最新报告。
+    """
+    return AIReviewResponse.model_validate(
+        trigger_ai_review(db, approval_id, current_user.id)
+    )
+
+
+@router.post(
     "/{approval_id}/action",
     response_model=ApprovalActionRead,
     summary="对审批做操作（approve/reject/urge/comment/close）",
@@ -103,4 +117,22 @@ def post_approval_action(
         act_on_approval(
             db, approval_id, current_user.id, data.action, data.comment, data.override_reason
         )
+    )
+
+
+# ── /{approval_id} 通配符路由（必须在所有子路径之后）───────────────────────────
+
+
+@router.get(
+    "/{approval_id}",
+    response_model=ApprovalRead,
+    summary="审批详情",
+)
+def get_approval_route(
+    approval_id: int,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ApprovalRead:
+    return ApprovalRead.model_validate(
+        get_approval(db, approval_id, current_user.id)
     )

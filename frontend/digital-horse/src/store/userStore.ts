@@ -52,10 +52,12 @@ interface UserState {
 export function mapRoleFromBackend(user: {
   is_superuser?: boolean;
   role?: string;
+  position?: string;
 }): Role {
-  if (user?.role === 'SUPER_ADMIN' || user?.role === 'DEPT_ADMIN' || user?.role === 'USER') {
+  if (user?.role === 'SUPER_ADMIN' || user?.role === 'DEPT_ADMIN' || user?.role === 'USER' || user?.role === 'AUDITOR') {
     return user.role;
   }
+  if (user?.position === '审计员') return 'AUDITOR';
   return user?.is_superuser ? 'SUPER_ADMIN' : 'USER';
 }
 
